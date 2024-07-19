@@ -108,7 +108,7 @@ const Mentors = () => {
         disabled={loading}
         className={`bg-${mentor.status === 'Not Verified' ? 'green' : mentor.status === 'Verified' ? 'red' : 'green'}-500 hover:bg-${mentor.status === 'Not Verified' ? 'green' : mentor.status === 'Verified' ? 'red' : 'green'}-700 text-white font-bold py-2 px-4 rounded`}
       >
-        {mentor.status === 'Not Verified' ? 'Verify' : mentor.status === 'Verified' ? 'Deny Access' : 'Verify'}
+        {mentor.status === 'Not Verified' ? 'Verify' : mentor.status === 'Verified' ? 'Not Verified' : 'Verify'}
       </button>
     </div>
   </div>
