@@ -88,15 +88,20 @@ const Mentors = () => {
       ) : (
         mentors.length > 0 ? (
           <div>
-            {mentors.map((mentor) => (
-  <div key={mentor._id} className="bg-white shadow-md rounded-lg p-4 cursor-pointer hover:shadow-lg transition-shadow duration-300 overflow-hidden max-w-md md:max-w-lg lg:max-w-xl">
+           {mentors.map((mentor) => (
+  <div
+    key={mentor._id}
+    className="bg-white shadow-md rounded-lg p-4 cursor-pointer hover:shadow-lg transition-shadow duration-300 overflow-hidden max-w-md md:max-w-lg lg:max-w-xl"
+    onClick={() => setSelectedMentor(mentor)} // Add this line
+  >
     <h2 className="text-lg font-bold text-gray-900 overflow-hidden whitespace-nowrap overflow-ellipsis">
       {mentor.firstname} {mentor.lastname}
     </h2>
     <p className="text-gray-600 font-bold truncate">Email: {mentor.email}</p>
     <div className="flex justify-center mt-4">
       <button
-        onClick={() => {
+        onClick={(e) => {
+          e.stopPropagation(); // Add this line
           if (mentor.status === 'Not Verified') {
             handleVerification(mentor._id, 'Verified');
           } else if (mentor.status === 'Verified') {
@@ -106,9 +111,9 @@ const Mentors = () => {
           }
         }}
         disabled={loading}
-        className={`bg-${mentor.status === 'Not Verified' ? 'green' : mentor.status === 'Verified' ? 'red' : 'green'}-500 hover:bg-${mentor.status === 'Not Verified' ? 'green' : mentor.status === 'Verified' ? 'red' : 'green'}-700 text-white font-bold py-2 px-4 rounded`}
+        className={`bg-${mentor.status === 'Not Verified'? 'green' : mentor.status === 'Verified'? 'red' : 'green'}-500 hover:bg-${mentor.status === 'Not Verified'? 'green' : mentor.status === 'Verified'? 'red' : 'green'}-700 text-white font-bold py-2 px-4 rounded`}
       >
-        {mentor.status === 'Not Verified' ? 'Verify' : mentor.status === 'Verified' ? 'Not Verified' : 'Verify'}
+        {mentor.status === 'Not Verified'? 'Verify' : mentor.status === 'Verified'? 'Not Verified' : 'Verify'}
       </button>
     </div>
   </div>
