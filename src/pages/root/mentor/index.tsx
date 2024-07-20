@@ -29,7 +29,7 @@ interface Mentor {
     standard: string[];
     competitiveExam: string[];
   };
-  status: string; // added status property
+  status: string; 
 }
 
 const Mentors = () => {
@@ -111,9 +111,9 @@ const Mentors = () => {
           }
         }}
         disabled={loading}
-        className={`bg-${mentor.status === 'Not Verified'? 'green' : mentor.status === 'Verified'? 'red' : 'green'}-500 hover:bg-${mentor.status === 'Not Verified'? 'green' : mentor.status === 'Verified'? 'red' : 'green'}-700 text-white font-bold py-2 px-4 rounded`}
+        className={`bg-${mentor.status === 'Not Verified'? 'green' : mentor.status === 'Verified'? 'red' : 'green'}-500 hover:bg-${mentor.status === 'Denied'? 'green' : mentor.status === 'Verified'? 'red' : 'green'}-700 text-white font-bold py-2 px-4 rounded`}
       >
-        {mentor.status === 'Not Verified'? 'Verify' : mentor.status === 'Verified'? 'Not Verified' : 'Verify'}
+        {mentor.status === 'Not Verified'? 'Verify' : mentor.status === 'Verified'? 'Deny Access' : 'Verify'}
       </button>
     </div>
   </div>
