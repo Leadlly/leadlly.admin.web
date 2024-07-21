@@ -1,28 +1,47 @@
-// import Image from 'next/image';
-import { Eye, EyeOff, Key, Loader2, Mail, User } from 'lucide-react';
-// import Link from 'next/link';
-// import { useForm } from "react-hook-form";
+
+import { CheckCircle, Eye, EyeOff, Key, Loader2, Mail, User } from 'lucide-react';
 import { useState } from 'react';
 
-// import { Button } from '../../components/ui/button';
-// import { FormControl, FormField, FormItem, FormMessage } from '../../components/ui/form';
 import { Input } from '../../components/ui/input';
 import { Button } from '../../components/ui/button';
+import apiClient from '../../apiClient/apiClient';
+// import { toast } from 'react-toastify';
+// import ToastNotification from '../../components/ui/toaster';
+// import { toast } from 'sonner';
 
 const Signup = () => {
-  // const [name, setName] = useState('');
-  // const [email, setEmail] = useState('');
-  // const [password, setPassword] = useState('');
+  const [firstname, setFirstname] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
   const [togglePassword, setTogglePassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [signupSuccess, setSignupSuccess] = useState(false);
 
-  const handleSubmit = (event:any) => {
+  const handleSubmit = async (event: any) => {
     event.preventDefault();
     setIsSubmitting(true);
-    console.log('Form submitted:', { name});
-    // Add your form submission logic here
+    
+
+    try {
+      const response = await apiClient.post(`/api/auth/admin/register`, {
+        firstname,
+        email,
+        password,
+      });
+
+      if (response.status === 200) {
+        console.log('User registered successfully');
+        setSignupSuccess(true)
+      } else {
+        console.log('Error registering user:', response.data);
+      }
+    } catch (error: any) {
+      console.log(error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
-  // const { control } = useForm();
 
   return (
     <div className="h-main-height  ">
@@ -55,14 +74,21 @@ const Signup = () => {
           </div>
           <form onSubmit={handleSubmit}>
         <div className='mb-2'>
-            <Input   icon1={<User className="w-5 h-5 opacity-70" />} placeholder="Enter full name" type="text" 
-            // onChange={(e) => setName(e.target.value)} 
-            />
+        <Input
+          icon1={<User className="w-5 h-5 opacity-70" />}
+          placeholder="Enter full name"
+          type="text"
+          value={firstname}
+          required
+          onChange={(e) => setFirstname(e.target.value)}
+        />
 
         </div>
         <div className='mb-2'> 
             <Input placeholder="Enter your email" icon1={<Mail className="w-5 h-5 opacity-70" />} type="email" 
-            // onChange={(e) => setEmail(e.target.value)} 
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
             />
         </div>
         <div className='mb-2'>
@@ -70,6 +96,9 @@ const Signup = () => {
               type={togglePassword? 'text' : 'password'}
               icon1={<Key className="w-5 h-5 opacity-70" />}
               placeholder="Create password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
               
               // onChange={(e) => setPassword(e.target.value)}
               icon2={
@@ -90,20 +119,22 @@ const Signup = () => {
            
         </div>
         <Button
-                  type="submit"
-                  className="w-full text-xl h-12 rounded-lg  bg-[#9652f4]"
-                  disabled={isSubmitting}
-                  
-                >
-                  {isSubmitting ? (
-                    <span className="flex items-center">
-                      <Loader2 className="mr-2 w-5 h-5 animate-spin" /> Signing
-                      Up
-                    </span>
-                  ) : (
-                    "Sign Up"
-                  )}
-                </Button>
+    type="submit"
+     className="w-full text-xl h-12 rounded-lg bg-[#9652f4] hover:bg-[#9652f4d1] transition duration-300 ease-in-out"
+    disabled={isSubmitting}
+  >
+    {isSubmitting ? (
+      <span className="flex items-center">
+        <Loader2 className="mr-2 w-5 h-5 animate-spin" /> Signing Up
+      </span>
+    ) : signupSuccess ? (
+      <span className="flex items-center">
+        <CheckCircle className="mr-2 w-5 h-5 text-green-500" /> Signed Up Successfully!
+      </span>
+    ) : (
+      "Sign Up"
+    )}
+  </Button>
       </form>
       <p className="w-full text-center text-base md:text-lg">
               Already have an account?{" "}

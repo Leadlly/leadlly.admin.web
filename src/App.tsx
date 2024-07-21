@@ -1,8 +1,9 @@
 import './App.css'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Mentors from './pages/root/mentor'
-// import Login from './pages/auth/Login'
+import Login from './pages/auth/Login'
 import Singup from './pages/auth/Singup'
+import ForgotPassword from './pages/auth/ForgotPassword'
 
 function App() {
 
@@ -10,8 +11,9 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path='/' element={ <Mentors/>}/>
-        {/* <Route path='/login' element={ <Login/>}/> */}
+        <Route path='/login' element={ <Login/>}/>
         <Route path='/signup' element={ <Singup/>}/>
+        <Route path='/forgotpassword' element={ <ForgotPassword />}/>
       </Routes>
       
     </BrowserRouter>
