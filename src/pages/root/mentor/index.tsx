@@ -43,7 +43,7 @@ const Mentors = () => {
   const fetchMentors = async () => {
     setLoading(true);
     try {
-      const response = await apiClient.get('/api/auth/admin/mentor');
+      const response = await apiClient.get('/api/mentor/getmentor');
       setMentors(response.data.mentors);
       setLoading(false);
     } catch (error) {
