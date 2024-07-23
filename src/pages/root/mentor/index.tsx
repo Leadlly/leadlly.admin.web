@@ -59,12 +59,12 @@ const Mentors = () => {
 
   const handleVerification = async (id: string, status: string) => {
     try {
-      const response = await apiClient.put(`/api/auth/admin/verify/${id}`, { status });
+      const response = await apiClient.put(`/api/mentor/verify/${id}`, { status });
       if (response.data.success) {
         toast.success(`Mentor ${status === 'Verified' ? 'verified' : 'denied access'} successfully!`);
         setMentors((prevMentors) =>
           prevMentors.map((mentor) =>
-            mentor._id === id ? { ...mentor, status: status === 'Verified' ? 'Verified' : 'Denied' } : mentor
+            mentor._id === id ? { ...mentor, status: status === 'Verified' ? 'Verified' : 'Not Verified' } : mentor
           )
         );
       } else {
@@ -116,13 +116,13 @@ const Mentors = () => {
            {mentors.map((mentor) => (
   <div
     key={mentor._id}
-    className="bg-white shadow-md rounded-lg p-4 cursor-pointer hover:shadow-lg transition-shadow duration-300 overflow-hidden max-w-md md:max-w-lg lg:max-w-xl mt-4"
+    className="bg-gray-400 shadow-md rounded-lg p-4 cursor-pointer hover:shadow-lg transition-shadow duration-300 overflow-hidden max-w-md md:max-w-lg lg:max-w-xl mt-4"
     onClick={() => setSelectedMentor(mentor)} 
   >
     <h2 className="text-lg font-bold text-gray-900 overflow-hidden whitespace-nowrap overflow-ellipsis">
       {mentor.firstname} {mentor.lastname}
     </h2>
-    <p className="text-gray-700 font-bold truncate">Email: {mentor.email || 'N/A'}</p>
+    <p className="text-gray-900 font-bold truncate">Email: {mentor.email || 'N/A'}</p>
     <div className="flex justify-center mt-4">
       <button
         onClick={(e) => {
@@ -130,15 +130,15 @@ const Mentors = () => {
           if (mentor.status === 'Not Verified') {
             handleVerification(mentor._id, 'Verified');
           } else if (mentor.status === 'Verified') {
-            handleVerification(mentor._id, 'Denied');
+            handleVerification(mentor._id, 'Not Verified');
           } else if (mentor.status === 'Denied') {
             handleVerification(mentor._id, 'Verified');
           }
         }}
         disabled={loading}
-        className={`bg-${mentor.status === 'Not Verified'? 'green' : mentor.status === 'Verified'? 'red' : 'green'}-500 hover:bg-${mentor.status === 'Not Verified'? 'green' : mentor.status === 'Verified'? 'red' : 'green'}-700 text-white font-bold py-2 px-4 rounded`}
+        className={`text-white font-bold py-2 px-4 rounded border border-solid border-gray-200`}
       >
-        {mentor.status === 'Not Verified'? 'Verify' : mentor.status === 'Verified'? 'Not Verified' : 'Verify'}
+        {mentor.status === 'Not Verified'? 'Verified' : mentor.status === 'Verified'? 'Not Verified' : 'Verified'}
       </button>
     </div>
   </div>

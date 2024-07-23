@@ -1,36 +1,35 @@
 "use client";
 
 import { Link } from "react-router-dom";
-// import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
-// import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
 import { Label } from "../../components/ui/label";
-// import { useForm } from "react-hook-form";
-// import { toast } from "sonner";
-
-// import * as z from "zod";
-
-// const ForgotPasswordSchema = z.object({
-//   email: z
-//     .string({ required_error: "Please enter your email." })
-//     .email({ message: "Invalid email address!" }),
-// });
+import apiClient from "../../apiClient/apiClient";
 
 const  ForgotPassword = () => {
   const [isSending, setIsSending] = useState(false);
+  const [email, setEmail] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
-  // const router = useRouter();
-
-  // const form = useForm<z.infer<typeof ForgotPasswordSchema>>({
-  //   resolver: zodResolver(ForgotPasswordSchema),
-  // });
-
-  const onFormSubmit = async () => {
+  const onFormSubmit = async (event: any) => {
+    event.preventDefault();
     setIsSending(true);
 
+    try {
+      const response = await apiClient.post(`/api/auth/admin/forgetpassword`, { email });
+      if (response.status === 200) {
+        console.log("Password reset link sent successfully!");
+        setIsSending(false);
+
+      }
+    }  catch (error: any) {
+      setError(error)
+      setIsSending(false);
+
+      console.log("...")
+    }
   };
 
   return (
@@ -61,8 +60,16 @@ const  ForgotPassword = () => {
                       placeholder="example@mail.com"
                       className="focus-visible:ring-0 text-lg focus:ring-offset-0"
                       inputWrapperClassName="h-12"
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
                       // {...field}
                     />
+
+{error && (
+            <p className="text-sm text-red-500 font-medium leading-tight -mt-1">
+              {"Please enter a valid email"}
+            </p>
+          )}
 
             <Button
               type="submit"

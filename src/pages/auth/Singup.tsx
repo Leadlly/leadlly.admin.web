@@ -8,11 +8,16 @@ import apiClient from '../../apiClient/apiClient';
 // import { toast } from 'react-toastify';
 // import ToastNotification from '../../components/ui/toaster';
 // import { toast } from 'sonner';
-
+interface SignUpError {
+  message: string;
+  name: string;
+  code: string;
+}
 const Signup = () => {
   const [firstname, setFirstname] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState<SignUpError | null>(null);
 
   const [togglePassword, setTogglePassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -37,6 +42,7 @@ const Signup = () => {
         console.log('Error registering user:', response.data);
       }
     } catch (error: any) {
+      setError(error)
       console.log(error);
     } finally {
       setIsSubmitting(false);
@@ -118,6 +124,14 @@ const Signup = () => {
             />
            
         </div>
+
+        {error && (
+        <p style={{ color: 'red' }}>
+          {"email already exist"}
+        </p>
+      )}
+
+
         <Button
     type="submit"
      className="w-full text-xl h-12 rounded-lg bg-[#9652f4] hover:bg-[#9652f4d1] transition duration-300 ease-in-out"

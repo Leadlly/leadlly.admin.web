@@ -1,41 +1,54 @@
 import { CheckCircle, Eye, EyeOff, Loader2, Lock, User } from "lucide-react";
-import { useState } from "react";
+import {  useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../../components/ui/button";
 import { Checkbox } from "../../components/ui/checkbox";
 import { Input } from "../../components/ui/input";
 import apiClient from "../../apiClient/apiClient";
+import Loader from "../root/Loader";
+interface LoginError {
+  message: string;
+  name: string;
+  code: string;
+}
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [togglePassword, setTogglePassword] = useState(false);
   const [loginSuccess, setLoginSuccess] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<LoginError | null>(null);
   const navigate = useNavigate();
   const handleSubmit = async (e: any) => {
     e.preventDefault();
     setIsLoggingIn(true);
+    setIsLoading(true)
 
     try {
-      // Call API to login
       const response = await apiClient.post(`/api/auth/admin/login`, {
         email,
         password
       });
 
       if (response.status === 200) {
-        navigate('/');
+        navigate('/mentors');
         setLoginSuccess(true)
         setIsLoggingIn(true)
       }
-    } catch (error) {
-      console.error(error);
+    }  catch (error: any) {
+      setError(error);
+      
     } finally {
       setIsLoggingIn(false);
+      setIsLoading(false)
     }
   };
-
   return (
+    <>
+     {isLoading ? (
+      <Loader />
+    ) : (
     <div className="h-main-height relative">
       <div className="flex items-center justify-center xl:justify-normal py-2 lg:mx-24">
         <img
@@ -93,7 +106,11 @@ const Login = () => {
                   inputWrapperClassName="h-12"
                 />
               </div>
-
+              {error && (
+        <p style={{ color: 'red' }}>
+          {"Invalid email or password"}
+        </p>
+      )}
               <div className="w-full flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <Checkbox
@@ -111,7 +128,7 @@ const Login = () => {
                   </Link>
                 </div>
               </div>
-
+             
               <Button
   type="submit"
   className="w-full text-xl h-12 rounded-lg bg-[#9652f4] hover:bg-[#9652f4d1] transition duration-300 ease-in-out"
@@ -128,6 +145,8 @@ const Login = () => {
   ) : (
     <span>Log in</span>
   )}
+
+
 </Button>
             </form>
 
@@ -154,6 +173,8 @@ const Login = () => {
 
       <span className="login-span absolute bottom-0 xl:right-0 -z-20 w-full xl:w-80 h-64 sm:h-84 xl:h-full rounded-tl-[40px] rounded-tr-[40px] xl:rounded-tr-none xl:rounded-bl-[40px] bg-[#FCF3FF]"></span>
     </div>
+    )}
+    </>
   );
 };
 
