@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import apiClient from '../../../apiClient/apiClient';
 import Loader from '../Loader';
 import { toast } from 'sonner';
+import { Button } from '../../../components/ui/button';
 
 interface Mentor {
   _id: string;
@@ -42,7 +43,7 @@ const Mentors = () => {
   const fetchMentors = async () => {
     setLoading(true);
     try {
-      const response = await apiClient.get('/api/auth/admin/mentor');
+      const response = await apiClient.get('/api/mentor/getmentor');
       setMentors(response.data.mentors);
       setLoading(false);
     } catch (error) {
@@ -58,12 +59,12 @@ const Mentors = () => {
 
   const handleVerification = async (id: string, status: string) => {
     try {
-      const response = await apiClient.put(`/api/auth/admin/verify/${id}`, { status });
+      const response = await apiClient.put(`/api/mentor/verify/${id}`, { status });
       if (response.data.success) {
         toast.success(`Mentor ${status === 'Verified' ? 'verified' : 'denied access'} successfully!`);
         setMentors((prevMentors) =>
           prevMentors.map((mentor) =>
-            mentor._id === id ? { ...mentor, status: status === 'Verified' ? 'Verified' : 'Denied' } : mentor
+            mentor._id === id ? { ...mentor, status: status === 'Verified' ? 'Verified' : 'Not Verified' } : mentor
           )
         );
       } else {
@@ -72,16 +73,40 @@ const Mentors = () => {
         return <div>Error: {error}</div>;
       }
     } catch (error) {
-      console.error(error); // or do something with the error
+      console.error(error); 
     }
   };
 
   const handleClose = () => {
     setSelectedMentor(null);
   };
+
+  const handleLogout = async () => {
+    try {
+      const response = await apiClient.get('/api/auth/admin/logout');
+      if (response.data.success) {
+        toast.success('Logged out successfully!');
+        // Clear local storage or cookies here
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+      } else {
+        toast.error(response.data.error);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
   return (
     <>
-      <h2 className='text-2xl font-bold text-gray-900'>Mentor Data</h2>
+    <div className="flex justify-between mb-4">
+  <h2 className='text-2xl font-bold text-gray-900'>Mentor Data</h2>
+  <Button
+    className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+    onClick={handleLogout}
+  >
+    Logout
+  </Button>
+</div>
       <div>
       {loading ? (
         <Loader />
@@ -91,29 +116,29 @@ const Mentors = () => {
            {mentors.map((mentor) => (
   <div
     key={mentor._id}
-    className="bg-white shadow-md rounded-lg p-4 cursor-pointer hover:shadow-lg transition-shadow duration-300 overflow-hidden max-w-md md:max-w-lg lg:max-w-xl"
-    onClick={() => setSelectedMentor(mentor)} // Add this line
+    className="bg-gray-400 shadow-md rounded-lg p-4 cursor-pointer hover:shadow-lg transition-shadow duration-300 overflow-hidden max-w-md md:max-w-lg lg:max-w-xl mt-4"
+    onClick={() => setSelectedMentor(mentor)} 
   >
     <h2 className="text-lg font-bold text-gray-900 overflow-hidden whitespace-nowrap overflow-ellipsis">
       {mentor.firstname} {mentor.lastname}
     </h2>
-    <p className="text-gray-700 font-bold truncate">Email: {mentor.email || 'N/A'}</p>
+    <p className="text-gray-900 font-bold truncate">Email: {mentor.email || 'N/A'}</p>
     <div className="flex justify-center mt-4">
       <button
         onClick={(e) => {
-          e.stopPropagation(); // Add this line
+          e.stopPropagation();
           if (mentor.status === 'Not Verified') {
             handleVerification(mentor._id, 'Verified');
           } else if (mentor.status === 'Verified') {
-            handleVerification(mentor._id, 'Denied');
+            handleVerification(mentor._id, 'Not Verified');
           } else if (mentor.status === 'Denied') {
             handleVerification(mentor._id, 'Verified');
           }
         }}
         disabled={loading}
-        className={`bg-${mentor.status === 'Not Verified'? 'green' : mentor.status === 'Verified'? 'red' : 'green'}-500 hover:bg-${mentor.status === 'Denied'? 'green' : mentor.status === 'Verified'? 'red' : 'green'}-700 text-white font-bold py-2 px-4 rounded`}
+        className={`text-white font-bold py-2 px-4 rounded border border-solid border-gray-200`}
       >
-        {mentor.status === 'Not Verified'? 'Verify' : mentor.status === 'Verified'? 'Deny Access' : 'Verify'}
+        {mentor.status === 'Not Verified'? 'Verified' : mentor.status === 'Verified'? 'Not Verified' : 'Verified'}
       </button>
     </div>
   </div>

@@ -186,9 +186,21 @@ label:hover .tooltip-text {
 .image-container img {
   display: block;
 }
+.login-span {
+  display: block;
+}
 
 @media (max-width: 499px) {
   .image-container img {
     display: none;
   }
+.box{
+  padding-top: 0 !important;
 }
+  .login-span{
+    display: none;
+
+  }
+  
+}
+
