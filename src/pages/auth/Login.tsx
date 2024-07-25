@@ -24,6 +24,7 @@ const Login = () => {
     e.preventDefault();
     setIsLoggingIn(true);
     setIsLoading(true)
+    setLoginSuccess(true)
 
     try {
       const response = await apiClient.post(`/api/auth/admin/login`, {
@@ -33,8 +34,7 @@ const Login = () => {
 
       if (response.status === 200) {
         navigate('/mentors');
-        setLoginSuccess(true)
-        setIsLoggingIn(true)
+        
       }
     }  catch (error: any) {
       setError(error);

@@ -35,7 +35,6 @@ interface Mentor {
 
 const Mentors = () => {
   const [mentors, setMentors] = useState<Mentor[]>([]);
-  const [selectedMentor, setSelectedMentor] = useState<Mentor | null>(null);
   const [loading, setLoading] = useState(false);
  //typescript-eslint
   const [error, setError] = useState<string | null>(null);
@@ -59,28 +58,28 @@ const Mentors = () => {
 
   const handleVerification = async (id: string, status: string) => {
     try {
-      const response = await apiClient.put(`/api/mentor/verify/${id}`, { status });
-      if (response.data.success) {
-        toast.success(`Mentor ${status === 'Verified' ? 'verified' : 'denied access'} successfully!`);
-        setMentors((prevMentors) =>
-          prevMentors.map((mentor) =>
-            mentor._id === id ? { ...mentor, status: status === 'Verified' ? 'Verified' : 'Not Verified' } : mentor
-          )
-        );
+      const confirmationMessage = `Are you sure you want to ${status === 'Verified'? 'verify' : 'not verified'} this mentor?`;
+      if (window.confirm(confirmationMessage)) {
+        const response = await apiClient.put(`/api/mentor/verify/${id}`, { status });
+        if (response.data.success) {
+          toast.success(`Mentor ${status === 'Verified'? 'verified' : 'denied access'} successfully!`);
+          setMentors((prevMentors) =>
+            prevMentors.map((mentor) =>
+              mentor._id === id? {...mentor, status: status === 'Verified'? 'Verified' : 'Not Verified' } : mentor
+            )
+          );
+        } else {
+          toast.error(response.data.error);
+        }
       } else {
-        toast.error(response.data.error);
-      } if (error) {
-        return <div>Error: {error}</div>;
+        toast.error('Verification cancelled!');
       }
     } catch (error) {
-      console.error(error); 
+      console.error(error);
     }
   };
 
-  const handleClose = () => {
-    setSelectedMentor(null);
-  };
-
+ 
   const handleLogout = async () => {
     try {
       const response = await apiClient.get('/api/auth/admin/logout');
@@ -117,7 +116,7 @@ const Mentors = () => {
   <div
     key={mentor._id}
     className="bg-gray-400 shadow-md rounded-lg p-4 cursor-pointer hover:shadow-lg transition-shadow duration-300 overflow-hidden max-w-md md:max-w-lg lg:max-w-xl mt-4"
-    onClick={() => setSelectedMentor(mentor)} 
+   
   >
     <h2 className="text-lg font-bold text-gray-900 overflow-hidden whitespace-nowrap overflow-ellipsis">
       {mentor.firstname} {mentor.lastname}
@@ -149,63 +148,12 @@ const Mentors = () => {
         )
       )}
 
-  {selectedMentor && (
-    <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center z-50">
-      <div className="bg-white shadow-lg rounded-lg p-6 w-full max-w-md md:max-w-lg lg:max-w-xl relative">
-        <button className="absolute top-2 right-2 bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded" onClick={handleClose}>
-          X
-        </button>
-        <MentorInfo mentor={selectedMentor} />
-      </div>
-    </div>
-  )}
+
 </div>
   </>
   );
 };
 
-const MentorInfo = ({ mentor }: { mentor: Mentor }) => {
-  return (
-    <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-gray-900">
-        {mentor.firstname} {mentor.lastname}
-      </h2>
-      <div className="space-y-2">
-        <div>
-          <h3 className="text-xl font-semibold text-gray-800">Contact Information</h3>
-          <p className="text-gray-700"><strong>Email:</strong> {mentor.email || 'N/A'}</p>
-          <p className="text-gray-700">
-            <strong>Phone:</strong>
-            {mentor.phone.personal ? ` Personal: ${mentor.phone.personal}` : 'N/A'}
-            {mentor.phone.other ? ` | Other: ${mentor.phone.other}` : ''}
-          </p>
-        </div>
-        <div>
-          <h3 className="text-xl font-semibold text-gray-800">Address</h3>
-          <p className="text-gray-700">
-            {mentor.address.addressLine || 'N/A'}, {mentor.address.pincode || 'N/A'}, {mentor.address.country || 'N/A'}
-          </p>
-        </div>
-        <div>
-          <h3 className="text-xl font-semibold text-gray-800">About</h3>
-          <p className="text-gray-700">
-            <strong>Date of Birth:</strong> {mentor.about.dateOfBirth || 'N/A'}
-          </p>
-          <p className="text-gray-700"><strong>Gender:</strong> {mentor.about.gender || 'N/A'}</p>
-        </div>
-        <div>
-          <h3 className="text-xl font-semibold text-gray-800">Academic Information</h3>
-          <p className="text-gray-700"><strong>School/College:</strong> {mentor.academic.schoolOrCollegeName || 'N/A'}</p>
-          <p className="text-gray-700"><strong>Address:</strong> {mentor.academic.schoolOrCollegeAddress || 'N/A'}</p>
-        </div>
-        <div>
-          <h3 className="text-xl font-semibold text-gray-800">Preferences</h3>
-          <p className="text-gray-700"><strong>Standard:</strong> {mentor.preference.standard.join(', ') || 'N/A'}</p>
-          <p className="text-gray-700"><strong>Competitive Exam:</strong> {mentor.preference.competitiveExam.join(', ') || 'N/A'}</p>
-        </div>
-      </div>
-    </div>
-  );
-};
+
 
 export default Mentors;

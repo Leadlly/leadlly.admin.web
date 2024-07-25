@@ -26,6 +26,7 @@ const Signup = () => {
   const handleSubmit = async (event: any) => {
     event.preventDefault();
     setIsSubmitting(true);
+    setSignupSuccess(true)
     
 
     try {
@@ -37,7 +38,7 @@ const Signup = () => {
 
       if (response.status === 200) {
         console.log('User registered successfully');
-        setSignupSuccess(true)
+        
       } else {
         console.log('Error registering user:', response.data);
       }
