@@ -60,7 +60,7 @@ const Login = () => {
       </div>
 
       <div className="h-[calc(100%-56px)] flex items-center justify-center w-full px-4 lg:px-20 ">
-        <div className="box flex flex-col-reverse xl:flex-row items-center justify-center lg:gap-6 w-full pt-60">
+        <div className="box flex flex-col-reverse xl:flex-row items-center justify-center lg:gap-6 w-full pt-40">
         <div className="rounded-3xl px-5 sm:px-8 lg:px-12 py-10 lg:py-14 shadow-xl max-w-[530px] sm:w-full flex flex-col justify-start space-y-4">
            <div className="text-center space-y-4 mb-8">
               <h3 className="text-3xl lg:text-[62px] font-bold leading-none">
@@ -161,7 +161,7 @@ const Login = () => {
               </p>
             </div>
           </div>
-          <div className="image-container relative w-56 h-56 sm:w-96 sm:h-96 md:w-[500px] md:h-[660px]">
+          <div className="image-container relative w-56 h-56 sm:w-96 sm:h-96 md:w-[500px] md:h-[630px]">
             <img
               src="/assets/icons/Loginpic.png"
               alt="Login_page_photo"

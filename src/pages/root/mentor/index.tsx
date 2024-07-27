@@ -3,7 +3,7 @@ import apiClient from '../../../apiClient/apiClient';
 import Loader from '../Loader';
 import { toast } from 'sonner';
 import { Button } from '../../../components/ui/button';
-import Modal from "../../../components/ui/Modal"
+import { useNavigate } from 'react-router-dom';
 
 interface Mentor {
   _id: string;
@@ -38,15 +38,14 @@ interface Mentor {
     lastname:string;
     email:string
   }[];
+  
 }
 
 const Mentors = () => {
   const [mentors, setMentors] = useState<Mentor[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showModal, setShowModal] = useState(false);
-  const [selectedMentor, setSelectedMentor] = useState<Mentor | null>(null);
-
+  const navigate = useNavigate()
 const fetchMentors = async () => {
   setLoading(true);
   try {
@@ -64,20 +63,8 @@ const fetchMentors = async () => {
   }
 };
 
-const handleAllocateStudents = async (mentor: Mentor) => {
-  setSelectedMentor(mentor);
-  setShowModal(true);
-  try {
-    const response = await apiClient.get(`/api/mentor/getstudent/${mentor._id}`);
-    if (response.data.success) {
-      setSelectedMentor(response.data.mentor);
-      setShowModal(true);
-    } else {
-      toast.error(response.data.error);
-    }
-  } catch (error) {
-    console.error(error);
-  }
+const handleMentorClick = (mentor:any) => {
+  navigate(`/studentdetails/${mentor._id}`);
 };
 
   useEffect(() => {
@@ -167,7 +154,7 @@ const handleAllocateStudents = async (mentor: Mentor) => {
                 {mentor.status === 'Not Verified' ? 'Verify' : mentor.status === 'Verified' ? 'Not Verify' : 'Verify'}
               </button>
               <button
-                onClick={() => handleAllocateStudents(mentor)}
+                onClick={() => handleMentorClick(mentor)}
                 className="ml-2 text-white font-bold py-2 px-4 rounded border border-solid border-gray-200"
               >
                 Allocate Students
@@ -181,33 +168,7 @@ const handleAllocateStudents = async (mentor: Mentor) => {
     )
   )}
 </div>
-    
-<Modal
-  isOpen={showModal}
-  onClose={() => setShowModal(false)}
-  header={<h3 className="text-lg font-bold">Allocated Students</h3>}
-  body={
-    selectedMentor && selectedMentor.students.length > 0? (
-      <ul className="divide-y divide-gray-200">
-        {selectedMentor.students.map((student) => (
-          <li key={student.id} className="py-4">
-            <div className="flex flex-col">
-              <p className="text-gray-900 font-bold">{student.firstname} {student.lastname}</p>
-              <p className="text-gray-600">{student.email}</p>
-            </div>
-          </li>
-        ))}
-      </ul>
-    ) : (
-      <p className="text-gray-600">No students allocated to this mentor.</p>
-    )
-  }
-  footer={
-    <Button onClick={() => setShowModal(false)} className="bg-orange-500 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded">
-      Close
-    </Button>
-  }
-/>
+
       </>
     );
 }
