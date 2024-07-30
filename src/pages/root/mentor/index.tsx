@@ -35,37 +35,35 @@ interface Mentor {
   students: {
     id: string;
     firstname: string;
-    lastname:string;
-    email:string
+    lastname: string;
+    email: string;
   }[];
-  
 }
 
 const Mentors = () => {
   const [mentors, setMentors] = useState<Mentor[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const navigate = useNavigate()
-const fetchMentors = async () => {
-  setLoading(true);
-  try {
-    const response = await apiClient.get(`/api/mentor/getmentor`);
-    if (response.data.success) {
-      setMentors(response.data.mentors);
-      setLoading(false);
-    } else {
-      setError(response.data.error);
-      setLoading(false);
-    }
-  } catch (error) {
-    setError(error as string);
-    setLoading(false);
-  }
-};
+  const navigate = useNavigate();
 
-const handleMentorClick = (mentor:any) => {
-  navigate(`/studentdetails/${mentor._id}`);
-};
+  const fetchMentors = async () => {
+    setLoading(true);
+    try {
+      const response = await apiClient.get(`/api/mentor/getmentor`);
+      if (response.data.success) {
+        setMentors(response.data.mentors);
+      } else {
+        setError(response.data.error);
+      }
+    } catch (error) {
+      setError(error as string);
+    }
+    setLoading(false);
+  };
+
+  const handleMentorClick = (mentor: any) => {
+    navigate(`/studentdetails/${mentor._id}`);
+  };
 
   useEffect(() => {
     fetchMentors();
@@ -122,55 +120,53 @@ const handleMentorClick = (mentor:any) => {
         </Button>
       </div>
       <div>
-  {loading ? (
-    <Loader />
-  ) : (
-    mentors.length > 0 ? (
-      <div>
-        {mentors.map((mentor) => (
-          <div
-            key={mentor._id}
-            className="bg-gray-400 shadow-md rounded-lg p-4 cursor-pointer hover:shadow-lg transition-shadow duration-300 overflow-hidden max-w-md md:max-w-lg lg:max-w-xl mt-4"
-          >
-            <h2 className="text-lg font-bold text-gray-900 overflow-hidden whitespace-nowrap overflow-ellipsis">
-              {mentor.firstname} {mentor.lastname}
-            </h2>
-            <p className="text-gray-900 font-bold truncate">Email: {mentor.email || 'N/A'}</p>
-            <div className="flex justify-center mt-4">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (mentor.status === 'Not Verified') {
-                    handleVerification(mentor._id, 'Verified')
-                  } else if (mentor.status === 'Verified') {
-                    handleVerification(mentor._id, 'Not Verified');
-                  } else if (mentor.status === 'Denied') {
-                    handleVerification(mentor._id, 'Verified');
-                  }
-                }}
-                disabled={loading}
-                className={`text-white font-bold py-2 px-4 rounded border border-solid border-gray-200`}
-              >
-                {mentor.status === 'Not Verified' ? 'Verify' : mentor.status === 'Verified' ? 'Not Verify' : 'Verify'}
-              </button>
-              <button
+        {loading ? (
+          <Loader />
+        ) : mentors.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {mentors.map((mentor) => (
+              <div
                 onClick={() => handleMentorClick(mentor)}
-                className="ml-2 text-white font-bold py-2 px-4 rounded border border-solid border-gray-200"
+                key={mentor._id}
+                className="bg-white-400 shadow-md rounded-lg p-6 cursor-pointer hover:shadow-lg transition-shadow duration-300 overflow-hidden"
               >
-                Allocate Students
-              </button>
-            </div>
+                <h2 className="text-xl font-bold text-gray-900 overflow-hidden whitespace-nowrap overflow-ellipsis">
+                  {mentor.firstname} {mentor.lastname}
+                </h2>
+                <p className="text-gray-900 font-bold truncate">Email: {mentor.email || 'N/A'}</p>
+                <div className="flex justify-center mt-4">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (mentor.status === 'Not Verified') {
+                        handleVerification(mentor._id, 'Verified');
+                      } else if (mentor.status === 'Verified') {
+                        handleVerification(mentor._id, 'Not Verified');
+                      } else if (mentor.status === 'Denied') {
+                        handleVerification(mentor._id, 'Verified');
+                      }
+                    }}
+                    disabled={loading}
+                    className={`${
+                      mentor.status === 'Not Verified'
+                        ? 'bg-green-500 hover:bg-green-700'
+                        : mentor.status === 'Verified'
+                        ? 'bg-red-500 hover:bg-red-700'
+                        : 'bg-green-500 hover:bg-green-700'
+                    } text-white font-bold py-2 px-4 rounded`}
+                  >
+                    {mentor.status === 'Not Verified' ? 'Verify' : mentor.status === 'Verified' ? 'Revoke Access' : 'Verify'}
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
+        ) : (
+          <p>No mentors found.</p>
+        )}
       </div>
-    ) : (
-      <p>No mentors found.</p>
-    )
-  )}
-</div>
+    </>
+  );
+};
 
-      </>
-    );
-}
-    
-    export default Mentors;
+export default Mentors;
