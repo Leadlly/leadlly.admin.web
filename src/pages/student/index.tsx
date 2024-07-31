@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import apiClient from '../../apiClient/apiClient';
 import Loader from '../root/Loader';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '../../components/ui/button';
 
@@ -35,6 +35,7 @@ const Student = () => {
   const [error, setError] = useState<string | null>(null);
   const params = useParams();
   const id = params.id;
+  const navigate = useNavigate()
 
   useEffect(() => {
     const fetchMentor = async () => {
@@ -56,6 +57,12 @@ const Student = () => {
   }, [id]);
 
   const handleUpdateMentor = async (studentId: string, mentorId: string | null) => {
+    if (!mentorId) {
+      // Deallocate confirmation
+      const confirmDeallocate = window.confirm('Are you sure you want to deallocate this student?');
+      if (!confirmDeallocate) return;
+    }
+  
     setLoading(true);
     try {
       const response = await apiClient.post(`/api/student/allocate-student/${studentId}`, { mentorId });
@@ -88,7 +95,13 @@ const Student = () => {
             <h2 className="text-lg font-bold text-gray-900 overflow-hidden whitespace-nowrap overflow-ellipsis">
               Mentor: {mentor.firstname} {mentor.lastname}
             </h2>
-            <p className="text-gray-600">Email: {mentor.email}</p>
+            <button
+    className="bg-gray-600 hover:bg-gray-400 text-gray-800 font-bold py-1 px-4 rounded"
+    onClick={() => navigate("/mentors")}
+  >
+    Go Back
+  </button>
+
 
             <h3 className="text-lg font-bold text-gray-900 mt-4">Allocated Students</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -98,9 +111,6 @@ const Student = () => {
                     <h4 className="text-xl font-semibold text-gray-800 mb-2">
                       {student.firstname} {student.lastname}
                     </h4>
-                    <p className="text-gray-700 mb-1">
-                      <span className="font-medium">Email:</span> {student.email}
-                    </p>
                     {student.academic ? (
                       <>
                         <p className="text-gray-700 mb-1">
@@ -131,7 +141,7 @@ const Student = () => {
                         className="ml-2 bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
                         disabled={loading}
                       >
-                        Deallocate from {mentor.firstname}
+                        Deallocate
                       </Button>
                     </div>
                   </div>
