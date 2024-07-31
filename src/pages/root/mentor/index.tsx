@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import apiClient from '../../../apiClient/apiClient';
 import Loader from '../Loader';
 import { toast } from 'sonner';
@@ -40,10 +40,27 @@ interface Mentor {
   }[];
 }
 
+interface Student {
+  _id: string;
+  firstname: string;
+  lastname: string;
+  email: string;
+  academic: {
+    standard: number;
+    competitiveExam: string;
+    schedule: string;
+    coachingMode: string;
+  };
+}
+
 const Mentors = () => {
   const [mentors, setMentors] = useState<Mentor[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedMentor, setSelectedMentor] = useState<Mentor | null>(null);
+  const [dropdownVisible, setDropdownVisible] = useState<string | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
   const fetchMentors = async () => {
@@ -61,17 +78,43 @@ const Mentors = () => {
     setLoading(false);
   };
 
-  const handleMentorClick = (mentor: any) => {
+  const fetchUnallocatedStudents = async () => {
+    setLoading(true);
+    try {
+      const response = await apiClient.get(`/api/student/getmentorstudent`);
+      if (response.data.success) {
+        setStudents(response.data.students);
+      } else {
+        setError(response.data.error);
+      }
+    } catch (error) {
+      setError(error as string);
+    }
+    setLoading(false);
+  };
+
+  const handleLogout = async () => {
+    try {
+      const response = await apiClient.get('/api/auth/admin/logout');
+      if (response.data.success) {
+        toast.success('Logged out successfully!');
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+      } else {
+        toast.error(response.data.error);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleMentorClick = (mentor: Mentor) => {
     navigate(`/studentdetails/${mentor._id}`);
   };
 
-  useEffect(() => {
-    fetchMentors();
-  }, []);
-
   const handleVerification = async (id: string, status: string) => {
     try {
-      const confirmationMessage = `Are you sure you want to ${status === 'Verified' ? 'verify' : 'not verified'} this mentor?`;
+      const confirmationMessage = `Are you sure you want to ${status === 'Verified' ? 'verify' : 'not verify'} this mentor?`;
       if (window.confirm(confirmationMessage)) {
         const response = await apiClient.put(`/api/mentor/verify/${id}`, { status });
         if (response.data.success) {
@@ -92,22 +135,35 @@ const Mentors = () => {
     }
   };
 
-  const handleLogout = async () => {
+  const handleAllocateStudent = async (studentId: string, mentorId: string) => {
     try {
-      const response = await apiClient.get('/api/auth/admin/logout');
+      const response = await apiClient.post(`/api/student/allocate-student/${studentId}`, { mentorId });
       if (response.data.success) {
-        toast.success('Logged out successfully!');
-        // Clear local storage or cookies here
-        localStorage.removeItem('token');
-        window.location.href = '/login';
+        toast.success('Student allocated successfully!');
+        fetchMentors(); // Refresh mentors data
       } else {
         toast.error(response.data.error);
       }
     } catch (error) {
-      console.error(error);
+      toast.error('Failed to allocate student.');
     }
   };
 
+  useEffect(() => {
+    fetchMentors();
+    fetchUnallocatedStudents();
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownVisible(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
   return (
     <>
       <div className="flex justify-between mb-4">
@@ -128,7 +184,7 @@ const Mentors = () => {
               <div
                 onClick={() => handleMentorClick(mentor)}
                 key={mentor._id}
-                className="bg-white-400 shadow-md rounded-lg p-6 cursor-pointer hover:shadow-lg transition-shadow duration-300 overflow-hidden"
+                className="bg-white shadow-md rounded-lg p-6 cursor-pointer hover:shadow-lg transition-shadow duration-300 relative"
               >
                 <h2 className="text-xl font-bold text-gray-900 overflow-hidden whitespace-nowrap overflow-ellipsis">
                   {mentor.firstname} {mentor.lastname}
@@ -157,6 +213,43 @@ const Mentors = () => {
                   >
                     {mentor.status === 'Not Verified' ? 'Verify' : mentor.status === 'Verified' ? 'Revoke Access' : 'Verify'}
                   </button>
+                  <div className="relative ml-2">
+                    <Button
+                      className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedMentor(mentor);
+                        setDropdownVisible(mentor._id === dropdownVisible ? null : mentor._id);
+                      }}
+                    >
+                      Allocate Student
+                    </Button>
+                    {dropdownVisible  && selectedMentor?._id === mentor._id && (
+                      <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-300 rounded-md shadow-lg z-20 overflow-auto max-h-64">
+                        <ul>
+                          {students.map((student) => (
+                            <li
+                              key={student._id}
+                              className="p-2 hover:bg-gray-200 cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleAllocateStudent(student._id, mentor._id);
+                                setSelectedMentor(null);
+                                setDropdownVisible(null);
+                              }}
+                            >
+                              <div>
+                                <p className="font-medium">{student.firstname} {student.lastname}</p>
+                                <p>Standard:{student.academic.standard || "N/A"}, Competitive Exam: {student.academic.competitiveExam || "N/A"}, Schedule: {student.academic.schedule || "N/A"}, Coaching Mode: {student.academic.coachingMode || "N/A"} </p>
+                          
+                       <hr/>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
