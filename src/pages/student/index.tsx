@@ -35,7 +35,7 @@ const Student = () => {
   const [error, setError] = useState<string | null>(null);
   const params = useParams();
   const id = params.id;
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchMentor = async () => {
@@ -56,39 +56,40 @@ const Student = () => {
     fetchMentor();
   }, [id]);
 
-  const handleUpdateMentor = async (studentId: string, mentorId: string | null) => {
-    if (!mentorId) {
-      // Deallocate confirmation
-      const confirmDeallocate = window.confirm('Are you sure you want to deallocate this student?');
-      if (!confirmDeallocate) return;
-    }
-  
+  const handleDeallocateStudent = async (studentId: string) => {
+    const confirmDeallocate = window.confirm('Are you sure you want to deallocate this student?');
+    if (!confirmDeallocate) return;
+
     setLoading(true);
     try {
-      const response = await apiClient.post(`/api/student/allocate-student/${studentId}`, { mentorId });
-      if (response.data.success) {
-        toast.success(`Student ${mentorId ? 'allocated' : 'deallocated'} successfully!`);
-        const updatedMentorResponse = await apiClient.get(`/api/mentor/getstudent/${id}`);
-        if (updatedMentorResponse.data.success) {
-          setMentor(updatedMentorResponse.data.mentor);
-        }
-      } else {
-        toast.error(response.data.error);
-      }
-    } catch (error) {
-      console.error('Error updating mentor:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+        const response = await apiClient.post('/api/student/deallocate-student', { studentIds: [studentId] });
+        if (response.data.success) {
+            toast.success('Student deallocated successfully!');
+            setMentor(prevMentor => {
+                if (!prevMentor) return null;
 
-  // Filter students to show only those allocated to the current mentor
-  const allocatedStudents = mentor?.students.filter(student => student.mentor?._id === mentor._id) || [];
+                return {
+                    ...prevMentor,
+                    students: prevMentor.students.filter(student => student._id !== studentId),
+                };
+            });
+        } else {
+            toast.error(response.data.message);
+        }
+    } catch (error) {
+        console.error('Error deallocating student:', error);
+        toast.error('Failed to deallocate student.');
+    } finally {
+        setLoading(false);
+    }
+};
+  const allocatedStudents = mentor?.students.filter(student =>
+     student.mentor?._id === mentor._id) || [];
 
   return (
     <div>
       {loading ? (
-        <Loader />
+        <Loader size={40} color="blue" loaderClassName="custom-loading" />
       ) : (
         mentor && (
           <div>
@@ -96,12 +97,11 @@ const Student = () => {
               Mentor: {mentor.firstname} {mentor.lastname}
             </h2>
             <button
-    className="bg-gray-600 hover:bg-gray-400 text-gray-800 font-bold py-1 px-4 rounded"
-    onClick={() => navigate("/mentors")}
-  >
-    Go Back
-  </button>
-
+              className="bg-gray-600 hover:bg-gray-400 text-gray-800 font-bold py-1 px-4 rounded"
+              onClick={() => navigate("/mentors")}
+            >
+              Go Back
+            </button>
 
             <h3 className="text-lg font-bold text-gray-900 mt-4">Allocated Students</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -136,7 +136,7 @@ const Student = () => {
                       <Button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleUpdateMentor(student._id, null);
+                          handleDeallocateStudent(student._id)
                         }}
                         className="ml-2 bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
                         disabled={loading}
@@ -158,3 +158,5 @@ const Student = () => {
 };
 
 export default Student;
+
+

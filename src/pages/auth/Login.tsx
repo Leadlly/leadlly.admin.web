@@ -47,7 +47,7 @@ const Login = () => {
   return (
     <>
      {isLoading ? (
-      <Loader />
+      <Loader size={50} color="blue" loaderClassName="custom-loading" />
     ) : (
     <div className="h-main-height relative">
       <div className="flex items-center justify-center xl:justify-normal py-2 lg:mx-24">

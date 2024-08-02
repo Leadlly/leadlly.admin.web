@@ -203,4 +203,23 @@ label:hover .tooltip-text {
   }
   
 }
-
+.loading {
+  width: 100vw;
+  height: 100vh;
+ 
+  display: grid;
+  place-items: center;
+  max-width: 100%;
+}
+.loading_1 {
+ padding-left: 1rem;
+  display: grid;
+  position: relative;
+  top: 5%;
+  place-items: center;
+  max-width: 100%;
+}
+.loader{
+  margin-right: 42%;
+  margin-top: 5%;
+}
