@@ -1,7 +1,7 @@
 
 import { CheckCircle, Eye, EyeOff, Key, Loader2, Mail, User } from 'lucide-react';
 import { useState } from 'react';
-
+import { useNavigate } from "react-router-dom";
 import { Input } from '../../components/ui/input';
 import { Button } from '../../components/ui/button';
 import apiClient from '../../apiClient/apiClient';
@@ -18,7 +18,7 @@ const Signup = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<SignUpError | null>(null);
-
+  const navigate = useNavigate();
   const [togglePassword, setTogglePassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [signupSuccess, setSignupSuccess] = useState(false);
@@ -38,6 +38,7 @@ const Signup = () => {
 
       if (response.status === 200) {
         console.log('User registered successfully');
+        navigate('/mentors');
         
       } else {
         console.log('Error registering user:', response.data);
