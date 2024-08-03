@@ -4,6 +4,7 @@ import Mentors from './pages/root/mentor';
 import Login from './pages/auth/Login';
 import Singup from './pages/auth/Singup';
 import ForgotPassword from './pages/auth/ForgotPassword';
+import Student from './pages/student';
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
         <Route path='/login' element={<Login />} />
         <Route path='/signup' element={<Singup />} />
         <Route path='/forgotpassword' element={<ForgotPassword />} />
+        <Route path='/studentdetails/:id' element={<Student />} />
       </Routes>
     </BrowserRouter>
   );
