@@ -79,24 +79,22 @@ const Mentors = () => {
       } else {
         setError(response.data.error);
       }
-    } catch (error) {
+    } catch (err) {
       setError(error as string);
     }
     setLoading(false);
   };
 
-  const fetchUnallocatedStudents = async (query = "") => {
-    
+  const fetchUnallocatedStudents = async (mentorId: string, query = "") => {
     setLoadingStudents(true);
-    
     try {
-      const response = await apiClient.get(`/api/student/getmentorstudent`, {
-        params: { query },
+      const response = await apiClient.get(`/api/mentor/getmentorstudent`, {
+        params: { mentorId, query },
       });
       if (response.data.success) {
         setStudents(response.data.students);
       } else {
-        setError(response.data.error);
+        setError(response.data.message);
         setStudents([]);
       }
     } catch (error) {
@@ -125,6 +123,7 @@ const Mentors = () => {
   };
 
   const handleMentorClick = (mentor: Mentor) => {
+    fetchUnallocatedStudents(mentor._id);
     navigate(`/studentdetails/${mentor._id}`);
   };
 
@@ -265,33 +264,13 @@ const Mentors = () => {
 
   const handleSearch = useCallback(
     debounce(async (query: string) => {
-      if (query) {
-        setLoadingStudents(true);
-        try {
-          const response = await apiClient.get(
-            `/api/student/getmentorstudent`,
-            {
-              params: { query },
-            }
-          );
-          if (response.data.success) {
-            setStudents(response.data.students);
-          } else {
-            setError(response.data.error);
-            setStudents([]); 
-          }
-        } catch (error) {
-          setError("An error occurred while searching students.");
-          setStudents([]);
-        } finally {
-          setLoadingStudents(false);
-        }
-      } else {
-        fetchUnallocatedStudents();
+      if (selectedMentor) {
+        fetchUnallocatedStudents(selectedMentor._id, query);
       }
     }, 500),
-    []
+    [selectedMentor]
   );
+
   
   
 
@@ -319,13 +298,13 @@ const Mentors = () => {
   const clearSearch = () => {
     setSearchQuery("");
     setDebouncedSearchQuery("");
-    fetchUnallocatedStudents();
+    const mentorId = selectedMentor ? selectedMentor._id : null;
+    fetchUnallocatedStudents(mentorId ?? "");
   };
 
   useEffect(() => {
     fetchMentors();
-    fetchUnallocatedStudents();
-  }, []);
+    }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
