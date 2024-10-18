@@ -3,34 +3,31 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 
-// import { Logo } from "@/components";
+import { Logo } from "../../components";
 import { TSidebarLink } from "../../helpers/types";
 import { cn } from "../../lib/utils";
 // import { Button } from "../ui/button";
 // import { LogOut } from "lucide-react";
 // import LogoutButton from "./LogoutButton";
 
-const SidebarDesktop = ({
-  sidebar,
-  meetingsLength,
-}: {
+type SidebarDesktopProps = {
   sidebar: TSidebarLink[];
   meetingsLength: number;
-}) => {
+};
+const SidebarDesktop: React.FC<SidebarDesktopProps> = ({ sidebar, meetingsLength }) => {
   const pathname = usePathname();
-
   return (
-    <aside className="bg-sidebar-background w-full h-full md:w-20 xl:w-sidebar md:h-main-height md:rounded-xl overflow-y-hidden shadow-xl">
+    <aside className="bg-sidebar-background w-full h-full md:w-64 xl:w-80 md:h-main-height md:rounded-xl overflow-y-auto shadow-xl">
       <div className="w-full px-[25px] py-4">
         <Link href={"/"}>
-          {/* <Logo
+          <Logo
             fullLogoWidth={150}
             fullLogoHeight={50}
             fullLogoClassName="block md:hidden xl:block"
             smallLogoWidth={90}
             smallLogoHeight={90}
             smallLogoClassName="hidden md:block xl:hidden"
-          /> */}
+          />
         </Link>
       </div>
       <ul className="flex flex-col justify-start items-start md:items-center xl:items-start gap-2 h-[calc(100dvh-97px)] overflow-x-hidden overflow-y-auto custom__scrollbar px-[25px] md:px-3 xl:px-[25px] py-3">

@@ -1,9 +1,12 @@
-"use client";
+import React from "react";
+import SidebarDesktop from "./SidebarDesktop"; // Ensure this path is correct
+import { userSidebarLinks } from "../../helpers/constants"; // Adjust path if necessary
 
-import SidebarDesktop from "./SidebarDesktop";
-import { userSidebarLinks } from "../../helpers/constants";
+type SidebarProps = {
+  meetingsLength: number; // TypeScript prop definition
+};
 
-const Sidebar = ({ meetingsLength }: { meetingsLength: number }) => {
+const Sidebar: React.FC<SidebarProps> = ({ meetingsLength }) => {
   return (
     <SidebarDesktop
       sidebar={userSidebarLinks}
