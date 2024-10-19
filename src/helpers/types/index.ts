@@ -1,5 +1,5 @@
 import React, { SVGProps } from "react";
-
+import { SUBJECT_COLORS } from "../constants";
 export type TContainerProps = {
   children: React.ReactNode;
   className?: string;
@@ -349,3 +349,13 @@ export type PlannerDataProps = {
 export type DataProps = {
   data: PlannerDataProps;
 };
+
+export type Subject = keyof typeof SUBJECT_COLORS;
+
+export type TMeetingsProps = {
+  rescheduled: {
+    isRescheduled: boolean;
+    date: Date;
+    time: string;
+  };
+}

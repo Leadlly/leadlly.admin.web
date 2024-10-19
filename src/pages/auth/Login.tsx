@@ -23,8 +23,6 @@ const Login = () => {
   const handleSubmit = async (e: any) => {
     e.preventDefault();
     setIsLoggingIn(true);
-    setIsLoading(true)
-    setLoginSuccess(true)
 
     try {
       const response = await apiClient.post(`/api/auth/admin/login`, {
@@ -33,17 +31,23 @@ const Login = () => {
       });
 
       if (response.status === 200) {
-        navigate('/mentors');
-        
+        const { token } = response.data; 
+        if (token) {
+          localStorage.setItem("token", token); 
+          console.log('Token saved:', token); 
+          navigate('/');
+        } else {
+          throw new Error('Token not provided in the response');
+        }
       }
-    }  catch (error: any) {
-      setError(error);
-      
+    } catch (error: any) {
+      setError(error.response?.data?.message || error.message);
     } finally {
       setIsLoggingIn(false);
       setIsLoading(false)
     }
   };
+  
   return (
     <>
      {isLoading ? (
