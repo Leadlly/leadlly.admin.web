@@ -1,50 +1,26 @@
-import './App.css';
+
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import Mentors from './pages/root/mentor';
+import Dashboard from './pages/root/dashboard'; 
+import Mentors from './pages/root/mentor'; 
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Singup';
-import ForgotPassword from './pages/auth/ForgotPassword';
+import ForgotPassword from './pages/auth/ForgotPassword'; 
 import Student from './pages/student';
-import Dashboard from './pages/root/dashboard/page';
-import Loader from './pages/root/Loader';
+import MainLayout from './pages/root/layout'; 
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true); 
-
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    setIsAuthenticated(!!token); 
-
-  
-    setIsLoading(false); 
-  }, []);
-
-  if (isLoading) {
-    return <Loader />; 
-  }
-
   return (
     <BrowserRouter>
-      <Routes>
-
-        <Route
-          path="/"
-          element={isAuthenticated ? <Dashboard  /> : <Login/>}
-        />
-        <Route
-          path="/mentors"
-          element={isAuthenticated ? <Mentors /> : <Login />}
-        />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/forgotpassword" element={<ForgotPassword />} />
-        <Route
-          path="/studentdetails/:id"
-          element={isAuthenticated ? <Student /> : <Login />}
-        />
-      </Routes>
+      <MainLayout>
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/mentors" element={<Mentors />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/forgotpassword" element={<ForgotPassword />} />
+          <Route path="/studentdetails/:id" element={<Student />} />
+        </Routes>
+      </MainLayout>
     </BrowserRouter>
   );
 }

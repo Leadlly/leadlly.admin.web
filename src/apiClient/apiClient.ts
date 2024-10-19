@@ -2,12 +2,14 @@ import axios from 'axios';
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_PUBLIC_ADMIN_API_BASE_URL, 
+  
   withCredentials: true, 
   headers: {
     'Content-Type': 'application/json',
   },
   
 });
+console.log(import.meta.env.VITE_PUBLIC_ADMIN_API_BASE_URL);
 
 apiClient.interceptors.request.use(
   (config) => {
