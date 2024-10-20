@@ -1,21 +1,22 @@
-import { THeaderProps } from "../../helpers/types";
-import { cn } from "../../lib/utils";
+// import { THeaderProps } from "../../helpers/types";
+// import { cn } from "../../lib/utils";
 
-const Header = ({
-  title,
-  className,
-  icon: Icon,
-  titleClassName,
-}: THeaderProps) => {
+const Header = () => {
   return (
-    <header
-      className={cn(
-        "w-full text-page-title leading-none font-semibold flex items-center justify-between",
-        className
-      )}>
-      <h2 className={cn(titleClassName)}>{title}</h2>
-      {Icon && <div>{Icon}</div>}
-    </header>
+    <header className="flex justify-between items-center p-4 ">
+    <div className="flex items-center">
+      <img src="/logo.png" alt="Logo" className="h-8 mr-2" />
+      <input
+        type="text"
+        placeholder="Search here..."
+        className="p-2 border rounded-md"
+      />
+    </div>
+    <div className="flex items-center">
+      <img src="/avatar.jpg" alt="User" className="h-8 w-8 rounded-full" />
+      <span className="ml-2">Robert Pattinson</span>
+    </div>
+  </header>
   );
 };
 

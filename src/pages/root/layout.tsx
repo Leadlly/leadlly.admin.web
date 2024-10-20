@@ -7,9 +7,10 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   return (
     <>
-      <section className="relative flex">
+     <>
+      <section className="relative">
         <div className="hidden md:block md:fixed md:top-3">
-          <Sidebar meetingsLength={meetingsLength} /> 
+          <Sidebar meetingsLength={meetingsLength} />
         </div>
         <div className="md:ml-20 xl:ml-[261px] h-main-height pl-4 pr-4 md:pr-2">
           {children}
@@ -18,6 +19,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       <section className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-white shadow-[0_-1px_2px_0_rgba(0,0,0,0.1)] overflow-hidden">
         <MobileMenu meetingsLength={meetingsLength} />
       </section>
+    </>
     </>
   );
 };

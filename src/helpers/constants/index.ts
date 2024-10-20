@@ -18,50 +18,60 @@ export const userSidebarLinks: TSidebarLink[] = [
     href: "/",
   },
   {
-    label: "planner",
-    icon: PlannerIcon,
-    href: "/planner",
-  },
-  {
-    label: "tracker",
-    icon: TrackerIcon,
-    href: "/tracker",
-  },
-  {
-    label: "chat",
-    icon: ChatIcon3,
-    href: "/chat",
-  },
-  {
-    label: "quizzes",
-    icon: QuizIcon,
-    href: "/quizzes",
-  },
-  {
-    label: "errorbook",
-    icon: ErrorBookIcon,
-    href: "/error-book",
-  },
-  {
-    label: "growth meter",
-    icon: GrowthMeterIcon,
-    href: "/growth-meter",
-  },
-  {
-    label: "workshops",
-    icon: WorkshopIcon,
-    href: "/workshops",
-  },
-  {
-    label: "library",
+    label: "student",
     icon: LibertyIcon,
-    href: "/library",
+    href: "/student",
   },
   {
-    label: "study room",
-    icon: StudyRoomIcon,
-    href: "/study-room",
+    label: "mentor",
+    icon: LibertyIcon,
+    href: "/mentordashboard",
   },
+  // {
+  //   label: "planner",
+  //   icon: PlannerIcon,
+  //   href: "/planner",
+  // },
+  // {
+  //   label: "tracker",
+  //   icon: TrackerIcon,
+  //   href: "/tracker",
+  // },
+  // {
+  //   label: "chat",
+  //   icon: ChatIcon3,
+  //   href: "/chat",
+  // },
+  // {
+  //   label: "quizzes",
+  //   icon: QuizIcon,
+  //   href: "/quizzes",
+  // },
+  // {
+  //   label: "errorbook",
+  //   icon: ErrorBookIcon,
+  //   href: "/error-book",
+  // },
+  // {
+  //   label: "growth meter",
+  //   icon: GrowthMeterIcon,
+  //   href: "/growth-meter",
+  // },
+  // {
+  //   label: "workshops",
+  //   icon: WorkshopIcon,
+  //   href: "/workshops",
+  // },
+  // {
+  //   label: "library",
+  //   icon: LibertyIcon,
+  //   href: "/library",
+  // },
+  // {
+  //   label: "study room",
+  //   icon: StudyRoomIcon,
+  //   href: "/study-room",
+  // },
 ];
 
 export const moodEmojis = [
