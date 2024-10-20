@@ -1,15 +1,7 @@
 import { TSidebarLink } from "../types";
 
 import DashboardIcon from "../../components/icons/DashboardIcon";
-import PlannerIcon from "../../components/icons/PlannerIcon";
-import TrackerIcon from "../../components/icons/TrackerIcon";
-import ErrorBookIcon from "../../components/icons/ErrorBookIcon";
-import GrowthMeterIcon from "../../components/icons/GrowthMeterIcon";
-import WorkshopIcon from "../../components/icons/WorkshopIcon";
 import LibertyIcon from "../../components/icons/LibertyIcon";
-import QuizIcon from "../../components/icons/QuizIcon";
-import StudyRoomIcon from "../../components/icons/StudyRoomIcon";
-import ChatIcon3 from "../../components/icons/ChatIcon3";
 
 export const userSidebarLinks: TSidebarLink[] = [
   {

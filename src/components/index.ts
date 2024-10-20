@@ -1,13 +1,8 @@
-import Container from "./shared/Container";
+
 import Logo from "./shared/Logo";
 import Header from "./shared/Header";
 import SidebarDesktop from "./shared/SidebarDesktop";
 import Sidebar from "./shared/Sidebar";
-import TabNavItem from "./shared/TabNavItem";
-import TabContent from "./shared/TabContent";
-import MobileNavBar from "./shared/MobileNavBar";
-import MobileMenu from "./shared/MobileMenu";
-import Input from "./shared/Input";
 
 // import SemiRadialChart from "./charts/SemiRadialChart";
 // import RadialBarChart from "./charts/RadialBarChart";
@@ -35,16 +30,10 @@ import ConferenceMeetingIcon from "./icons/ConferenceMeetingIcon";
 import ClockIcon from "./icons/ClockIcon";
 
 export {
-  Container,
   Logo,
   Header,
   SidebarDesktop,
   Sidebar,
-  TabNavItem,
-  TabContent,
-  MobileNavBar,
-  MobileMenu,
-  Input,
   // SemiRadialChart,
   // RadialBarChart,
   // BarChart,

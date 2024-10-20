@@ -1,6 +1,6 @@
 import React from "react";
 import Sidebar from "../root/sidebar/index"; 
-import MobileMenu from "../../components/shared/MobileMenu";
+// import MobileMenu from "../../components/shared/MobileMenu";
 
 const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const meetingsLength = 0;
@@ -16,9 +16,9 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           {children}
         </div>
       </section>
-      <section className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-white shadow-[0_-1px_2px_0_rgba(0,0,0,0.1)] overflow-hidden">
+      {/* <section className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-white shadow-[0_-1px_2px_0_rgba(0,0,0,0.1)] overflow-hidden">
         <MobileMenu meetingsLength={meetingsLength} />
-      </section>
+      </section> */}
     </>
     </>
   );

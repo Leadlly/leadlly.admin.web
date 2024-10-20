@@ -3,7 +3,7 @@ import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
 
 const WeeklyProgress: React.FC = () => {
-  const percentage = 82.3; // Weekly progress value
+  const percentage = 82.3; 
 
   return (
     <div className="bg-white rounded-lg p-4 shadow-md flex flex-col items-center">
