@@ -48,7 +48,7 @@ const login = () => {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_STUDENT_API_BASE_URL}/api/auth/admin/login`, {
+        `${process.env.NEXT_PUBLIC_STUDENT_API_BASE_URL}/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

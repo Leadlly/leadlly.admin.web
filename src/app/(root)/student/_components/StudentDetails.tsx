@@ -1,5 +1,7 @@
+'use client'
 import React, { useEffect, useState } from 'react';
 import apiClient from '@/apiClient/apiClient';
+import { useRouter } from "next/navigation";
 
 
 
@@ -23,11 +25,14 @@ standard: string
   };
 }
 const StudentDetails: React.FC = () => {
+  const router = useRouter();
   const [students, setStudents] = useState<Student[]>([]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
+  const navigateToAll = () => {
+    router.push('/all');
+  };
   const fetchStudents = async () => {
     setLoading(true);
     try {
@@ -49,6 +54,11 @@ const StudentDetails: React.FC = () => {
 
   return (
     <div className="overflow-x-auto rounded-lg shadow-lg mb-6">
+       <div className="flex justify-end items-center m-4">
+    <button onClick={navigateToAll} className="bg-blue-500 text-white px-4 py-2 rounded-lg text-sm sm:text-base hover:bg-blue-600 transition duration-300">
+      User List
+    </button>
+  </div>
     <div className="max-h-96 overflow-y-auto">
       <table className="min-w-full bg-white">
         <thead className="sticky top-0 bg-gray-100">
@@ -90,7 +100,6 @@ const StudentDetails: React.FC = () => {
       </table>
     </div>
   </div>
-
 
 
   );

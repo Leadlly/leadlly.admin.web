@@ -29,10 +29,10 @@ const Student: React.FC = () => {
               <Goals />
               <WeeklyProgress />
             </div>
+          </div>
                 <div className="w-full mb-6"> 
                   <StudentDetails />
                 </div>
-          </div>
         </div>
       </div>
     )
