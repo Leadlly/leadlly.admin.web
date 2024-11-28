@@ -1,7 +1,7 @@
 'use client'
 import React, { useEffect, useState } from 'react';
 import apiClient from '@/apiClient/apiClient';
-
+import { useRouter } from "next/navigation";
 
 
 interface Mentor {
@@ -39,11 +39,13 @@ interface Mentor {
   }[];
 }
 const MentorDetails: React.FC = () => {
-
+  const router = useRouter();
   const [mentors, setMentors] = useState<Mentor[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
+  const navigateToAll = () => {
+    router.push('/allMentor');
+  };
 
   const fetchMentors = async () => {
     setLoading(true);
@@ -65,6 +67,11 @@ const MentorDetails: React.FC = () => {
 
   return (
 <div className="overflow-x-auto max-h-96 rounded-lg mb-6 shadow-lg ml-2 mr-2">
+<div className="flex justify-end items-center m-4">
+    <button onClick={navigateToAll} className="bg-blue-500 text-white px-4 py-2 rounded-lg text-sm sm:text-base hover:bg-blue-600 transition duration-300">
+      Mentor List
+    </button>
+  </div>
   <table className="min-w-max w-full bg-white">
     <thead className="sticky top-0 bg-gray-100">
       <tr className="text-left text-gray-600 uppercase text-xs sm:text-sm tracking-wider">
