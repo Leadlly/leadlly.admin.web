@@ -19,17 +19,29 @@ export default async function MainLayout({
 
   return (
     <>
-      <section className="relative">
-      <div className="hidden md:block md:fixed md:top-3 md:left-0 md:w-64 xl:w-60">
-          <Sidebar  />
-        </div>
-        <div className="md:ml-20 h-main-height md:pr-2">
-          {children}
-        </div>
-      </section>
-      <section className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-white shadow-[0_-1px_2px_0_rgba(0,0,0,0.1)] overflow-hidden">
-        <MobileMenu  />
-      </section>
-    </>
+    <section className="relative">
+  {/* Sidebar for larger screens */}
+  <div className="hidden md:block md:fixed md:top-3 md:left-0 md:w-64 xl:w-60 h-full">
+    <Sidebar />
+  </div>
+
+  {/* Main content container */}
+  <div
+    className="md:ml-32 xl:ml-34 p-4 overflow-auto"
+    
+  >
+    {/* Use padding for spacing and overflow-auto for scrolling */}
+    {children}
+  </div>
+
+  {/* Mobile menu */}
+  <section className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-white shadow-[0_-1px_2px_0_rgba(0,0,0,0.1)] overflow-hidden">
+    <MobileMenu />
+  </section>
+</section>
+
+  </>
+  
+  
   );
 }

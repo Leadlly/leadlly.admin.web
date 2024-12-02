@@ -50,9 +50,12 @@ export default async function RootLayout({
           // monthlyReport={monthlyReport.monthlyReport}
           // overallReport={overallReport.overallReport}
         >
-         <Container className="py-3">
-              <main className="h-main-height">{children}</main>
-            </Container>
+        <Container >
+  <main className="h-main-height">
+    {children}
+  </main>
+</Container>
+
             </StoreProvider>
       </body>
     </html>
