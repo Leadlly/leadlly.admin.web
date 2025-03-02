@@ -16,13 +16,19 @@ Get a quick overview of your institution's key metrics:
 
 ![Dashboard](/Updated%20Images/dashboard.png)
 
+### Course Management
+- Create, edit, and delete courses
+- Assign teachers to each course
+- View course schedules and attendance
+
+![Student Batches](/Updated%20Images/batches.png)
+
 ### Student Management
 - View and manage all student batches
 - Filter students by standard, subject, and teacher
 - Track student attendance and performance
 - Detailed student profiles
 
-![Student Batches](/Updated%20Images/batches.png)
 ![Student List](/Updated%20Images/List_students.png)
 
 ### Teacher Management
