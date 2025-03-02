@@ -1,76 +1,210 @@
-# Contribution Guidelines
 
-We are thrilled to welcome contributors to **Leadlly**! Below are the guidelines to help you contribute efficiently.
+# Leadlly Admin Web
 
-## 📚 Getting Started
+## Overview
+Leadlly Admin Web is a comprehensive administration platform for educational institutions. It provides tools for managing students, teachers, batches, and courses with an intuitive interface designed for educational administrators.
 
-### Prerequisites:
+## Features
 
-- **Node.js** (>= 14.x.x)
-- **npm** or **yarn** (package manager)
+### Dashboard
+Get a quick overview of your institution's key metrics:
+- Total students and teachers
+- Active courses and classes
+- Performance metrics and attendance rates
 
-### Installation:
+![Dashboard](/Updated%20Images/dashboard.png)
 
-1. **Fork the Repository:**
-   - Click the "Fork" button in the top-right corner of the page to create your own copy of the repository.
+### Course Management
+- Create, edit, and delete courses
+- Assign teachers to each course
+- View course schedules and attendance
 
-2. **Clone the Forked Repository:**
-   ```bash
-   git clone https://github.com/{your-username}/leadlly.admin.web.git
-   cd leadlly.admin.web
-   ```
+![Student Batches](/Updated%20Images/batches.png)
 
-3. **Install dependencies**:
-    ```bash
-    npm install
-    ```
+### Student Management
+- View and manage all student batches
+- Filter students by standard, subject, and teacher
+- Track student attendance and performance
+- Detailed student profiles
 
-4. **Run the application**:
-    ```bash
-    npm run dev
-    ```
+![Student List](/Updated%20Images/List_students.png)
 
-5. **Access the application**:
-    Open [http://localhost:3000](http://localhost:3000) in your browser.
+### Teacher Management
+- Comprehensive teacher profiles
+- Track teacher performance and satisfaction rates
+- View classes taught by each teacher
+- Monitor student attendance in teacher's classes
 
-## 🎯 How to Contribute
+![Teacher Profile](/Updated%20Images/teacher_profile.png)
 
-We welcome contributions! If you'd like to help improve the Leadlly Mentor Platform, follow these steps:
+## Technology Stack
+- **Frontend**: Next.js, React, TypeScript, Tailwind CSS
+- **State Management**: React Hooks
+- **API**: Next.js API Routes
+- **Styling**: Tailwind CSS for responsive design
 
-1. Fork the repository.
-2. Create a new branch for your feature or bugfix.
-3. Make your changes.
-4. Open a pull request and describe your changes.
+## API Implementation
+The application uses Next.js API Routes to create serverless API endpoints that handle data operations. These API routes are located in the `src/app/api` directory and follow RESTful principles.
 
-## 🐛 Reporting Issues
+### API Architecture
+Leadlly Admin Web implements a modern API architecture using Next.js App Router's route handlers, which provide:
+- **Serverless Functions**: Each API endpoint runs as a serverless function
+- **TypeScript Integration**: Full type safety for request and response handling
+- **Route Parameters**: Dynamic routing with path and query parameter support
+- **Error Handling**: Standardized error responses
 
-If you encounter any issues while using the platform, please feel free to open an issue on the repository. Provide as much detail as possible to help us address the problem quickly.
+### Available API Endpoints
 
-## 🛡️ Security
+#### Batches API
+- **GET /api/batches**  
+  - Description: Retrieves a list of all batches grouped by standard  
+  - Query Parameters:  
+    - `standard`: Filter batches by standard name (e.g., "11th standard")  
+    - `subject`: Filter batches by subject name (e.g., "Physics")  
+    - `teacher`: Filter batches by teacher name (e.g., "Dr. Sarah Wilson")  
+  - Response: JSON object containing filtered batches grouped by standard
 
-If you find any security vulnerabilities, please report them privately to [business@leadlly.in](mailto:business@leadlly.in). We take security issues seriously and will address them promptly.
+**Example request:**
+```
+GET /api/batches?standard=11th&subject=Physics
+```
 
-## 📄 License
+**Example response:**
+```json
+{
+  "standards": [
+    {
+      "name": "11th standard",
+      "batches": [
+        {
+          "id": "11-omega-1",
+          "name": "Omega",
+          "standard": "11th Class",
+          "subjects": ["Chemistry", "Physics", "Biology"],
+          "totalStudents": 120,
+          "maxStudents": 180,
+          "teacher": "Dr. Sarah Wilson"
+        }
+        // More batches...
+      ]
+    }
+  ]
+}
+```
 
-This project is licensed under the MIT License. See the [`LICENSE`](./LICENSE) file for more details.
+### Implementation Details
+The API routes are implemented using Next.js App Router's route handlers. Each API endpoint is defined in a route.ts file within the corresponding directory structure.
 
-## 🎉 Hacktoberfest Participation:
+**Request Handling (Example from `src/app/api/batches/route.ts`):**
+```typescript
+export async function GET(request: NextRequest) {
+  try {
+    // Get query parameters for filtering
+    const searchParams = request.nextUrl.searchParams;
+    const standard = searchParams.get('standard');
+    const subject = searchParams.get('subject');
+    const teacher = searchParams.get('teacher');
+    
+    // Process and filter data
+    // ...
+    
+    return NextResponse.json(filteredData, { status: 200 });
+  } catch (error) {
+    console.error('Error fetching batches:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch batches' },
+      { status: 500 }
+    );
+  }
+}
+```
 
-- Contributions should be meaningful and address an issue or feature request.
-- Avoid creating spam or low-quality pull requests, as these will not be accepted.
-- Tag your pull requests with "Hacktoberfest" to ensure they count toward Hacktoberfest.
+### Data Handling
+Currently, the application uses mock data for demonstration purposes. In a production environment, these API routes would connect to a database or external API service.
 
-## 📝 Code Of Conduct:
+**Mock data example:**
+```typescript
+const batchesData = {
+  standards: [
+    {
+      name: "11th standard",
+      batches: [
+        // Batch data...
+      ]
+    }
+  ]
+};
+```
 
-- **Be Respectful**: Always be courteous and respectful when interacting with other contributors and maintainers.
-- **Collaborate**: Help others by reviewing code, suggesting improvements, or answering questions.
-- **Keep Learning**: Open source is a great way to learn and improve your skills, so ask questions and engage with the community.
-- **Contribution Process**: 
-  - To indicate you're working on an issue, comment "I am working on this issue." Our team will verify your activity. If there is no response, the issue may be reassigned.
-  - Please do not claim an issue that is already assigned to someone else.
+### Error Handling
+All API routes implement consistent error handling to ensure robust operation:
 
-## 📞 Contact
+```typescript
+try {
+  // API logic
+} catch (error) {
+  console.error('Error:', error);
+  return NextResponse.json(
+    { error: 'Error message' },
+    { status: 500 }
+  );
+}
+```
 
-For any further questions or support, reach out to us at:
-- **Email**: [support@leadlly.in](mailto:support@leadlly.in)
-- **Website**: [Leadlly.in](https://leadlly.in)
+### Future API Enhancements
+Planned API enhancements include:
+- Authentication and authorization
+- CRUD operations for all resources (students, teachers, courses)
+- Pagination for large data sets
+- Advanced filtering and search capabilities
+- Real-time updates using webhooks or WebSockets
+
+## Getting Started
+
+### Prerequisites
+- Node.js (v14 or later)
+- npm or yarn
+
+### Installation
+Clone the repository:
+```bash
+git clone https://github.com/your-username/leadlly.admin.web.git
+cd leadlly.admin.web
+```
+
+Install dependencies:
+```bash
+npm install
+```
+
+Run the development server:
+```bash
+npm run dev
+```
+
+Open `URL_ADDRESS:3000` in your browser
+
+## Project Structure
+```
+leadlly.admin.web/
+├── public/              # Static assets
+├── src/
+│   ├── app/             # Next.js App Router
+│   │   ├── (root)/      # Main application routes
+│   │   │   ├── (dashboard)/  # Dashboard components
+│   │   │   ├── batches/      # Batch management
+│   │   │   └── teacher/      # Teacher management
+│   │   └── api/         # API routes
+│   ├── components/      # Shared components
+│   └── styles/          # Global styles
+├── Updated Images/      # Project screenshots
+└── README.md            # Project documentation
+```
+
+This update adds a comprehensive API section to your README.md that explains:
+1. The API architecture using Next.js API Routes
+2. Available endpoints with examples
+3. Implementation details including request handling, data handling, and error handling
+4. Future API enhancement plans
+
+The documentation is based on the existing implementation in your `src/app/api/batches/route.ts` file, which demonstrates how the API routes are structured in your project.
