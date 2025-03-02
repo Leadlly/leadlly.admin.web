@@ -1,76 +1,76 @@
-# Contribution Guidelines
+# Leadlly Admin Web
 
-We are thrilled to welcome contributors to **Leadlly**! Below are the guidelines to help you contribute efficiently.
+![Leadlly Logo]
 
-## 📚 Getting Started
+## Overview
 
-### Prerequisites:
+Leadlly Admin Web is a comprehensive administration platform for educational institutions. It provides tools for managing students, teachers, batches, and courses with an intuitive interface designed for educational administrators.
 
-- **Node.js** (>= 14.x.x)
-- **npm** or **yarn** (package manager)
+## Features
 
-### Installation:
+### Dashboard
+Get a quick overview of your institution's key metrics:
+- Total students and teachers
+- Active courses and classes
+- Performance metrics and attendance rates
 
-1. **Fork the Repository:**
-   - Click the "Fork" button in the top-right corner of the page to create your own copy of the repository.
+![Dashboard](/Updated%20Images/dashboard.png)
 
-2. **Clone the Forked Repository:**
-   ```bash
-   git clone https://github.com/{your-username}/leadlly.admin.web.git
-   cd leadlly.admin.web
-   ```
+### Student Management
+- View and manage all student batches
+- Filter students by standard, subject, and teacher
+- Track student attendance and performance
+- Detailed student profiles
 
-3. **Install dependencies**:
-    ```bash
-    npm install
-    ```
+![Student Batches](/Updated%20Images/batches.png)
 
-4. **Run the application**:
-    ```bash
-    npm run dev
-    ```
+### Teacher Management
+- Comprehensive teacher profiles
+- Track teacher performance and satisfaction rates
+- View classes taught by each teacher
+- Monitor student attendance in teacher's classes
 
-5. **Access the application**:
-    Open [http://localhost:3000](http://localhost:3000) in your browser.
+![Teacher Profile](/Updated%20Images/teacher_profile.png)
 
-## 🎯 How to Contribute
+## Technology Stack
 
-We welcome contributions! If you'd like to help improve the Leadlly Mentor Platform, follow these steps:
+- **Frontend**: Next.js, React, TypeScript, Tailwind CSS
+- **State Management**: React Hooks
+- **API**: Next.js API Routes
+- **Styling**: Tailwind CSS for responsive design
 
-1. Fork the repository.
-2. Create a new branch for your feature or bugfix.
-3. Make your changes.
-4. Open a pull request and describe your changes.
+## Getting Started
 
-## 🐛 Reporting Issues
+### Prerequisites
 
-If you encounter any issues while using the platform, please feel free to open an issue on the repository. Provide as much detail as possible to help us address the problem quickly.
+- Node.js (v14 or later)
+- npm or yarn
 
-## 🛡️ Security
+### Installation
 
-If you find any security vulnerabilities, please report them privately to [business@leadlly.in](mailto:business@leadlly.in). We take security issues seriously and will address them promptly.
+1. Clone the repository:
+```bash
+git clone https://github.com/your-username/leadlly.admin.web.git
+cd leadlly.admin.web
 
-## 📄 License
+# Install dependencies
+npm install
+# Run the development server
+npm run dev
 
-This project is licensed under the MIT License. See the [`LICENSE`](./LICENSE) file for more details.
+# Open URL_ADDRESS:3000 in your browser
+# Project Structure
 
-## 🎉 Hacktoberfest Participation:
-
-- Contributions should be meaningful and address an issue or feature request.
-- Avoid creating spam or low-quality pull requests, as these will not be accepted.
-- Tag your pull requests with "Hacktoberfest" to ensure they count toward Hacktoberfest.
-
-## 📝 Code Of Conduct:
-
-- **Be Respectful**: Always be courteous and respectful when interacting with other contributors and maintainers.
-- **Collaborate**: Help others by reviewing code, suggesting improvements, or answering questions.
-- **Keep Learning**: Open source is a great way to learn and improve your skills, so ask questions and engage with the community.
-- **Contribution Process**: 
-  - To indicate you're working on an issue, comment "I am working on this issue." Our team will verify your activity. If there is no response, the issue may be reassigned.
-  - Please do not claim an issue that is already assigned to someone else.
-
-## 📞 Contact
-
-For any further questions or support, reach out to us at:
-- **Email**: [support@leadlly.in](mailto:support@leadlly.in)
-- **Website**: [Leadlly.in](https://leadlly.in)
+leadlly.admin.web/
+├── public/              # Static assets
+├── src/
+│   ├── app/             # Next.js App Router
+│   │   ├── (root)/      # Main application routes
+│   │   │   ├── (dashboard)/  # Dashboard components
+│   │   │   ├── batches/      # Batch management
+│   │   │   └── teacher/      # Teacher management
+│   │   └── api/         # API routes
+│   ├── components/      # Shared components
+│   └── styles/          # Global styles
+├── Updated Images/      # Project screenshots
+└── README.md            # Project documentation
