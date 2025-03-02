@@ -23,6 +23,7 @@ Get a quick overview of your institution's key metrics:
 - Detailed student profiles
 
 ![Student Batches](/Updated%20Images/batches.png)
+![Student List](/Updated%20Images/List_students.png)
 
 ### Teacher Management
 - Comprehensive teacher profiles
