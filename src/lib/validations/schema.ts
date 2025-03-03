@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export type StudentPerformanceLevel = "excellent" | "optimal" | "inefficient";
+
 export const studentSchema = z.object({
   id: z.number(),
   name: z.string().min(1, "Name is required"),
@@ -7,7 +9,7 @@ export const studentSchema = z.object({
   class: z.enum(["11", "12"], {
     required_error: "Class must be either 11 or 12",
   }),
-  performanceLevel: z.enum(["excellent", "optimal", "inefficient"], {
+  performanceLevel: z.enum(["excellent", "optimal", "inefficient"] as const, {
     required_error: "Invalid performance level",
   }),
   emoji: z.string().default("👤"),
