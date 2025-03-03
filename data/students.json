@@ -1,0 +1,52 @@
+[
+  {
+    "id": 1,
+    "name": "John Doe",
+    "avatar": "/student-avatar.png",
+    "class": "11",
+    "performanceLevel": "excellent",
+    "emoji": "😊",
+    "status": "active",
+    "attendance": 95
+  },
+  {
+    "id": 2,
+    "name": "Jane Smith",
+    "avatar": "/student-avatar.png",
+    "class": "11",
+    "performanceLevel": "optimal",
+    "emoji": "🙂",
+    "status": "active",
+    "attendance": 98
+  },
+  {
+    "id": 3,
+    "name": "Bob Johnson",
+    "avatar": "/student-avatar.png",
+    "class": "12",
+    "performanceLevel": "inefficient",
+    "emoji": "😕",
+    "status": "inactive",
+    "attendance": 75
+  },
+  {
+    "id": 4,
+    "name": "Alice Brown",
+    "avatar": "/student-avatar.png",
+    "class": "12",
+    "performanceLevel": "excellent",
+    "emoji": "😊",
+    "status": "active",
+    "attendance": 92
+  },
+  {
+    "id": 5,
+    "name": "Charlie Wilson",
+    "avatar": "/student-avatar.png",
+    "class": "11",
+    "performanceLevel": "optimal",
+    "emoji": "🙂",
+    "status": "inactive",
+    "attendance": 85
+  }
+]

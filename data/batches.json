@@ -1,0 +1,72 @@
+[
+  {
+    "id": 1,
+    "name": "Morning Physics",
+    "class": "11",
+    "subjects": [
+      "physics"
+    ],
+    "totalStudents": 15,
+    "maxStudents": 30,
+    "status": "active",
+    "teacher": "Dr. Smith",
+    "icon": "⚡",
+    "iconBg": "bg-blue-500"
+  },
+  {
+    "id": 2,
+    "name": "Evening Chemistry",
+    "class": "12",
+    "subjects": [
+      "chemistry"
+    ],
+    "totalStudents": 20,
+    "maxStudents": 25,
+    "status": "active",
+    "teacher": "Dr. Johnson",
+    "icon": "🧪",
+    "iconBg": "bg-green-500"
+  },
+  {
+    "id": 3,
+    "name": "Mathematics Advanced",
+    "class": "11",
+    "subjects": [
+      "mathematics"
+    ],
+    "totalStudents": 18,
+    "maxStudents": 25,
+    "status": "active",
+    "teacher": "Dr. Williams",
+    "icon": "📐",
+    "iconBg": "bg-purple-500"
+  },
+  {
+    "name": "Chem back",
+    "class": "12",
+    "subjects": [
+      "chemistry"
+    ],
+    "totalStudents": 0,
+    "maxStudents": 15,
+    "status": "active",
+    "teacher": "Ram",
+    "icon": "📚",
+    "iconBg": "bg-purple-500",
+    "id": 4
+  },
+  {
+    "name": "new batch",
+    "class": "12",
+    "subjects": [
+      "physics"
+    ],
+    "maxStudents": 12,
+    "totalStudents": 0,
+    "status": "active",
+    "teacher": "Rama",
+    "icon": "📚",
+    "iconBg": "bg-purple-500",
+    "id": 5
+  }
+]
