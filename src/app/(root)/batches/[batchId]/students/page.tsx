@@ -5,7 +5,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import type { StudentPerformanceLevel } from "@/lib/validations/schema";
+import {
+  type Student,
+  type StudentPerformanceLevel,
+} from "@/lib/validations/schema";
 import { useStudents } from "@/providers/StudentsProvider";
 import { useParams } from "next/navigation";
 
