@@ -11,6 +11,12 @@ const config = {
 	],
 	prefix: '',
 	theme: {
+		purple:{
+			500:"#A03232"
+		},
+		borderWidth:{
+			2:"1px"
+		},
 		container: {
 			center: true,
 			padding: '2rem',
