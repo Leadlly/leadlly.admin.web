@@ -12,8 +12,10 @@ import {
 import Card from "./_components/Card";
 import Button from "./_components/Button";
 import { Edit } from "lucide-react"; // Import the Edit icon
+import { useRouter } from "next/navigation";
 
 export default function Home() {
+  const router = useRouter()
   return (
     <>
       <div className="flex-row justify-between border-black">
@@ -109,8 +111,8 @@ export default function Home() {
             </div>
           </div>
           <Button
-            onClick={() => {}}
-            className="mt-4 bg-student-green text-student-green-text w-full font-bold text-xl"
+            onClick={() => {router.push('/batches')}}
+            className="mt-4 bg-student-green text-student-green-text w-full font-bold text-xl p-3"
           >
             <Image src={'/📚 View Students.png'} width={150} height={150} alt="View students"/>
           </Button>
@@ -156,7 +158,7 @@ export default function Home() {
           </div>
           <Button
             onClick={() => {}}
-            className="mt-4 bg-teacher-button-blue text-teacher-blue-text w-full font-bold text-xl"
+            className="mt-4 bg-teacher-button-blue text-teacher-blue-text w-full font-bold text-xl p-3"
           >
               <Image src={'/🎓 View Teachers.png'} width={150} height={150} alt="View students"/>
           </Button>
