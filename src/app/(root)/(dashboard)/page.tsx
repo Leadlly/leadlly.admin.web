@@ -1,7 +1,8 @@
-import Image from "next/image";
-
+import Combined_component from "./_components";
 export default function Home() {
   return (
-   <>Home</>
+   <div>
+    <Combined_component />
+   </div>
   );
 }
