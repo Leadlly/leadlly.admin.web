@@ -37,7 +37,7 @@ async function Address() {
       </div>
 
       <div className="pl-8">
-        Kha 224, Bir Uttam Rafiqul Islam Ave, Dhaka 1212
+       123,Main Street,city,country
       </div>
     </div>
   );
@@ -60,7 +60,7 @@ async function Contact() {
         <Contact_Icon />
         <h1 className="text-slate-500">Contact:</h1>
       </div>
-      <div className="pl-8">Tel: +88 09638464646</div>
+      <div className="pl-8">Tel: +123456789</div>
     </div>
   );
 }

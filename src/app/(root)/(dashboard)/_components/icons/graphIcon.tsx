@@ -1,4 +1,8 @@
-export default async function GraphIcon() {
+interface Icon_Props{
+  text_color:string,
+  size:string
+}
+export default async function GraphIcon({text_color,size}:Icon_Props) {
   return (
     <div>
       <svg
@@ -7,7 +11,7 @@ export default async function GraphIcon() {
         viewBox="0 0 24 24"
         stroke-width="1.5"
         stroke="currentColor"
-        className="size-6"
+        className={`size-${size} ${text_color}`}
       >
         <path
           stroke-linecap="round"
