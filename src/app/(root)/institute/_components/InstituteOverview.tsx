@@ -3,16 +3,14 @@ import Image from "next/image";
 
 interface InstituteOverviewProps {
   name: string;
-  establishedYear: number;
   instituteCode: string;
-  address: string;
-  contact: string;
-  email: string;
+  address?: string;
+  contact?: string;
+  email?: string;
 }
 
 const InstituteOverview = ({
   name,
-  establishedYear,
   instituteCode,
   address,
   contact,
@@ -33,9 +31,7 @@ const InstituteOverview = ({
         </div>
 
         <div className="flex-1">
-          <div className="inline-block bg-indigo-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded-3xl mb-2">
-            Established in {establishedYear}
-          </div>
+        
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
             {name}
           </h1>

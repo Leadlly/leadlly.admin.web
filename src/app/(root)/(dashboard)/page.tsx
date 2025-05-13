@@ -4,7 +4,7 @@ import {
   StudentsOverview,
   TeachersOverview,
   InstituteOverview,
-} from "./_components";
+} from "../institute/_components";
 import { Button } from "@/components/ui/button";
 
 // Mock data for the dashboard
