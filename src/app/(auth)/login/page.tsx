@@ -1,8 +1,8 @@
-"use client";
-
 import React from "react";
-import GoogleLoginButton from "../_components/GoogleLoginButton";
+
 import Image from "next/image";
+
+import GoogleLoginButton from "../_components/GoogleLoginButton";
 
 const LoginPage = () => {
   return (
@@ -10,7 +10,7 @@ const LoginPage = () => {
       <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-3xl shadow-lg">
         <div className="text-center space-y-2">
           <Image
-            src="/assets/logo.png"
+            src="/leadlly.jpeg"
             alt="Leadlly Logo"
             width={150}
             height={40}

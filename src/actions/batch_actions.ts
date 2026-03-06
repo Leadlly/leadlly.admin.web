@@ -10,7 +10,7 @@ interface BatchCreateData {
 }
 
 export const createBatch = async (data: BatchCreateData) => {
-  const token = await getCookie("token");
+  const token = await getCookie();
 
   try {
     const res = await fetch(
@@ -23,7 +23,7 @@ export const createBatch = async (data: BatchCreateData) => {
           Cookie: `token=${token}`,
         },
         credentials: "include",
-      }
+      },
     );
 
     const responseData = await res.json();
@@ -33,14 +33,14 @@ export const createBatch = async (data: BatchCreateData) => {
       throw new Error(`Error in saving daily quiz answers: ${error.message}`);
     } else {
       throw new Error(
-        "An unknown error occurred while saving daily quiz answers!"
+        "An unknown error occurred while saving daily quiz answers!",
       );
     }
   }
 };
 
 export const getInstituteBatch = async (instituteId: string) => {
-  const token = await getCookie("token");
+  const token = await getCookie();
 
   try {
     const res = await fetch(
@@ -51,7 +51,7 @@ export const getInstituteBatch = async (instituteId: string) => {
           Cookie: `token=${token}`,
         },
         credentials: "include",
-      }
+      },
     );
 
     const responseData = await res.json();
@@ -61,9 +61,8 @@ export const getInstituteBatch = async (instituteId: string) => {
       throw new Error(`Error in saving daily quiz answers: ${error.message}`);
     } else {
       throw new Error(
-        "An unknown error occurred while saving daily quiz answers!"
+        "An unknown error occurred while saving daily quiz answers!",
       );
     }
   }
 };
-

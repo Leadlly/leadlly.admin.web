@@ -1,11 +1,14 @@
-import Image from "next/image";
 import React from "react";
+
+import Image from "next/image";
+
+import { Button } from "@/components/ui/button";
+
 import {
+  InstituteOverview,
   StudentsOverview,
   TeachersOverview,
-  InstituteOverview,
 } from "../institute/_components";
-import { Button } from "@/components/ui/button";
 
 // Mock data for the dashboard
 const dashboardData = {
@@ -62,7 +65,7 @@ export default function Dashboard() {
 
       <InstituteOverview
         name={dashboardData.institute.name}
-        establishedYear={dashboardData.institute.establishedYear}
+        // establishedYear={dashboardData.institute.establishedYear}
         instituteCode={dashboardData.institute.instituteCode}
         address={dashboardData.institute.address}
         contact={dashboardData.institute.contact}

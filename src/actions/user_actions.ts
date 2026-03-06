@@ -1,14 +1,18 @@
 "use server";
 
+import { cache } from "react";
+
+import { revalidateTag } from "next/cache";
+
+import apiClient from "@/apiClient/apiClient";
 import {
   ForgotPasswordProps,
   ResetPasswordProps,
   SignUpDataProps,
   StudentPersonalInfoProps,
 } from "@/helpers/types";
+
 import { getCookie } from "./cookie_actions";
-import { revalidateTag } from "next/cache";
-import apiClient from "@/apiClient/apiClient";
 
 export const signUpUser = async (data: SignUpDataProps) => {
   try {
@@ -137,8 +141,8 @@ export const verifyAuthToken = async (token: string) => {
   }
 };
 
-export const getUser = async () => {
-  const token = await getCookie("token");
+export const getUser = cache(async () => {
+  const token = await getCookie();
   try {
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL}/api/auth/user`,
@@ -149,7 +153,7 @@ export const getUser = async () => {
           Cookie: `token=${token}`,
         },
         credentials: "include",
-        // cache: "force-cache",
+        cache: "force-cache",
         next: {
           tags: ["userData"],
         },
@@ -168,10 +172,10 @@ export const getUser = async () => {
       );
     }
   }
-};
+});
 
 export const studentPersonalInfo = async (data: StudentPersonalInfoProps) => {
-  const token = await getCookie("token");
+  const token = await getCookie();
   try {
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL}/api/user/profile/save`,
@@ -201,7 +205,7 @@ export const studentPersonalInfo = async (data: StudentPersonalInfoProps) => {
 };
 
 export const setTodaysVibe = async (data: { todaysVibe: string }) => {
-  const token = await getCookie("token");
+  const token = await getCookie();
   try {
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL}/api/user/todaysVibe/save`,

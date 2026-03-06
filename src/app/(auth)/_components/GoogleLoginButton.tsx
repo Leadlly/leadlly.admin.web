@@ -1,21 +1,21 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { useAppDispatch } from "@/redux/hooks";
-import { userData } from "@/redux/slices/userSlice";
+import { useState } from "react";
+
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+
 import { useGoogleLogin } from "@react-oauth/google";
 import axios from "axios";
 import { Loader2 } from "lucide-react";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
 
 const GoogleLoginButton = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const router = useRouter();
-  const dispatch = useAppDispatch();
 
   const login = useGoogleLogin({
     onSuccess: async (credentialResponse) => {
@@ -34,9 +34,6 @@ const GoogleLoginButton = () => {
             },
           }
         );
-
-
-        dispatch(userData(res.data.user));
 
         toast.success("Login success", {
           description: res.data.message,
@@ -79,7 +76,7 @@ const GoogleLoginButton = () => {
       ) : (
         <>
           <Image
-            src="/assets/icons/google-icon.svg"
+            src="/google-icon.svg"
             alt="Sign in with Google"
             width={17}
             height={17}
