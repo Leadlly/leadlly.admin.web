@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { AxiosError } from "axios";
+
 import apiClient from "@/apiClient/apiClient";
 
 export async function POST(req: NextRequest) {
@@ -21,10 +23,17 @@ export async function POST(req: NextRequest) {
     });
 
     return res;
-  } catch (error: any) {
+  } catch (error) {
     return NextResponse.json(
-      { message: error.message },
-      { status: error.response?.status || 500 },
+      {
+        message:
+          error instanceof AxiosError
+            ? error.response?.data?.message
+            : error instanceof Error
+              ? error.message
+              : "An unknown error occurred while logging in with Google!",
+      },
+      { status: error instanceof AxiosError ? error.response?.status : 500 }
     );
   }
 }

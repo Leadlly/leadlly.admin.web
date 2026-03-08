@@ -1,6 +1,5 @@
 import React, { SVGProps } from "react";
 
-
 export type TContainerProps = {
   children: React.ReactNode;
   className?: string;
@@ -202,7 +201,7 @@ export type UserDataProps = {
     public_id?: string;
     url?: string;
   };
-  planner: Boolean;
+  planner: boolean;
   parent: {
     name?: string;
     phone?: string;
@@ -584,4 +583,61 @@ export interface ICoupon {
   expiryDate: string;
   plan: string;
   usageLimit: number;
+}
+
+export interface IAdmin {
+  firstname: string;
+  lastname: string;
+  email: string;
+  role: "admin" | "super_admin";
+  phone: string;
+  password: string;
+  salt: string;
+  avatar: {
+    public_id: string;
+    url: string;
+  };
+  permissions: {
+    manageUsers: boolean;
+    manageBatches: boolean;
+    manageClasses: boolean;
+    manageTeachers: boolean;
+    manageStudents: boolean;
+    managePayments: boolean;
+    manageReports: boolean;
+    manageSettings: boolean;
+    manageAdmins: boolean;
+  };
+  institutes: string[];
+  lastLogin: string | null;
+  status: "Active" | "Inactive" | "Suspended";
+  activityLog: Array<{
+    action: string;
+    timestamp: string;
+    details?: string;
+    ipAddress?: string;
+  }>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface IInstitute {
+  name: string;
+  logo: string;
+  description: string;
+  subjects: string[];
+  standards: string[];
+  address1: string;
+  address2: string;
+  city: string;
+  state: string;
+  country: string;
+  pincode: string;
+  contactNumber: string;
+  email: string;
+  website?: string;
+  admins: string[];
+  instituteCode: string;
+  createdAt: string;
+  updatedAt: string;
 }

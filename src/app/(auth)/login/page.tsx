@@ -2,32 +2,37 @@ import React from "react";
 
 import Image from "next/image";
 
+import { Avatar, AvatarImage } from "@/components/ui/avatar";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+
 import GoogleLoginButton from "../_components/GoogleLoginButton";
 
 const LoginPage = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#fefbff]">
-      <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-3xl shadow-lg">
-        <div className="text-center space-y-2">
-          <Image
-            src="/leadlly.jpeg"
-            alt="Leadlly Logo"
-            width={150}
-            height={40}
-            className="mx-auto"
-          />
-          <h2 className="text-3xl font-bold tracking-tight text-gray-900">
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <Card className="w-full max-w-md p-8 space-y-8 bg-white rounded-3xl shadow-lg">
+        <CardHeader className="text-center">
+          <Avatar className="mx-auto mb-6 bg-primary/10 size-12">
+            <AvatarImage src="/leadlly.jpeg" className="size-full" />
+          </Avatar>
+          <CardTitle className="text-3xl font-bold tracking-tight">
             Welcome Back
-          </h2>
-          <p className="text-gray-600">
+          </CardTitle>
+          <CardDescription className="text-muted-foreground">
             Sign in to access your admin dashboard
-          </p>
-        </div>
+          </CardDescription>
+        </CardHeader>
 
-        <div className="space-y-4">
+        <CardContent>
           <GoogleLoginButton />
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

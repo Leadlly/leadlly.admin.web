@@ -1,7 +1,8 @@
 import React from "react";
-import StoreProvider from "./StoreProvider";
 
 import { getUser } from "@/actions/user_actions";
+
+import StoreProvider from "./StoreProvider";
 
 const Provider = async ({
   children,
@@ -10,7 +11,7 @@ const Provider = async ({
 }>) => {
   const userData = await getUser();
 
-  return <StoreProvider user={userData?.user}>{children}</StoreProvider>;
+  return <StoreProvider user={userData?.admin}>{children}</StoreProvider>;
 };
 
 export default Provider;

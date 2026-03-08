@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+
 import { getCookie } from "./cookie_actions";
 
 /**
@@ -11,7 +12,7 @@ import { getCookie } from "./cookie_actions";
  */
 export async function addStudentsToInstitute(
   instituteId: string,
-  emails: string[],
+  emails: string[]
 ) {
   try {
     const token = await getCookie();
@@ -45,7 +46,7 @@ export async function addStudentsToInstitute(
           Cookie: `token=${token}`,
         },
         body: JSON.stringify({ emails: validEmails }),
-      },
+      }
     );
 
     if (!response.ok) {
@@ -63,11 +64,12 @@ export async function addStudentsToInstitute(
       message: `Successfully added ${validEmails.length} students`,
       data: data,
     };
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error adding students:", error);
     return {
       success: false,
-      message: error.message || "Failed to add students",
+      message:
+        error instanceof Error ? error.message : "Failed to add students",
     };
   }
 }
@@ -92,7 +94,7 @@ export async function getInstituteStudents(instituteId: string) {
         headers: {
           "Content-Type": "application/json",
         },
-      },
+      }
     );
 
     if (!response.ok) {
@@ -106,11 +108,12 @@ export async function getInstituteStudents(instituteId: string) {
       success: true,
       students: data.students || [],
     };
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error fetching students:", error);
     return {
       success: false,
-      message: error.message || "Failed to fetch students",
+      message:
+        error instanceof Error ? error.message : "Failed to fetch students",
       students: [],
     };
   }

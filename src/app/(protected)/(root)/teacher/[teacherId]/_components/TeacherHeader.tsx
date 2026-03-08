@@ -21,10 +21,10 @@ const TeacherHeader = ({
   contact,
 }: TeacherHeaderProps) => {
   return (
-    <div className="bg-[#eef2ff] px-4 py-6 md:px-8 md:py-8 rounded-3xl mb-6 shadow-sm border border-indigo-100">
+    <div className="bg-[#eef2ff] px-4 py-6 md:px-8 md:py-8 rounded-3xl mb-6 shadow-xs border border-indigo-100">
       <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
         <div className="w-24 h-24 md:w-32 md:h-32 bg-white p-2 md:p-3 rounded-xl shadow-md flex items-center justify-center relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-indigo-200 to-indigo-50 opacity-50"></div>
+          <div className="absolute inset-0 bg-linear-to-br from-indigo-200 to-indigo-50 opacity-50"></div>
           <Image
             src="/placeholder-teacher.jpg"
             alt={name}
@@ -61,7 +61,7 @@ const TeacherHeader = ({
         </div>
 
         <div className="flex flex-col gap-4 mt-4 md:mt-0">
-          <div className="flex items-center gap-3 px-4 py-2 rounded-3xl bg-white shadow-sm border border-indigo-100">
+          <div className="flex items-center gap-3 px-4 py-2 rounded-3xl bg-white shadow-xs border border-indigo-100">
             <div className="bg-indigo-100 p-2 rounded-full">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -86,7 +86,7 @@ const TeacherHeader = ({
             <span className="text-gray-700 text-sm">{address}</span>
           </div>
 
-          <div className="flex items-center gap-3 px-4 py-2 rounded-3xl bg-white shadow-sm border border-indigo-100">
+          <div className="flex items-center gap-3 px-4 py-2 rounded-3xl bg-white shadow-xs border border-indigo-100">
             <div className="bg-indigo-100 p-2 rounded-full">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -106,7 +106,7 @@ const TeacherHeader = ({
             <span className="text-gray-700 text-sm">{contact}</span>
           </div>
 
-          <div className="flex items-center gap-3 px-4 py-2 rounded-3xl bg-white shadow-sm border border-indigo-100">
+          <div className="flex items-center gap-3 px-4 py-2 rounded-3xl bg-white shadow-xs border border-indigo-100">
             <div className="bg-indigo-100 p-2 rounded-full">
               <svg
                 xmlns="http://www.w3.org/2000/svg"

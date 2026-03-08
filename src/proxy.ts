@@ -25,7 +25,12 @@ export async function proxy(request: NextRequest) {
   if (token && !isPublicPath) {
     const user = await getUser();
 
-    if (user && !user.institute) {
+    if (
+      user &&
+      user.admin &&
+      user.admin.institutes.length === 0 &&
+      pathname !== "/create-institute"
+    ) {
       return NextResponse.redirect(new URL("/create-institute", request.url));
     }
   }
@@ -34,5 +39,10 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|assets).*)"],
+  matcher: [
+    // Skip Next.js internals and all static files, unless found in search params
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    // Always run for API routes
+    "/(api|trpc)(.*)",
+  ],
 };

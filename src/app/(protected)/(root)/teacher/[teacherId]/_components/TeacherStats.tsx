@@ -152,7 +152,7 @@ const StatCard = ({ title, value, icon, color, trend }: StatCardProps) => {
 
   return (
     <div
-      className={`${colorClasses[color].bg} p-6 rounded-xl shadow-sm border ${colorClasses[color].border} relative overflow-hidden`}
+      className={`${colorClasses[color].bg} p-6 rounded-xl shadow-xs border ${colorClasses[color].border} relative overflow-hidden`}
     >
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-gray-700 font-medium">{title}</h3>

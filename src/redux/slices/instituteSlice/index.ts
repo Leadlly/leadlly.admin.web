@@ -1,18 +1,20 @@
-import { createSlice } from "@reduxjs/toolkit";
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+
+import { IInstitute } from "@/helpers/types";
 
 export interface InstituteProps {
-  institute: any;
+  institute: IInstitute | null;
 }
 
 const initialState: InstituteProps = {
-  institute: null
+  institute: null,
 };
 
 export const instituteSlice = createSlice({
   name: "institute",
   initialState,
   reducers: {
-    instituteData: (state, action) => {
+    instituteData: (state, action: PayloadAction<IInstitute | null>) => {
       state.institute = action.payload;
     },
   },

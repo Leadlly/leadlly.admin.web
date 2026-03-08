@@ -182,7 +182,7 @@ export default function BatchStudentsPage({
               <input
                 type="text"
                 placeholder="Search students..."
-                className="w-full md:w-auto pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full md:w-auto pl-10 pr-4 py-2 border rounded-md focus:outline-hidden focus:ring-2 focus:ring-purple-500"
               />
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -203,7 +203,7 @@ export default function BatchStudentsPage({
             {/* Filter Buttons */}
             <div className="flex flex-wrap gap-2 w-full md:w-auto">
               <Button
-                variant={filter === "All" ? "default" : "outline"}
+                variant={filter === "All" ? "default" : "outline-solid"}
                 className={
                   filter === "All"
                     ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
@@ -214,7 +214,7 @@ export default function BatchStudentsPage({
                 All
               </Button>
               <Button
-                variant={filter === "Excellent" ? "default" : "outline"}
+                variant={filter === "Excellent" ? "default" : "outline-solid"}
                 className={
                   filter === "Excellent"
                     ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
@@ -225,7 +225,7 @@ export default function BatchStudentsPage({
                 Excellent
               </Button>
               <Button
-                variant={filter === "Optimal" ? "default" : "outline"}
+                variant={filter === "Optimal" ? "default" : "outline-solid"}
                 className={
                   filter === "Optimal"
                     ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
@@ -236,7 +236,7 @@ export default function BatchStudentsPage({
                 Optimal
               </Button>
               <Button
-                variant={filter === "Insufficient" ? "default" : "outline"}
+                variant={filter === "Insufficient" ? "default" : "outline-solid"}
                 className={
                   filter === "Insufficient"
                     ? "bg-blue-100 text-blue-700 hover:bg-blue-200"

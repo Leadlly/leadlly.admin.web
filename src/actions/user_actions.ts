@@ -2,11 +2,12 @@
 
 import { cache } from "react";
 
-import { revalidateTag } from "next/cache";
+import { revalidateTag, updateTag } from "next/cache";
 
 import apiClient from "@/apiClient/apiClient";
 import {
   ForgotPasswordProps,
+  IAdmin,
   ResetPasswordProps,
   SignUpDataProps,
   StudentPersonalInfoProps,
@@ -145,12 +146,13 @@ export const getUser = cache(async () => {
   const token = await getCookie();
   try {
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL}/api/auth/user`,
+      `${process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL}/api/admin/get`,
       {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
           Cookie: `token=${token}`,
+          isAdmin: "true",
         },
         credentials: "include",
         cache: "force-cache",
@@ -160,7 +162,7 @@ export const getUser = cache(async () => {
       }
     );
 
-    const data = await res.json();
+    const data: { success: boolean; admin: IAdmin } = await res.json();
 
     return data;
   } catch (error: unknown) {
@@ -192,7 +194,7 @@ export const studentPersonalInfo = async (data: StudentPersonalInfoProps) => {
 
     const responseData = await res.json();
 
-    revalidateTag("userData");
+    updateTag("userData");
 
     return responseData;
   } catch (error: unknown) {
@@ -221,7 +223,7 @@ export const setTodaysVibe = async (data: { todaysVibe: string }) => {
     );
 
     const responseData = await res.json();
-    revalidateTag("userData");
+    updateTag("userData");
 
     return responseData;
   } catch (error: unknown) {

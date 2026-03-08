@@ -1,37 +1,44 @@
 "use server";
-import { revalidateTag } from "next/cache";
+
+import { updateTag } from "next/cache";
+
+import { z } from "zod";
+
+import { CreateInstituteFormSchema } from "@/helpers/schema/createInstituteSchema";
+import { IInstitute } from "@/helpers/types";
+
 import { getCookie } from "./cookie_actions";
 
-interface InstituteCreateData {
-  name: string;
-  logo?: any;
-  subjects?: string[];
-  standards?: string[];
-}
+type InstituteCreateData = z.infer<typeof CreateInstituteFormSchema>;
 
 export const createInstitute = async (data: InstituteCreateData) => {
   const token = await getCookie();
 
   try {
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL}/api/institute/create`,
+      `${process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL}/api/institute`,
       {
         method: "POST",
         body: JSON.stringify(data),
         headers: {
           "Content-Type": "application/json",
           Cookie: `token=${token}`,
+          isAdmin: "true",
         },
         credentials: "include",
-      },
+      }
     );
 
-    revalidateTag("userData");
+    const responseData: { success: boolean; data: IInstitute; error?: string } =
+      await res.json();
 
-    const responseData = await res.json();
+    updateTag("userData");
+
     return responseData;
   } catch (error) {
-    return new Error(`Error: ${(error as Error).message}`);
+    console.log(error);
+
+    return { success: false, data: null, error: (error as Error).message };
   }
 };
 
@@ -48,7 +55,7 @@ export const getMyInstitute = async () => {
           Cookie: `token=${token}`,
         },
         credentials: "include",
-      },
+      }
     );
 
     const responseData = await res.json();
@@ -75,7 +82,7 @@ export const getAllUserInstitutes = async () => {
           Cookie: `token=${token}`,
         },
         credentials: "include",
-      },
+      }
     );
 
     const responseData = await res.json();
