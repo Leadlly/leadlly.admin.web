@@ -586,6 +586,7 @@ export interface ICoupon {
 }
 
 export interface IAdmin {
+  _id: string;
   firstname: string;
   lastname: string;
   email: string;
@@ -622,6 +623,7 @@ export interface IAdmin {
 }
 
 export interface IInstitute {
+  _id: string;
   name: string;
   logo: string;
   description: string;

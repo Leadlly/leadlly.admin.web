@@ -69,6 +69,39 @@ export const getMyInstitute = async () => {
   }
 };
 
+export const getActiveInstitute = async ({
+  instituteId,
+}: {
+  instituteId: string;
+}) => {
+  const token = await getCookie();
+
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL}/api/institute/${instituteId}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: `token=${token}`,
+          isAdmin: "true",
+        },
+        credentials: "include",
+      }
+    );
+
+    const responseData: { success: boolean; institute: IInstitute } =
+      await res.json();
+    return responseData;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Error: ${error.message}`);
+    } else {
+      throw new Error("An unknown error occurred while fetching institute!");
+    }
+  }
+};
+
 export const getAllUserInstitutes = async () => {
   const token = await getCookie();
 
@@ -80,12 +113,17 @@ export const getAllUserInstitutes = async () => {
         headers: {
           "Content-Type": "application/json",
           Cookie: `token=${token}`,
+          isAdmin: "true",
         },
         credentials: "include",
       }
     );
 
-    const responseData = await res.json();
+    const responseData: {
+      success: boolean;
+      institutes: IInstitute[];
+      count: number;
+    } = await res.json();
     return responseData;
   } catch (error) {
     if (error instanceof Error) {

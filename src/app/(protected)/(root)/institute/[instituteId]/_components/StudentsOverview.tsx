@@ -1,4 +1,5 @@
 import React from "react";
+
 import Link from "next/link";
 
 interface StudentsOverviewProps {
@@ -6,9 +7,7 @@ interface StudentsOverviewProps {
   activeCourses: number;
   averageAttendance: number;
   performanceIndex: number;
-  params?: {
-    instituteId: string;
-  };
+  instituteId?: string;
 }
 
 const StudentsOverview = ({
@@ -16,7 +15,7 @@ const StudentsOverview = ({
   activeCourses,
   averageAttendance,
   performanceIndex,
-  params
+  instituteId,
 }: StudentsOverviewProps) => {
   return (
     <div className="bg-white px-4 sm:px-8 py-6 sm:py-10 rounded-3xl border-2 border-green-400 shadow-section">
@@ -109,7 +108,7 @@ const StudentsOverview = ({
       </div>
 
       <Link
-        href={`/institute/${params?.instituteId}/batches`}
+        href={`/institute/${instituteId}/batches`}
         className="font-bold text-lg sm:text-xl bg-green-100 hover:bg-green-200 text-green-700 flex items-center justify-center gap-2 py-3 transition rounded-2xl"
       >
         <svg

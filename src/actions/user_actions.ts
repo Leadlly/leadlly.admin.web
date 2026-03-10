@@ -158,6 +158,7 @@ export const getUser = cache(async () => {
         cache: "force-cache",
         next: {
           tags: ["userData"],
+          revalidate: 60 * 60,
         },
       }
     );

@@ -8,6 +8,7 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isPublicPath =
+    pathname === "/" ||
     pathname.startsWith("/login") ||
     pathname.startsWith("/api/auth/login") ||
     pathname.startsWith("/api/google/auth");
@@ -17,9 +18,17 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
+  if (!token && pathname === "/") {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
   // If user is logged in and trying to access login page
   if (token && isPublicPath) {
-    return NextResponse.redirect(new URL("/", request.url));
+    const user = await getUser();
+
+    return NextResponse.redirect(
+      new URL(`/institute/${user.admin.institutes[0].toString()}`, request.url)
+    );
   }
 
   if (token && !isPublicPath) {

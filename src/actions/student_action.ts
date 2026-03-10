@@ -44,6 +44,7 @@ export async function addStudentsToInstitute(
         headers: {
           "Content-Type": "application/json",
           Cookie: `token=${token}`,
+          isAdmin: "true",
         },
         body: JSON.stringify({ emails: validEmails }),
       }

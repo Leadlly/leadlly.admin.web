@@ -49,7 +49,11 @@ import { instituteData } from "@/redux/slices/instituteSlice";
 const defaultSubjects = ["physics", "chemistry", "mathematics"];
 const standardOptions = ["9", "10", "11", "12", "13"];
 
-const CreateInstituteForm = () => {
+const CreateInstituteForm = ({
+  setDialogOpen,
+}: {
+  setDialogOpen?: (dialogOpen: boolean) => void;
+}) => {
   const [customSubject, setCustomSubject] = useState("");
   const [loading, setLoading] = useState(false);
   //   const [logo, setLogo] = useState<File | null>(null);
@@ -144,7 +148,8 @@ const CreateInstituteForm = () => {
       if (res.success) {
         toast.success("Institute created successfully!");
         dispatch(instituteData(res.data));
-        router.replace(`/`);
+        router.replace(`/institute/${res.data?._id}`);
+        setDialogOpen?.(false);
       } else {
         console.log(res);
         toast.error(res.error || "Error occurred");
