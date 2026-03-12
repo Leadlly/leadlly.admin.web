@@ -4,9 +4,15 @@ import { getCookie } from "./cookie_actions";
 interface BatchCreateData {
   name: string;
   standard: string;
-  subjects?: string[];
-  teacherIds?: string[];
+  mentors?: string[];
   institute?: string;
+  description?: string;
+  about?: string;
+  payment?: {
+    subscriptionType: "Free" | "Paid";
+    amount: number;
+    currency: "INR";
+  };
 }
 
 export const createBatch = async (data: BatchCreateData) => {
@@ -40,11 +46,14 @@ export const createBatch = async (data: BatchCreateData) => {
 };
 
 export const getInstituteBatch = async (instituteId: string) => {
+  if (!instituteId) {
+    throw new Error("Institute ID is required to fetch batches");
+  }
   const token = await getCookie();
 
   try {
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL}/api/batch/institute/${instituteId}`,
+      `${process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL}/api/institute/${instituteId}/batches`,
       {
         method: "GET",
         headers: {

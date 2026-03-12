@@ -152,7 +152,6 @@ export const getUser = cache(async () => {
         headers: {
           "Content-Type": "application/json",
           Cookie: `token=${token}`,
-          isAdmin: "true",
         },
         credentials: "include",
         cache: "force-cache",

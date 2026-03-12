@@ -88,7 +88,7 @@ export async function getInstituteStudents(instituteId: string) {
 
     // Make API call to backend
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/institutes/${instituteId}/students`,
+      `${process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL}/api/institutes/${instituteId}/students`,
       {
         method: "GET",
         headers: {

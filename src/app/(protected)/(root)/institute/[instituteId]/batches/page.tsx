@@ -2,13 +2,14 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Check, IndianRupee, Plus } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +19,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   Command,
   CommandEmpty,
@@ -30,94 +33,76 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { createBatch } from "@/actions/batch_actions";
+import { createBatch, getInstituteBatch } from "@/actions/batch_actions";
 import { useAppSelector } from "@/redux/hooks";
+import { toast } from "sonner";
 
-interface Batch {
-  id: string;
+interface ApiBatch {
+  _id: string;
   name: string;
   standard: string;
-  subjects: string[];
-  totalStudents: number;
-  maxStudents: number;
-  teacher: string;
+  status: "Active" | "Inactive" | "Completed";
+  payment?: {
+    subscriptionType: "Free" | "Paid";
+    amount: number;
+    currency: string;
+  };
+  createdAt?: string;
 }
 
-interface Standard {
-  name: string;
-  batches: Batch[];
-}
+const FALLBACK_STANDARDS = ["9", "10", "11", "12"];
 
-interface BatchesData {
-  standards: Standard[];
-}
-
-interface Teacher {
-  id: string;
-  name: string;
-}
-
-
-
-export default function BatchesPage({
-  params,
-}: {
-  params: { instituteId: string };
-}) {
-  const [batchesData, setBatchesData] = useState<BatchesData | null>(null);
+export default function BatchesPage() {
+  const params = useParams<{ instituteId: string }>();
+  const instituteId = params?.instituteId ?? "";
+console.log(params, "here are the params")
+  const [batches, setBatches] = useState<ApiBatch[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState({
     standard: "",
-    subject: "",
-    teacher: "",
   });
 
-  // New state for modal form
   const [open, setOpen] = useState(false);
-  // Update newBatch state to include subjects array
+  const [createLoading, setCreateLoading] = useState(false);
+
   const [newBatch, setNewBatch] = useState({
     name: "",
     standard: "",
-    subjects: [] as string[], // Add subjects array
-    teacherIds: [] as string[],
+    description: "",
+    about: "",
+    payment: {
+      subscriptionType: "Free" as "Free" | "Paid",
+      amount: 0,
+      currency: "INR" as const,
+    },
   });
-  const [teachers, setTeachers] = useState<Teacher[]>([
-    { id: "1", name: "Dr. Sarah Wilson" },
-    { id: "2", name: "Dr. John Doe" },
-    // Add more teachers as needed
-  ]);
 
-   // Get institute data from Redux store
   const instituteData = useAppSelector((state) => state.institute.institute);
-  console.log(instituteData, "here is ")
-  // Labels for displaying current filter values
   const [filterLabels, setFilterLabels] = useState({
     standard: "All Standards",
-    subject: "All Subjects",
-    teacher: "All Teachers",
   });
   const fetchBatches = async () => {
+    if (!instituteId) {
+      setLoading(false);
+      setError("Invalid institute. Please go back and select an institute.");
+      return;
+    }
     try {
       setLoading(true);
-
-      // Build query string from filters
-      const queryParams = new URLSearchParams();
-      if (filters.standard) queryParams.append("standard", filters.standard);
-      if (filters.subject) queryParams.append("subject", filters.subject);
-      if (filters.teacher) queryParams.append("teacher", filters.teacher);
-
-      const response = await fetch(`/api/batches?${queryParams.toString()}`);
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch batches");
-      }
-
-      const data = await response.json();
-      setBatchesData(data);
+      setError(null);
+      const data = await getInstituteBatch(instituteId);
+      const items: ApiBatch[] = data?.data ?? [];
+      setBatches(items);
     } catch (err) {
       setError("Error loading batches. Please try again later.");
       console.error("Error fetching batches:", err);
@@ -127,55 +112,62 @@ export default function BatchesPage({
   };
   useEffect(() => {
     fetchBatches();
-  }, [filters]);
+  }, [instituteId, filters]);
 
-  const handleFilterChange = (name: string, value: string, label: string) => {
-    setFilters((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-
-    setFilterLabels((prev) => ({
-      ...prev,
-      [name]: label,
-    }));
+  const handleFilterChange = (value: string, label: string) => {
+    setFilters({ standard: value });
+    setFilterLabels({ standard: label });
   };
 
 
-const handleCreateBatch = async () => {
-  try {
-    // Validate mandatory fields
-    if (!newBatch.name.trim()) {
-      alert("Please enter a batch name");
-      return;
-    }
-    if (!newBatch.standard) {
-      alert("Please select a standard");
-      return;
-    }
+const resetForm = () => {
+  setNewBatch({
+    name: "",
+    standard: "",
+    description: "",
+    about: "",
+    payment: { subscriptionType: "Free", amount: 0, currency: "INR" },
+  });
+};
 
-    // Call the createBatch action with instituteId
+const handleCreateBatch = async () => {
+  if (!newBatch.name.trim()) {
+    toast.error("Please enter a batch name");
+    return;
+  }
+  if (!newBatch.standard) {
+    toast.error("Please select a standard");
+    return;
+  }
+  if (newBatch.payment.subscriptionType === "Paid" && newBatch.payment.amount <= 0) {
+    toast.error("Please enter a valid price for paid batch");
+    return;
+  }
+
+  try {
+    setCreateLoading(true);
     const response = await createBatch({
-      ...newBatch,
-      institute: params?.instituteId
+      name: newBatch.name.trim(),
+      standard: newBatch.standard,
+      description: newBatch.description || undefined,
+      about: newBatch.about || undefined,
+      institute: instituteId,
+      payment: newBatch.payment,
     });
-    
-    if (response) {
-      // Reset form and close modal
-      setNewBatch({ 
-        name: "", 
-        standard: "", 
-        subjects: [], 
-        teacherIds: [] 
-      });
+
+    if (response?.success) {
+      toast.success("Batch created successfully!");
+      resetForm();
       setOpen(false);
-      
-      // Refresh the batches list
       fetchBatches();
+    } else {
+      toast.error(response?.message || "Failed to create batch");
     }
   } catch (error) {
     console.error("Error creating batch:", error);
-    alert("Failed to create batch. Please try again.");
+    toast.error("Failed to create batch. Please try again.");
+  } finally {
+    setCreateLoading(false);
   }
 };
 
@@ -230,221 +222,172 @@ const getBatchLogoBg = (batchName: string) => {
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-4xl font-bold">Student Batches of Institute</h1>
         
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
           <DialogTrigger asChild>
-            <Button className="bg-purple-600 text-white hover:bg-purple-700">
+            <Button className="bg-purple-600 text-white hover:bg-purple-700 gap-1.5">
+              <Plus className="h-4 w-4" />
               Create New Batch
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Create New Batch</DialogTitle>
+              <DialogTitle className="text-xl">Create New Batch</DialogTitle>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="name">Batch Name</Label>
+
+            <div className="grid gap-5 py-2">
+              {/* Batch Name */}
+              <div className="grid gap-1.5">
+                <Label htmlFor="batch-name">
+                  Batch Name <span className="text-destructive">*</span>
+                </Label>
                 <Input
-                  id="name"
+                  id="batch-name"
                   value={newBatch.name}
                   onChange={(e) => setNewBatch({ ...newBatch, name: e.target.value })}
-                  placeholder="Enter batch name"
+                  placeholder="e.g. Alpha Batch 2025"
+                  className="shadow-none"
                 />
               </div>
-              
-              <div className="grid gap-2">
-                <Label htmlFor="standard">Standard</Label>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="w-full justify-between">
-                      {newBatch.standard || "Select standard"}
-                      <ChevronDown className="h-4 w-4 opacity-50" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-full">
-                    {instituteData?.standards?.map((standard: string) => (
-                      <DropdownMenuItem 
-                        key={standard}
-                        onClick={() => setNewBatch({ ...newBatch, standard })}
-                      >
-                        {standard}
-                      </DropdownMenuItem>
-                    )) || (
-                      <>
-                        <DropdownMenuItem onClick={() => setNewBatch({ ...newBatch, standard: "11" })}>
-                          11
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setNewBatch({ ...newBatch, standard: "12" })}>
-                          12
-                        </DropdownMenuItem>
-                      </>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-              
-              {/* Multi-select Subject field */}
-              <div className="grid gap-2">
-                <Label htmlFor="subjects">Subjects</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      className="w-full justify-between"
-                    >
-                      {newBatch.subjects.length > 0
-                        ? `${newBatch.subjects.length} subjects selected`
-                        : "Select subjects"}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-full p-0">
-                    <Command>
-                      <CommandInput placeholder="Search subjects..." />
-                      <CommandEmpty>No subject found.</CommandEmpty>
-                      <CommandGroup>
-                        {(instituteData?.subjects).map((subject: string) => (
-                          <CommandItem
-                            key={subject}
-                            value={subject}
-                            onSelect={() => {
-                              setNewBatch((prev) => {
-                                const isSelected = prev.subjects.includes(subject);
-                                return {
-                                  ...prev,
-                                  subjects: isSelected
-                                    ? prev.subjects.filter((s) => s !== subject)
-                                    : [...prev.subjects, subject]
-                                };
-                              });
-                            }}
-                          >
-                            <div className="flex items-center gap-2">
-                              <div className={cn(
-                                "flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                                newBatch.subjects.includes(subject)
-                                  ? "bg-primary text-primary-foreground"
-                                  : "opacity-50"
-                              )}>
-                                {newBatch.subjects.includes(subject) && (
-                                  <Check className="h-3 w-3" />
-                                )}
-                              </div>
-                              {subject}
-                            </div>
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-                {newBatch.subjects.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {newBatch.subjects.map((subject) => (
-                      <div
-                        key={subject}
-                        className="bg-purple-100 text-purple-700 px-2 py-1 rounded-md text-sm flex items-center gap-1"
-                      >
-                        {subject}
-                        <button
-                          onClick={() => setNewBatch((prev) => ({
-                            ...prev,
-                            subjects: prev.subjects.filter((s) => s !== subject)
-                          }))}
-                          className="hover:text-purple-900"
-                        >
-                          ×
-                        </button>
-                      </div>
+
+              {/* Standard */}
+              <div className="grid gap-1.5">
+                <Label>
+                  Standard <span className="text-destructive">*</span>
+                </Label>
+                <Select
+                  value={newBatch.standard}
+                  onValueChange={(val) => setNewBatch({ ...newBatch, standard: val })}
+                >
+                  <SelectTrigger className="shadow-none">
+                    <SelectValue placeholder="Select standard" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(instituteData?.standards?.length
+                      ? instituteData.standards
+                      : FALLBACK_STANDARDS
+                    ).map((s) => (
+                      <SelectItem key={s} value={s}>
+                        Grade {s}
+                      </SelectItem>
                     ))}
-                  </div>
-                )}
+                  </SelectContent>
+                </Select>
               </div>
 
-              <div className="grid gap-2">
-                <Label htmlFor="teacher">Teachers</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      className="w-full justify-between"
-                    >
-                      {newBatch.teacherIds.length > 0
-                        ? `${newBatch.teacherIds.length} teachers selected`
-                        : "Select teachers"}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-full p-0">
-                    <Command>
-                      <CommandInput placeholder="Search teachers..." />
-                      <CommandEmpty>No teacher found.</CommandEmpty>
-                      <CommandGroup>
-                        {teachers.map((teacher) => (
-                          <CommandItem
-                            key={teacher.id}
-                            value={teacher.name}
-                            onSelect={() => {
-                              setNewBatch((prev) => {
-                                const isSelected = prev.teacherIds.includes(teacher.id);
-                                return {
-                                  ...prev,
-                                  teacherIds: isSelected
-                                    ? prev.teacherIds.filter((id) => id !== teacher.id)
-                                    : [...prev.teacherIds, teacher.id]
-                                };
-                              });
-                            }}
-                          >
-                            <div className="flex items-center gap-2">
-                              <div className={cn(
-                                "flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                                newBatch.teacherIds.includes(teacher.id)
-                                  ? "bg-primary text-primary-foreground"
-                                  : "opacity-50"
-                              )}>
-                                {newBatch.teacherIds.includes(teacher.id) && (
-                                  <Check className="h-3 w-3" />
-                                )}
-                              </div>
-                              {teacher.name}
-                            </div>
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-                {newBatch.teacherIds.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {newBatch.teacherIds.map((teacherId) => (
-                      <div
-                        key={teacherId}
-                        className="bg-purple-100 text-purple-700 px-2 py-1 rounded-md text-sm flex items-center gap-1"
-                      >
-                        {teachers.find((t) => t.id === teacherId)?.name}
-                        <button
-                          onClick={() => setNewBatch((prev) => ({
-                            ...prev,
-                            teacherIds: prev.teacherIds.filter((id) => id !== teacherId)
-                          }))}
-                          className="hover:text-purple-900"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
+              {/* Description */}
+              <div className="grid gap-1.5">
+                <Label htmlFor="batch-description">
+                  Description <span className="text-muted-foreground font-normal">(Optional)</span>
+                </Label>
+                <Textarea
+                  id="batch-description"
+                  value={newBatch.description}
+                  onChange={(e) => setNewBatch({ ...newBatch, description: e.target.value })}
+                  placeholder="Brief description of this batch..."
+                  className="shadow-none resize-none min-h-[72px]"
+                />
+              </div>
+
+              {/* About / Details — whitespace preserved */}
+              <div className="grid gap-1.5">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="batch-about">
+                    About / Details{" "}
+                    <span className="text-muted-foreground font-normal">(Optional)</span>
+                  </Label>
+                </div>
+                <textarea
+                  id="batch-about"
+                  value={newBatch.about}
+                  onChange={(e) => setNewBatch({ ...newBatch, about: e.target.value })}
+                  placeholder={`Write detailed info about this batch...\n\nYou can use:\n- Bullet points\n- Multiple lines\n- Any spacing you need`}
+                  rows={6}
+                  spellCheck={false}
+                  className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 font-mono whitespace-pre resize-y min-h-[120px]"
+                  style={{ whiteSpace: "pre", overflowWrap: "normal", overflowX: "auto" }}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Every space, indent, and line break is stored exactly as typed.
+                </p>
+              </div>
+
+              {/* Pricing */}
+              <div className="rounded-xl border border-border p-4 grid gap-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-sm">Paid Batch</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Toggle to charge students for this batch
+                    </p>
                   </div>
+                  <Switch
+                    checked={newBatch.payment.subscriptionType === "Paid"}
+                    onCheckedChange={(checked) =>
+                      setNewBatch((prev) => ({
+                        ...prev,
+                        payment: {
+                          ...prev.payment,
+                          subscriptionType: checked ? "Paid" : "Free",
+                          amount: checked ? prev.payment.amount : 0,
+                        },
+                      }))
+                    }
+                  />
+                </div>
+
+                {newBatch.payment.subscriptionType === "Paid" && (
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="batch-price">Price (INR)</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                        <IndianRupee className="h-4 w-4" />
+                      </span>
+                      <Input
+                        id="batch-price"
+                        type="number"
+                        min={1}
+                        value={newBatch.payment.amount || ""}
+                        onChange={(e) =>
+                          setNewBatch((prev) => ({
+                            ...prev,
+                            payment: {
+                              ...prev.payment,
+                              amount: Number(e.target.value),
+                            },
+                          }))
+                        }
+                        placeholder="0"
+                        className="pl-9 shadow-none"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Currency is always stored in INR
+                    </p>
+                  </div>
+                )}
+
+                {newBatch.payment.subscriptionType === "Free" && (
+                  <p className="text-sm text-green-600 font-medium">
+                    ✓ This batch is free for all students
+                  </p>
                 )}
               </div>
             </div>
-            <div className="flex justify-end gap-4">
-              <Button variant="outline" onClick={() => setOpen(false)}>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => { setOpen(false); resetForm(); }}
+                disabled={createLoading}
+              >
                 Cancel
               </Button>
-              <Button onClick={handleCreateBatch} className="bg-purple-600 text-white hover:bg-purple-700">
-                Create Batch
+              <Button
+                onClick={handleCreateBatch}
+                className="bg-purple-600 text-white hover:bg-purple-700 min-w-[110px]"
+                disabled={createLoading}
+              >
+                {createLoading ? "Creating..." : "Create Batch"}
               </Button>
             </div>
           </DialogContent>
@@ -464,136 +407,46 @@ const getBatchLogoBg = (batchName: string) => {
               <DropdownMenuContent className="w-56">
                 <DropdownMenuItem
                   onClick={() =>
-                    handleFilterChange("standard", "", "All Standards")
+                    handleFilterChange("", "All Standards")
                   }
                 >
                   All Standards
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() =>
-                    handleFilterChange("standard", "11th", "11th Standard")
-                  }
-                >
-                  11th Standard
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() =>
-                    handleFilterChange("standard", "12th", "12th Standard")
-                  }
-                >
-                  12th Standard
-                </DropdownMenuItem>
+                {Array.from(new Set(batches.map((b) => b.standard))).map(
+                  (standard) => (
+                    <DropdownMenuItem
+                      key={standard}
+                      onClick={() =>
+                        handleFilterChange(standard, `${standard} Standard`)
+                      }
+                    >
+                      {standard} Standard
+                    </DropdownMenuItem>
+                  ),
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
-
-            {/* Subject Filter */}
-            <DropdownMenu>
-              <DropdownMenuTrigger className="flex justify-between w-full border rounded-md px-4 py-2 text-left">
-                <span>{filterLabels.subject}</span>
-                <ChevronDown className="h-4 w-4 opacity-50" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56">
-                <DropdownMenuItem
-                  onClick={() =>
-                    handleFilterChange("subject", "", "All Subjects")
-                  }
-                >
-                  All Subjects
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() =>
-                    handleFilterChange("subject", "Physics", "Physics")
-                  }
-                >
-                  Physics
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() =>
-                    handleFilterChange("subject", "Chemistry", "Chemistry")
-                  }
-                >
-                  Chemistry
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() =>
-                    handleFilterChange("subject", "Biology", "Biology")
-                  }
-                >
-                  Biology
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() =>
-                    handleFilterChange("subject", "Mathematics", "Mathematics")
-                  }
-                >
-                  Mathematics
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Teacher Filter */}
-            <DropdownMenu>
-              <DropdownMenuTrigger className="flex justify-between w-full border rounded-md px-4 py-2 text-left">
-                <span>{filterLabels.teacher}</span>
-                <ChevronDown className="h-4 w-4 opacity-50" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56">
-                <DropdownMenuItem
-                  onClick={() =>
-                    handleFilterChange("teacher", "", "All Teachers")
-                  }
-                >
-                  All Teachers
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() =>
-                    handleFilterChange(
-                      "teacher",
-                      "Dr. Sarah Wilson",
-                      "Dr. Sarah Wilson"
-                    )
-                  }
-                >
-                  Dr. Sarah Wilson
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {/* Subject/Teacher filters removed for now */}
           </div>
         </div>
       </div>
 
-      {batchesData && batchesData.standards.length > 0 ? (
-        batchesData.standards.map((standard, index) => (
-          <div key={index} className="bg-white p-10 rounded-3xl mb-6 border-2 ">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold">{standard.name}</h2>
-              <button className="text-purple-600 hover:text-purple-800 flex items-center gap-1">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                Add batch
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {standard.batches.map((batch) => (
-                <div key={batch.id} className="border rounded-xl shadow-xl p-8">
+      {batches.length > 0 ? (
+        <div className="bg-white p-10 rounded-3xl mb-6 border-2 ">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {batches
+              .filter((batch) =>
+                filters.standard ? batch.standard === filters.standard : true,
+              )
+              .map((batch) => (
+                <div key={batch._id} className="border rounded-xl shadow-xl p-8">
                   <div className="flex items-center gap-4 mb-4">
                     <div
                       className={`w-12 h-12 ${getBatchLogoBg(
                         batch.name
                       )} rounded-full flex items-center justify-center text-white`}
                     >
-                      {batch.name === "Omega" ? (
+                      {batch.name.toLowerCase().includes("omega") ? (
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           className="h-6 w-6 "
@@ -627,21 +480,21 @@ const getBatchLogoBg = (batchName: string) => {
                     </div>
                     <div>
                       <h3 className="font-bold text-lg">{batch.name}</h3>
-                      <p className="text-gray-600 text-sm">{batch.standard}</p>
+                      <p className="text-gray-600 text-sm">
+                        Class: {batch.standard}
+                      </p>
                     </div>
                     <span className="ml-auto px-3 py-3 font-semibold bg-green-100 text-green-800 text-xs rounded-full">
-                      Active
+                      {batch.status}
                     </span>
                   </div>
 
                   <div className="mb-4">
-                    <p className="text-gray-700 mb-1">
-                      <span className="font-medium">Subject: </span>
-                      {batch.subjects.join(", ")}
-                    </p>
                     <p className="text-gray-700">
-                      <span className="font-medium">Total Students: </span>
-                      {batch.totalStudents}
+                      <span className="font-medium">Pricing: </span>
+                      {batch.payment?.subscriptionType === "Paid"
+                        ? `₹${batch.payment.amount} ${batch.payment.currency || "INR"}`
+                        : "Free"}
                     </p>
                   </div>
 
@@ -649,34 +502,36 @@ const getBatchLogoBg = (batchName: string) => {
                     <div className="w-full bg-gray-200 rounded-full h-2.5 mb-1">
                       <div
                         className="bg-purple-600 h-2.5 rounded-full"
-                        style={{
-                          width: `${
-                            (batch.totalStudents / batch.maxStudents) * 100
-                          }%`,
-                        }}
+                        style={{ width: "100%" }}
                       ></div>
                     </div>
                     <p className="text-right text-xs text-gray-500">
-                      {batch.totalStudents}/{batch.maxStudents}
+                      Created{" "}
+                      {batch.createdAt
+                        ? new Date(batch.createdAt).toLocaleDateString()
+                        : ""}
                     </p>
                   </div>
 
                   <div className="flex justify-between items-center mb-4">
-                    <p className="text-gray-700 text-md font-semibold">
-                      -By {batch.teacher}
-                    </p>
                     <Link
-                      href={`/batches/${batch.id}/students`}
+                      href={`/institute/${instituteId}/students`}
                       className="block text-center bg-purple-100 text-purple-700 py-2 px-4 rounded-md hover:bg-purple-200 transition"
                     >
-                      View More
+                      View Students
                     </Link>
+                    <Button
+                      variant="outline"
+                      className="text-xs"
+                      disabled
+                    >
+                      View Teachers
+                    </Button>
                   </div>
                 </div>
               ))}
-            </div>
           </div>
-        ))
+        </div>
       ) : (
         <div className="bg-white p-6 rounded-lg text-center">
           <p className="text-gray-600">

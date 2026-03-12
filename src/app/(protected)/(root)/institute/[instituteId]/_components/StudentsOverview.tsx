@@ -108,7 +108,7 @@ const StudentsOverview = ({
       </div>
 
       <Link
-        href={`/institute/${instituteId}/batches`}
+        href={`/institute/${instituteId}/students`}
         className="font-bold text-lg sm:text-xl bg-green-100 hover:bg-green-200 text-green-700 flex items-center justify-center gap-2 py-3 transition rounded-2xl"
       >
         <svg

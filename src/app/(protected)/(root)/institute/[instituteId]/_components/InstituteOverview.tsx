@@ -16,6 +16,7 @@ const InstituteOverview = ({ instituteId }: InstituteOverviewProps) => {
   const { data: activeInstitute } = useQuery({
     queryKey: ["active_institute", instituteId],
     queryFn: () => getActiveInstitute({ instituteId }),
+    enabled: !!instituteId && instituteId !== "undefined",
   });
 
   return (
@@ -25,7 +26,7 @@ const InstituteOverview = ({ instituteId }: InstituteOverviewProps) => {
           <div className="absolute inset-0 bg-linear-to-br from-primary/20 to-primary/5"></div>
           <Image
             src="/institute-logo.png"
-            alt={activeInstitute?.institute.name || ""}
+            alt={activeInstitute?.institute?.name || ""}
             width={100}
             height={100}
             className="rounded-3xl relative z-10"
@@ -34,7 +35,7 @@ const InstituteOverview = ({ instituteId }: InstituteOverviewProps) => {
 
         <div className="flex-1">
           <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-            {activeInstitute?.institute.name}
+            {activeInstitute?.institute?.name}
           </h1>
           <p className="text-muted-foreground mt-1 flex items-center">
             <svg
@@ -51,7 +52,7 @@ const InstituteOverview = ({ instituteId }: InstituteOverviewProps) => {
                 d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5zm6-10.125a1.875 1.875 0 11-3.75 0 1.875 1.875 0 013.75 0zm1.294 6.336a6.721 6.721 0 01-3.17.789 6.721 6.721 0 01-3.168-.789 3.376 3.376 0 016.338 0z"
               />
             </svg>
-            Institute Code: {activeInstitute?.institute.instituteCode}
+            Institute Code: {activeInstitute?.institute?.instituteCode}
           </p>
         </div>
 
@@ -80,13 +81,8 @@ const InstituteOverview = ({ instituteId }: InstituteOverviewProps) => {
             </div>
             <div>
               <span className="text-muted-foreground text-sm block">
-                {activeInstitute?.institute.address1}
+                {activeInstitute?.institute?.address1}
               </span>
-              {activeInstitute?.institute.address2 && (
-                <span className="text-muted-foreground text-sm block">
-                  {activeInstitute?.institute.address2}
-                </span>
-              )}
             </div>
           </div>
 
@@ -108,7 +104,7 @@ const InstituteOverview = ({ instituteId }: InstituteOverviewProps) => {
               </svg>
             </div>
             <span className="text-muted-foreground text-sm">
-              {activeInstitute?.institute.contactNumber}
+              {activeInstitute?.institute?.contactNumber}
             </span>
           </div>
 
@@ -130,7 +126,7 @@ const InstituteOverview = ({ instituteId }: InstituteOverviewProps) => {
               </svg>
             </div>
             <span className="text-muted-foreground text-sm">
-              {activeInstitute?.institute.email}
+              {activeInstitute?.institute?.email}
             </span>
           </div>
         </div>

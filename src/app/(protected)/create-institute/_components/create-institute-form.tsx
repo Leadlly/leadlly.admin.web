@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 
 import { useRouter } from "next/navigation";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, Plus, Upload, X } from "lucide-react";
+import { Camera, Loader2, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -56,12 +56,12 @@ const CreateInstituteForm = ({
 }) => {
   const [customSubject, setCustomSubject] = useState("");
   const [loading, setLoading] = useState(false);
-  //   const [logo, setLogo] = useState<File | null>(null);
-  //   const [logoPreview, setLogoPreview] = useState<string | null>(null);
-  //   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
   const router = useRouter();
   const dispatch = useAppDispatch();
-
   const anchor = useComboboxAnchor();
 
   const form = useForm<z.infer<typeof CreateInstituteFormSchema>>({
@@ -71,7 +71,6 @@ const CreateInstituteForm = ({
       subjects: [],
       standards: [],
       address1: "",
-      address2: "",
       city: "",
       contactNumber: "",
       country: "India",
@@ -82,39 +81,31 @@ const CreateInstituteForm = ({
     },
   });
 
-  //   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  //     const file = e.target.files?.[0];
-  //     if (file) {
-  //       // Check file type
-  //       if (!file.type.startsWith("image/")) {
-  //         toast.error("Please upload an image file");
-  //         return;
-  //       }
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  //       // Check file size (max 2MB)
-  //       if (file.size > 2 * 1024 * 1024) {
-  //         toast.error("Logo image must be less than 2MB");
-  //         return;
-  //       }
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please upload an image file");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Logo must be less than 2MB");
+      return;
+    }
 
-  //       setLogo(file);
+    setLogoFile(file);
+    const reader = new FileReader();
+    reader.onload = () => setLogoPreview(reader.result as string);
+    reader.readAsDataURL(file);
+  };
 
-  //       // Create preview
-  //       const reader = new FileReader();
-  //       reader.onload = () => {
-  //         setLogoPreview(reader.result as string);
-  //       };
-  //       reader.readAsDataURL(file);
-  //     }
-  //   };
-
-  //   const handleRemoveLogo = () => {
-  //     setLogo(null);
-  //     setLogoPreview(null);
-  //     if (fileInputRef.current) {
-  //       fileInputRef.current.value = "";
-  //     }
-  //   };
+  const handleRemoveLogo = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setLogoFile(null);
+    setLogoPreview(null);
+    if (logoInputRef.current) logoInputRef.current.value = "";
+  };
 
   const handleSubmit = async (
     data: z.infer<typeof CreateInstituteFormSchema>
@@ -122,36 +113,26 @@ const CreateInstituteForm = ({
     try {
       setLoading(true);
 
-      // Create FormData if there's a logo
-      //   let formData = null;
-      //   if (logo) {
-      //     formData = new FormData();
-      //     formData.append("logo", logo);
-      //   }
-
       const res = await createInstitute({
-        name: data.name,
-        subjects: data.subjects,
-        standards: data.standards,
-        // logo: formData,
-        email: data.email,
-        website: data.website,
-        contactNumber: data.contactNumber,
-        address1: data.address1,
-        address2: data.address2,
-        city: data.city,
-        state: data.state,
-        pincode: data.pincode,
-        country: data.country,
+        ...data,
+        logo: logoFile ? { name: logoFile.name, type: logoFile.type } : undefined,
       });
 
       if (res.success) {
+        // Upload logo directly to S3 using the presigned URL
+        if (logoFile && res.logoUploadUrl) {
+          await fetch(res.logoUploadUrl, {
+            method: "PUT",
+            body: logoFile,
+            headers: { "Content-Type": logoFile.type },
+          });
+        }
+
         toast.success("Institute created successfully!");
         dispatch(instituteData(res.data));
         router.replace(`/institute/${res.data?._id}`);
         setDialogOpen?.(false);
       } else {
-        console.log(res);
         toast.error(res.error || "Error occurred");
       }
     } catch (error) {
@@ -165,6 +146,49 @@ const CreateInstituteForm = ({
   return (
     <form onSubmit={form.handleSubmit(handleSubmit)}>
       <FieldGroup>
+        {/* Circular logo upload */}
+        <div className="flex justify-center mb-2">
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => logoInputRef.current?.click()}
+              className="w-24 h-24 rounded-full border-2 border-dashed border-muted-foreground/40 bg-muted/30 hover:bg-muted/60 hover:border-primary/50 transition-all flex items-center justify-center overflow-hidden group"
+              title="Upload institute logo"
+            >
+              {logoPreview ? (
+                <img
+                  src={logoPreview}
+                  alt="Logo preview"
+                  className="w-full h-full object-cover rounded-full"
+                />
+              ) : (
+                <div className="flex flex-col items-center gap-1 text-muted-foreground group-hover:text-primary transition-colors">
+                  <Camera className="h-6 w-6" />
+                  <span className="text-[10px] font-medium">Logo</span>
+                </div>
+              )}
+            </button>
+
+            {logoPreview && (
+              <button
+                type="button"
+                onClick={handleRemoveLogo}
+                className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center shadow"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+
+          <input
+            ref={logoInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleLogoChange}
+          />
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Controller
             control={form.control}
@@ -191,11 +215,13 @@ const CreateInstituteForm = ({
             name="email"
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid} className="gap-1.5">
-                <FieldLabel htmlFor="name">Email</FieldLabel>
+                <FieldLabel htmlFor="email">
+                  Email{" "}
+                  <span className="text-muted-foreground">(Optional)</span>
+                </FieldLabel>
                 <Input
                   {...field}
                   placeholder="Enter institute email"
-                  required
                   aria-invalid={fieldState.invalid}
                   className="shadow-none"
                 />
@@ -213,12 +239,14 @@ const CreateInstituteForm = ({
             name="contactNumber"
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid} className="gap-1.5">
-                <FieldLabel htmlFor="name">Phone Number</FieldLabel>
+                <FieldLabel htmlFor="contactNumber">
+                  Phone Number{" "}
+                  <span className="text-muted-foreground">(Optional)</span>
+                </FieldLabel>
                 <Input
                   type="tel"
                   {...field}
                   placeholder="Enter institute contact number"
-                  required
                   aria-invalid={fieldState.invalid}
                   className="shadow-none"
                 />
@@ -257,31 +285,13 @@ const CreateInstituteForm = ({
           name="address1"
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid} className="gap-1.5">
-              <FieldLabel htmlFor="name">Address 1</FieldLabel>
-              <Input
-                {...field}
-                placeholder="Enter street address"
-                required
-                aria-invalid={fieldState.invalid}
-                className="shadow-none"
-              />
-              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-            </Field>
-          )}
-        />
-
-        <Controller
-          control={form.control}
-          name="address2"
-          render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid} className="gap-1.5">
-              <FieldLabel htmlFor="name">
-                Address 2{" "}
+              <FieldLabel htmlFor="address1">
+                Address{" "}
                 <span className="text-muted-foreground">(Optional)</span>
               </FieldLabel>
               <Input
                 {...field}
-                placeholder="Enter locality"
+                placeholder="Enter street address"
                 aria-invalid={fieldState.invalid}
                 className="shadow-none"
               />
@@ -296,11 +306,13 @@ const CreateInstituteForm = ({
             name="city"
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid} className="gap-1.5">
-                <FieldLabel htmlFor="name">City</FieldLabel>
+                <FieldLabel htmlFor="city">
+                  City{" "}
+                  <span className="text-muted-foreground">(Optional)</span>
+                </FieldLabel>
                 <Input
                   {...field}
                   placeholder="Enter your city"
-                  required
                   aria-invalid={fieldState.invalid}
                   className="shadow-none"
                 />
@@ -316,11 +328,13 @@ const CreateInstituteForm = ({
             name="state"
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid} className="gap-1.5">
-                <FieldLabel htmlFor="name">State</FieldLabel>
+                <FieldLabel htmlFor="state">
+                  State{" "}
+                  <span className="text-muted-foreground">(Optional)</span>
+                </FieldLabel>
                 <Input
                   {...field}
                   placeholder="Enter state"
-                  required
                   aria-invalid={fieldState.invalid}
                   className="shadow-none"
                 />
@@ -338,11 +352,13 @@ const CreateInstituteForm = ({
             name="pincode"
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid} className="gap-1.5">
-                <FieldLabel htmlFor="name">Pincode</FieldLabel>
+                <FieldLabel htmlFor="pincode">
+                  Pincode{" "}
+                  <span className="text-muted-foreground">(Optional)</span>
+                </FieldLabel>
                 <Input
                   {...field}
                   placeholder="Enter pincode"
-                  required
                   aria-invalid={fieldState.invalid}
                   className="shadow-none"
                 />
@@ -358,7 +374,7 @@ const CreateInstituteForm = ({
             name="country"
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid} className="gap-1.5">
-                <FieldLabel htmlFor="name">Country</FieldLabel>
+                <FieldLabel htmlFor="country">Country</FieldLabel>
                 <Select
                   name={field.name}
                   value={field.value}
@@ -379,62 +395,21 @@ const CreateInstituteForm = ({
           />
         </div>
 
-        {/* <div className="space-y-2">
-          <Label>Institute Logo (Optional)</Label>
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => fileInputRef.current?.click()}
-                className="flex gap-2"
-              >
-                <Upload className="h-4 w-4" />
-                Upload Logo
-              </Button>
-              <Input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleLogoChange}
-                accept="image/*"
-                className="hidden"
-              />
-              <span className="text-sm text-muted-foreground">
-                PNG, JPG or GIF (max. 2MB)
-              </span>
-            </div>
-
-            {logoPreview && (
-              <div className="relative w-24 h-24 mt-2">
-                <img
-                  src={logoPreview}
-                  alt="Logo preview"
-                  className="w-full h-full object-contain border rounded-md"
-                />
-                <button
-                  type="button"
-                  onClick={handleRemoveLogo}
-                  className="absolute -top-2 -right-2 bg-red-100 text-red-600 rounded-full p-1 hover:bg-red-200"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            )}
-          </div>
-        </div> */}
-
         <Controller
           control={form.control}
           name="subjects"
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid} className="gap-1.5">
-              <FieldLabel>Subjects</FieldLabel>
+              <FieldLabel>
+                Subjects{" "}
+                <span className="text-muted-foreground">(Optional)</span>
+              </FieldLabel>
 
               <Combobox
                 multiple
                 autoHighlight
-                items={[...new Set([...defaultSubjects, ...field.value])]}
-                value={field.value}
+                items={[...new Set([...defaultSubjects, ...(field.value ?? [])])]}
+                value={field.value ?? []}
                 onValueChange={(value) => {
                   field.onChange(value);
                   setCustomSubject("");
@@ -475,7 +450,7 @@ const CreateInstituteForm = ({
                       !defaultSubjects.some(
                         (s) => s.toLowerCase() === customSubject.toLowerCase()
                       ) &&
-                      !field.value.some(
+                      !(field.value ?? []).some(
                         (s: string) =>
                           s.toLowerCase() === customSubject.toLowerCase()
                       ) && (
@@ -485,11 +460,11 @@ const CreateInstituteForm = ({
                           className="w-full justify-start text-primary font-medium px-1.5 h-9"
                           onClick={(e) => {
                             e.preventDefault();
-                            field.onChange([...field.value, customSubject]);
+                            field.onChange([...(field.value ?? []), customSubject]);
                             setCustomSubject("");
                           }}
                         >
-                          <Plus className="mr-2size-4" />
+                          <Plus className="mr-2 size-4" />
                           <span>Add &quot;{customSubject}&quot;</span>
                         </Button>
                       )}
@@ -508,7 +483,12 @@ const CreateInstituteForm = ({
           render={({ field, fieldState }) => (
             <FieldGroup>
               <FieldSet data-invalid={fieldState.invalid}>
-                <FieldLegend variant="label">Standards/Classes</FieldLegend>
+                <FieldLegend variant="label">
+                  Standards/Classes{" "}
+                  <span className="text-muted-foreground font-normal">
+                    (Optional)
+                  </span>
+                </FieldLegend>
                 <FieldGroup
                   data-slot="checkbox-group"
                   className="grid grid-cols-2 md:grid-cols-3 gap-3 w-full"
@@ -524,11 +504,11 @@ const CreateInstituteForm = ({
                         id={`standard-${standard}`}
                         name={field.name}
                         aria-invalid={fieldState.invalid}
-                        checked={field.value.includes(standard)}
+                        checked={(field.value ?? []).includes(standard)}
                         onCheckedChange={(checked) => {
                           const newValue = checked
-                            ? [...field.value, standard]
-                            : field.value.filter((s) => s !== standard);
+                            ? [...(field.value ?? []), standard]
+                            : (field.value ?? []).filter((s) => s !== standard);
                           field.onChange(newValue);
                         }}
                       />

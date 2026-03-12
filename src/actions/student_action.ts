@@ -44,7 +44,6 @@ export async function addStudentsToInstitute(
         headers: {
           "Content-Type": "application/json",
           Cookie: `token=${token}`,
-          isAdmin: "true",
         },
         body: JSON.stringify({ emails: validEmails }),
       }
@@ -82,32 +81,47 @@ export async function addStudentsToInstitute(
  */
 export async function getInstituteStudents(instituteId: string) {
   try {
-    // Validate input
     if (!instituteId) {
       throw new Error("Institute ID is required");
     }
 
-    // Make API call to backend
+    const token = await getCookie();
+    const baseUrl = process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL;
+
+    if (!baseUrl) {
+      throw new Error(
+        "API base URL not configured. Set NEXT_PUBLIC_ADMIN_API_BASE_URL in .env.local"
+      );
+    }
+
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/institutes/${instituteId}/students`,
+      `${baseUrl}/api/institute/${instituteId}/students`,
       {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
+          Cookie: `token=${token}`,
         },
+        credentials: "include",
       }
     );
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || "Failed to fetch students");
+    const contentType = response.headers.get("content-type") ?? "";
+    if (!contentType.includes("application/json")) {
+      throw new Error(
+        `Failed to fetch students (${response.status})`
+      );
     }
 
     const data = await response.json();
 
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to fetch students");
+    }
+
     return {
       success: true,
-      students: data.students || [],
+      students: data.students ?? [],
     };
   } catch (error) {
     console.error("Error fetching students:", error);

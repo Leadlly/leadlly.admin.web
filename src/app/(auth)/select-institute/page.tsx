@@ -118,12 +118,12 @@ export default function SelectInstitutePage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {institute.logo ? (
+                {institute.logo?.url ? (
                   <div className="w-16 h-16 mx-auto mb-4">
                     <img
-                      src={institute.logo}
+                      src={institute.logo.url}
                       alt={`${institute.name} logo`}
-                      className="w-full h-full object-contain"
+                      className="w-full h-full object-cover rounded-full"
                     />
                   </div>
                 ) : (

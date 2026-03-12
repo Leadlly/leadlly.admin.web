@@ -625,18 +625,20 @@ export interface IAdmin {
 export interface IInstitute {
   _id: string;
   name: string;
-  logo: string;
-  description: string;
-  subjects: string[];
-  standards: string[];
-  address1: string;
-  address2: string;
-  city: string;
-  state: string;
-  country: string;
-  pincode: string;
-  contactNumber: string;
-  email: string;
+  logo?: {
+    url: string;
+    key: string;
+  } | null;
+  description?: string;
+  subjects?: string[];
+  standards?: string[];
+  address1?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  pincode?: string;
+  contactNumber?: string;
+  email?: string;
   website?: string;
   admins: string[];
   instituteCode: string;

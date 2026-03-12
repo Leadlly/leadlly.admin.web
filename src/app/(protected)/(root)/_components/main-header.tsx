@@ -41,7 +41,8 @@ const MainHeader = () => {
 
   const { data: activeInstitute } = useQuery({
     queryKey: ["active_institute", instituteId],
-    queryFn: () => getActiveInstitute({ instituteId }),
+    queryFn: () => getActiveInstitute({ instituteId: instituteId ?? "" }),
+    enabled: !!instituteId && instituteId !== "undefined",
   });
 
   const { data: institutes } = useSuspenseQuery({
@@ -58,7 +59,7 @@ const MainHeader = () => {
           <DropdownMenuTrigger asChild>
             <Button variant={"outline"} size={"lg"}>
               <span>
-                {activeInstitute?.institute.name || "Select Institute"}
+                {activeInstitute?.institute?.name || "Select Institute"}
               </span>
               <ChevronDown />
             </Button>
@@ -72,13 +73,13 @@ const MainHeader = () => {
                 key={institute._id}
                 className={cn(
                   "flex items-center justify-between",
-                  institute._id === activeInstitute?.institute._id &&
+                  institute._id === activeInstitute?.institute?._id &&
                     "bg-primary/10 text-primary"
                 )}
                 onClick={() => router.replace(`/institute/${institute._id}`)}
               >
                 <span>{institute.name}</span>
-                {institute._id === activeInstitute?.institute._id && (
+                {institute._id === activeInstitute?.institute?._id && (
                   <Check className="size-4" />
                 )}
               </DropdownMenuItem>

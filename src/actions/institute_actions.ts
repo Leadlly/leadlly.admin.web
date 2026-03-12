@@ -9,7 +9,9 @@ import { IInstitute } from "@/helpers/types";
 
 import { getCookie } from "./cookie_actions";
 
-type InstituteCreateData = z.infer<typeof CreateInstituteFormSchema>;
+type InstituteCreateData = z.infer<typeof CreateInstituteFormSchema> & {
+  logo?: { name: string; type: string };
+};
 
 export const createInstitute = async (data: InstituteCreateData) => {
   const token = await getCookie();
@@ -23,14 +25,17 @@ export const createInstitute = async (data: InstituteCreateData) => {
         headers: {
           "Content-Type": "application/json",
           Cookie: `token=${token}`,
-          isAdmin: "true",
         },
         credentials: "include",
       }
     );
 
-    const responseData: { success: boolean; data: IInstitute; error?: string } =
-      await res.json();
+    const responseData: {
+      success: boolean;
+      data: IInstitute;
+      logoUploadUrl?: string;
+      error?: string;
+    } = await res.json();
 
     updateTag("userData");
 
@@ -38,7 +43,7 @@ export const createInstitute = async (data: InstituteCreateData) => {
   } catch (error) {
     console.log(error);
 
-    return { success: false, data: null, error: (error as Error).message };
+    return { success: false, data: null, logoUploadUrl: undefined, error: (error as Error).message };
   }
 };
 
@@ -74,6 +79,10 @@ export const getActiveInstitute = async ({
 }: {
   instituteId: string;
 }) => {
+  if (!instituteId || instituteId === "undefined") {
+    return { success: false, institute: null };
+  }
+
   const token = await getCookie();
 
   try {
@@ -84,7 +93,6 @@ export const getActiveInstitute = async ({
         headers: {
           "Content-Type": "application/json",
           Cookie: `token=${token}`,
-          isAdmin: "true",
         },
         credentials: "include",
       }
@@ -113,7 +121,6 @@ export const getAllUserInstitutes = async () => {
         headers: {
           "Content-Type": "application/json",
           Cookie: `token=${token}`,
-          isAdmin: "true",
         },
         credentials: "include",
       }
