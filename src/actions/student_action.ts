@@ -133,3 +133,40 @@ export async function getInstituteStudents(instituteId: string) {
     };
   }
 }
+
+/**
+ * Get a single student by their ID
+ */
+export async function getStudentById(studentId: string) {
+  try {
+    if (!studentId) throw new Error("Student ID is required");
+
+    const token = await getCookie();
+    const baseUrl = process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL;
+    if (!baseUrl) throw new Error("API base URL not configured");
+
+    const response = await fetch(
+      `${baseUrl}/api/institute/student/${studentId}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: `token=${token}`,
+        },
+        cache: "no-store",
+      }
+    );
+
+    const contentType = response.headers.get("content-type") ?? "";
+    if (!contentType.includes("application/json")) {
+      return { success: false, student: null };
+    }
+
+    const data = await response.json();
+    if (!response.ok) return { success: false, student: null };
+
+    return { success: true, student: data.student ?? null };
+  } catch {
+    return { success: false, student: null };
+  }
+}
