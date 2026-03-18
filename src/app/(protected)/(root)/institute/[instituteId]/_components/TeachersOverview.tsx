@@ -1,4 +1,5 @@
 import React from "react";
+
 import Link from "next/link";
 
 interface TeachersOverviewProps {
@@ -6,6 +7,7 @@ interface TeachersOverviewProps {
   departments: number;
   activeClasses: number;
   satisfactionRate: number;
+  instituteId: string;
 }
 
 const TeachersOverview = ({
@@ -13,6 +15,7 @@ const TeachersOverview = ({
   departments,
   activeClasses,
   satisfactionRate,
+  instituteId,
 }: TeachersOverviewProps) => {
   return (
     <div className="bg-white px-4 sm:px-8 py-6 sm:py-10 rounded-3xl border-2 border-blue-400 shadow-section">
@@ -105,7 +108,7 @@ const TeachersOverview = ({
       </div>
 
       <Link
-        href="/teachers"
+        href={`/institute/${instituteId}/teachers`}
         className="font-bold text-lg sm:text-xl bg-blue-100 hover:bg-blue-200 text-blue-700 flex items-center justify-center gap-2 py-3 rounded-xl transition"
       >
         <svg

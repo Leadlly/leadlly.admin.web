@@ -4,19 +4,19 @@ import React from "react";
 
 import Image from "next/image";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 
 import { getActiveInstitute } from "@/actions/institute_actions";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface InstituteOverviewProps {
   instituteId: string;
 }
 
 const InstituteOverview = ({ instituteId }: InstituteOverviewProps) => {
-  const { data: activeInstitute } = useQuery({
+  const { data: activeInstitute } = useSuspenseQuery({
     queryKey: ["active_institute", instituteId],
     queryFn: () => getActiveInstitute({ instituteId }),
-    enabled: !!instituteId && instituteId !== "undefined",
   });
 
   return (
@@ -24,13 +24,15 @@ const InstituteOverview = ({ instituteId }: InstituteOverviewProps) => {
       <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
         <div className="w-24 h-24 md:w-32 md:h-32 bg-white p-2 md:p-3 rounded-xl shadow-md flex items-center justify-center relative overflow-hidden">
           <div className="absolute inset-0 bg-linear-to-br from-primary/20 to-primary/5"></div>
-          <Image
-            src="/institute-logo.png"
-            alt={activeInstitute?.institute?.name || ""}
-            width={100}
-            height={100}
-            className="rounded-3xl relative z-10"
-          />
+          <Avatar className="size-28">
+            <AvatarImage
+              src={activeInstitute.institute?.logo?.url}
+              alt={activeInstitute?.institute?.name || ""}
+            />
+            <AvatarFallback className="text-3xl font-semibold">
+              {activeInstitute?.institute?.name?.charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
         </div>
 
         <div className="flex-1">

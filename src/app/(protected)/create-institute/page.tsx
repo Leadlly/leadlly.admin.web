@@ -1,5 +1,6 @@
 import * as React from "react";
 
+import CreateInstituteForm from "@/components/create-institute-form";
 import {
   Card,
   CardContent,
@@ -7,8 +8,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-
-import CreateInstituteForm from "./_components/create-institute-form";
 
 export default function CreateInstitutePage() {
   return (

@@ -1,15 +1,15 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { ChevronDown, Check, IndianRupee, Plus } from "lucide-react";
+
+import { ChevronDown, IndianRupee, Plus } from "lucide-react";
+import { toast } from "sonner";
+
+import { createBatch, getInstituteBatch } from "@/actions/batch_actions";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -17,22 +17,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -40,11 +32,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { createBatch, getInstituteBatch } from "@/actions/batch_actions";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { useAppSelector } from "@/redux/hooks";
-import { toast } from "sonner";
 
 interface ApiBatch {
   _id: string;
@@ -64,7 +54,7 @@ const FALLBACK_STANDARDS = ["9", "10", "11", "12"];
 export default function BatchesPage() {
   const params = useParams<{ instituteId: string }>();
   const instituteId = params?.instituteId ?? "";
-console.log(params, "here are the params")
+  console.log(params, "here are the params");
   const [batches, setBatches] = useState<ApiBatch[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -119,60 +109,61 @@ console.log(params, "here are the params")
     setFilterLabels({ standard: label });
   };
 
-
-const resetForm = () => {
-  setNewBatch({
-    name: "",
-    standard: "",
-    description: "",
-    about: "",
-    payment: { subscriptionType: "Free", amount: 0, currency: "INR" },
-  });
-};
-
-const handleCreateBatch = async () => {
-  if (!newBatch.name.trim()) {
-    toast.error("Please enter a batch name");
-    return;
-  }
-  if (!newBatch.standard) {
-    toast.error("Please select a standard");
-    return;
-  }
-  if (newBatch.payment.subscriptionType === "Paid" && newBatch.payment.amount <= 0) {
-    toast.error("Please enter a valid price for paid batch");
-    return;
-  }
-
-  try {
-    setCreateLoading(true);
-    const response = await createBatch({
-      name: newBatch.name.trim(),
-      standard: newBatch.standard,
-      description: newBatch.description || undefined,
-      about: newBatch.about || undefined,
-      institute: instituteId,
-      payment: newBatch.payment,
+  const resetForm = () => {
+    setNewBatch({
+      name: "",
+      standard: "",
+      description: "",
+      about: "",
+      payment: { subscriptionType: "Free", amount: 0, currency: "INR" },
     });
+  };
 
-    if (response?.success) {
-      toast.success("Batch created successfully!");
-      resetForm();
-      setOpen(false);
-      fetchBatches();
-    } else {
-      toast.error(response?.message || "Failed to create batch");
+  const handleCreateBatch = async () => {
+    if (!newBatch.name.trim()) {
+      toast.error("Please enter a batch name");
+      return;
     }
-  } catch (error) {
-    console.error("Error creating batch:", error);
-    toast.error("Failed to create batch. Please try again.");
-  } finally {
-    setCreateLoading(false);
-  }
-};
+    if (!newBatch.standard) {
+      toast.error("Please select a standard");
+      return;
+    }
+    if (
+      newBatch.payment.subscriptionType === "Paid" &&
+      newBatch.payment.amount <= 0
+    ) {
+      toast.error("Please enter a valid price for paid batch");
+      return;
+    }
 
+    try {
+      setCreateLoading(true);
+      const response = await createBatch({
+        name: newBatch.name.trim(),
+        standard: newBatch.standard,
+        description: newBatch.description || undefined,
+        about: newBatch.about || undefined,
+        institute: instituteId,
+        payment: newBatch.payment,
+      });
 
-const getBatchLogoBg = (batchName: string) => {
+      if (response?.success) {
+        toast.success("Batch created successfully!");
+        resetForm();
+        setOpen(false);
+        fetchBatches();
+      } else {
+        toast.error(response?.message || "Failed to create batch");
+      }
+    } catch (error) {
+      console.error("Error creating batch:", error);
+      toast.error("Failed to create batch. Please try again.");
+    } finally {
+      setCreateLoading(false);
+    }
+  };
+
+  const getBatchLogoBg = (batchName: string) => {
     switch (batchName) {
       case "Omega":
         return "bg-blue-500";
@@ -218,11 +209,17 @@ const getBatchLogoBg = (batchName: string) => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 bg-[#fefbff]">
-      <div className="flex justify-between items-center mb-8">
+    <>
+      <div className="flex justify-between items-center mb-6">
         <h1 className="text-4xl font-bold">Student Batches of Institute</h1>
-        
-        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
+
+        <Dialog
+          open={open}
+          onOpenChange={(v) => {
+            setOpen(v);
+            if (!v) resetForm();
+          }}
+        >
           <DialogTrigger asChild>
             <Button className="bg-purple-600 text-white hover:bg-purple-700 gap-1.5">
               <Plus className="h-4 w-4" />
@@ -243,7 +240,9 @@ const getBatchLogoBg = (batchName: string) => {
                 <Input
                   id="batch-name"
                   value={newBatch.name}
-                  onChange={(e) => setNewBatch({ ...newBatch, name: e.target.value })}
+                  onChange={(e) =>
+                    setNewBatch({ ...newBatch, name: e.target.value })
+                  }
                   placeholder="e.g. Alpha Batch 2025"
                   className="shadow-none"
                 />
@@ -256,7 +255,9 @@ const getBatchLogoBg = (batchName: string) => {
                 </Label>
                 <Select
                   value={newBatch.standard}
-                  onValueChange={(val) => setNewBatch({ ...newBatch, standard: val })}
+                  onValueChange={(val) =>
+                    setNewBatch({ ...newBatch, standard: val })
+                  }
                 >
                   <SelectTrigger className="shadow-none">
                     <SelectValue placeholder="Select standard" />
@@ -277,12 +278,17 @@ const getBatchLogoBg = (batchName: string) => {
               {/* Description */}
               <div className="grid gap-1.5">
                 <Label htmlFor="batch-description">
-                  Description <span className="text-muted-foreground font-normal">(Optional)</span>
+                  Description{" "}
+                  <span className="text-muted-foreground font-normal">
+                    (Optional)
+                  </span>
                 </Label>
                 <Textarea
                   id="batch-description"
                   value={newBatch.description}
-                  onChange={(e) => setNewBatch({ ...newBatch, description: e.target.value })}
+                  onChange={(e) =>
+                    setNewBatch({ ...newBatch, description: e.target.value })
+                  }
                   placeholder="Brief description of this batch..."
                   className="shadow-none resize-none min-h-[72px]"
                 />
@@ -293,21 +299,30 @@ const getBatchLogoBg = (batchName: string) => {
                 <div className="flex items-center justify-between">
                   <Label htmlFor="batch-about">
                     About / Details{" "}
-                    <span className="text-muted-foreground font-normal">(Optional)</span>
+                    <span className="text-muted-foreground font-normal">
+                      (Optional)
+                    </span>
                   </Label>
                 </div>
                 <textarea
                   id="batch-about"
                   value={newBatch.about}
-                  onChange={(e) => setNewBatch({ ...newBatch, about: e.target.value })}
+                  onChange={(e) =>
+                    setNewBatch({ ...newBatch, about: e.target.value })
+                  }
                   placeholder={`Write detailed info about this batch...\n\nYou can use:\n- Bullet points\n- Multiple lines\n- Any spacing you need`}
                   rows={6}
                   spellCheck={false}
                   className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 font-mono whitespace-pre resize-y min-h-[120px]"
-                  style={{ whiteSpace: "pre", overflowWrap: "normal", overflowX: "auto" }}
+                  style={{
+                    whiteSpace: "pre",
+                    overflowWrap: "normal",
+                    overflowX: "auto",
+                  }}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Every space, indent, and line break is stored exactly as typed.
+                  Every space, indent, and line break is stored exactly as
+                  typed.
                 </p>
               </div>
 
@@ -377,7 +392,10 @@ const getBatchLogoBg = (batchName: string) => {
             <div className="flex justify-end gap-3 pt-2">
               <Button
                 variant="outline"
-                onClick={() => { setOpen(false); resetForm(); }}
+                onClick={() => {
+                  setOpen(false);
+                  resetForm();
+                }}
                 disabled={createLoading}
               >
                 Cancel
@@ -406,9 +424,7 @@ const getBatchLogoBg = (batchName: string) => {
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56">
                 <DropdownMenuItem
-                  onClick={() =>
-                    handleFilterChange("", "All Standards")
-                  }
+                  onClick={() => handleFilterChange("", "All Standards")}
                 >
                   All Standards
                 </DropdownMenuItem>
@@ -422,7 +438,7 @@ const getBatchLogoBg = (batchName: string) => {
                     >
                       {standard} Standard
                     </DropdownMenuItem>
-                  ),
+                  )
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
@@ -436,10 +452,13 @@ const getBatchLogoBg = (batchName: string) => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {batches
               .filter((batch) =>
-                filters.standard ? batch.standard === filters.standard : true,
+                filters.standard ? batch.standard === filters.standard : true
               )
               .map((batch) => (
-                <div key={batch._id} className="border rounded-xl shadow-xl p-8">
+                <div
+                  key={batch._id}
+                  className="border rounded-xl shadow-xl p-8"
+                >
                   <div className="flex items-center gap-4 mb-4">
                     <div
                       className={`w-12 h-12 ${getBatchLogoBg(
@@ -520,11 +539,7 @@ const getBatchLogoBg = (batchName: string) => {
                     >
                       View Students
                     </Link>
-                    <Button
-                      variant="outline"
-                      className="text-xs"
-                      disabled
-                    >
+                    <Button variant="outline" className="text-xs" disabled>
                       View Teachers
                     </Button>
                   </div>
@@ -539,7 +554,6 @@ const getBatchLogoBg = (batchName: string) => {
           </p>
         </div>
       )}
-    </div>
+    </>
   );
 }
-

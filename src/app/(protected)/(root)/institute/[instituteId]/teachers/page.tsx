@@ -1,10 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+
 import Link from "next/link";
+
+import { Search } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search } from "lucide-react";
 
 interface Teacher {
   id: string;
@@ -143,7 +146,7 @@ export default function TeachersPage() {
         {/* Subject Buttons */}
         <div className="flex flex-wrap gap-2 w-full md:w-auto">
           <Button
-            variant={selectedSubject === "All Subjects" ? "default" : "outline-solid"}
+            variant={selectedSubject === "All Subjects" ? "default" : "outline"}
             className={
               selectedSubject === "All Subjects"
                 ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
@@ -154,7 +157,7 @@ export default function TeachersPage() {
             All
           </Button>
           <Button
-            variant={selectedSubject === "Mathematics" ? "default" : "outline-solid"}
+            variant={selectedSubject === "Mathematics" ? "default" : "outline"}
             className={
               selectedSubject === "Mathematics"
                 ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
@@ -165,7 +168,7 @@ export default function TeachersPage() {
             Mathematics
           </Button>
           <Button
-            variant={selectedSubject === "Physics" ? "default" : "outline-solid"}
+            variant={selectedSubject === "Physics" ? "default" : "outline"}
             className={
               selectedSubject === "Physics"
                 ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
@@ -176,7 +179,7 @@ export default function TeachersPage() {
             Physics
           </Button>
           <Button
-            variant={selectedSubject === "Chemistry" ? "default" : "outline-solid"}
+            variant={selectedSubject === "Chemistry" ? "default" : "outline"}
             className={
               selectedSubject === "Chemistry"
                 ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
@@ -187,7 +190,7 @@ export default function TeachersPage() {
             Chemistry
           </Button>
           <Button
-            variant={selectedSubject === "Biology" ? "default" : "outline-solid"}
+            variant={selectedSubject === "Biology" ? "default" : "outline"}
             className={
               selectedSubject === "Biology"
                 ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
