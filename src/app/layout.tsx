@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
-import localFont from "next/font/local";
-import "./globals.css";
-import { getUser } from "@/actions/user_actions";
-import StoreProvider from "./StoreProvider";
+import { Mada as FontSans } from "next/font/google";
+
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { Toaster } from "sonner";
+
+import { cn } from "@/lib/utils";
+
+import "./globals.css";
+
+const fontSans = FontSans({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
   title: "Leadlly | Admin",
@@ -16,19 +20,20 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const userData = await getUser();
-
   return (
-    <html lang="en">
-      <body>
-        <StoreProvider user={userData?.user}>
-          <GoogleOAuthProvider
-            clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}
-          >
-            {children}
-            <Toaster richColors position="top-center" />
-          </GoogleOAuthProvider>
-        </StoreProvider>
+    <html lang="en" suppressHydrationWarning>
+      <body
+        className={cn(
+          "font-sans antialiased custom__scrollbar",
+          fontSans.variable
+        )}
+      >
+        <GoogleOAuthProvider
+          clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}
+        >
+          {children}
+          <Toaster richColors position="top-center" />
+        </GoogleOAuthProvider>
       </body>
     </html>
   );

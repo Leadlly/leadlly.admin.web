@@ -1,14 +1,19 @@
 "use server";
 
+import { cache } from "react";
+
+import { revalidateTag, updateTag } from "next/cache";
+
+import apiClient from "@/apiClient/apiClient";
 import {
   ForgotPasswordProps,
+  IAdmin,
   ResetPasswordProps,
   SignUpDataProps,
   StudentPersonalInfoProps,
 } from "@/helpers/types";
+
 import { getCookie } from "./cookie_actions";
-import { revalidateTag } from "next/cache";
-import apiClient from "@/apiClient/apiClient";
 
 export const signUpUser = async (data: SignUpDataProps) => {
   try {
@@ -137,11 +142,11 @@ export const verifyAuthToken = async (token: string) => {
   }
 };
 
-export const getUser = async () => {
-  const token = await getCookie("token");
+export const getUser = cache(async () => {
+  const token = await getCookie();
   try {
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL}/api/auth/user`,
+      `${process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL}/api/admin/get`,
       {
         method: "GET",
         headers: {
@@ -149,14 +154,15 @@ export const getUser = async () => {
           Cookie: `token=${token}`,
         },
         credentials: "include",
-        // cache: "force-cache",
+        cache: "force-cache",
         next: {
           tags: ["userData"],
+          revalidate: 60 * 60,
         },
       }
     );
 
-    const data = await res.json();
+    const data: { success: boolean; admin: IAdmin } = await res.json();
 
     return data;
   } catch (error: unknown) {
@@ -168,10 +174,10 @@ export const getUser = async () => {
       );
     }
   }
-};
+});
 
 export const studentPersonalInfo = async (data: StudentPersonalInfoProps) => {
-  const token = await getCookie("token");
+  const token = await getCookie();
   try {
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL}/api/user/profile/save`,
@@ -188,7 +194,7 @@ export const studentPersonalInfo = async (data: StudentPersonalInfoProps) => {
 
     const responseData = await res.json();
 
-    revalidateTag("userData");
+    updateTag("userData");
 
     return responseData;
   } catch (error: unknown) {
@@ -201,7 +207,7 @@ export const studentPersonalInfo = async (data: StudentPersonalInfoProps) => {
 };
 
 export const setTodaysVibe = async (data: { todaysVibe: string }) => {
-  const token = await getCookie("token");
+  const token = await getCookie();
   try {
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL}/api/user/todaysVibe/save`,
@@ -217,7 +223,7 @@ export const setTodaysVibe = async (data: { todaysVibe: string }) => {
     );
 
     const responseData = await res.json();
-    revalidateTag("userData");
+    updateTag("userData");
 
     return responseData;
   } catch (error: unknown) {

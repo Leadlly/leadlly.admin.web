@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+
 import { getCookie } from "./cookie_actions";
 
 /**
@@ -9,60 +10,66 @@ import { getCookie } from "./cookie_actions";
  * @param emails - Array of student email addresses
  * @returns Response with success status and message
  */
-export async function addStudentsToInstitute(instituteId: string, emails: string[]) {
+export async function addStudentsToInstitute(
+  instituteId: string,
+  emails: string[]
+) {
   try {
-
-    const token = await getCookie("token");
+    const token = await getCookie();
 
     // Validate inputs
     if (!instituteId) {
       throw new Error("Institute ID is required");
     }
-    
+
     if (!emails || emails.length === 0) {
       throw new Error("At least one email address is required");
     }
-    
+
     // Filter out invalid emails
-    const validEmails = emails.filter(email => {
+    const validEmails = emails.filter((email) => {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       return emailRegex.test(email);
     });
-    
+
     if (validEmails.length === 0) {
       throw new Error("No valid email addresses provided");
     }
-    
+
     // Make API call to backend
-    const response = await fetch(`${process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL}/api/student/add/${instituteId}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Cookie: `token=${token}`,
-      },
-      body: JSON.stringify({ emails: validEmails }),
-    });
-    
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL}/api/student/add/${instituteId}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: `token=${token}`,
+        },
+        body: JSON.stringify({ emails: validEmails }),
+      }
+    );
+
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(errorData.message || "Failed to add students");
     }
-    
+
     const data = await response.json();
-    
+
     // Revalidate the institute page to show updated student count
     revalidatePath(`/institute/${instituteId}`);
-    
+
     return {
       success: true,
       message: `Successfully added ${validEmails.length} students`,
-      data: data
+      data: data,
     };
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error adding students:", error);
     return {
       success: false,
-      message: error.message || "Failed to add students",
+      message:
+        error instanceof Error ? error.message : "Failed to add students",
     };
   }
 }
@@ -74,36 +81,92 @@ export async function addStudentsToInstitute(instituteId: string, emails: string
  */
 export async function getInstituteStudents(instituteId: string) {
   try {
-    // Validate input
     if (!instituteId) {
       throw new Error("Institute ID is required");
     }
-    
-    // Make API call to backend
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/institutes/${instituteId}/students`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || "Failed to fetch students");
+
+    const token = await getCookie();
+    const baseUrl = process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL;
+
+    if (!baseUrl) {
+      throw new Error(
+        "API base URL not configured. Set NEXT_PUBLIC_ADMIN_API_BASE_URL in .env.local"
+      );
     }
-    
+
+    const response = await fetch(
+      `${baseUrl}/api/institute/${instituteId}/students`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: `token=${token}`,
+        },
+        credentials: "include",
+      }
+    );
+
+    const contentType = response.headers.get("content-type") ?? "";
+    if (!contentType.includes("application/json")) {
+      throw new Error(
+        `Failed to fetch students (${response.status})`
+      );
+    }
+
     const data = await response.json();
-    
+
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to fetch students");
+    }
+
     return {
       success: true,
-      students: data.students || [],
+      students: data.students ?? [],
     };
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error fetching students:", error);
     return {
       success: false,
-      message: error.message || "Failed to fetch students",
+      message:
+        error instanceof Error ? error.message : "Failed to fetch students",
       students: [],
     };
+  }
+}
+
+/**
+ * Get a single student by their ID
+ */
+export async function getStudentById(studentId: string) {
+  try {
+    if (!studentId) throw new Error("Student ID is required");
+
+    const token = await getCookie();
+    const baseUrl = process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL;
+    if (!baseUrl) throw new Error("API base URL not configured");
+
+    const response = await fetch(
+      `${baseUrl}/api/institute/student/${studentId}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: `token=${token}`,
+        },
+        cache: "no-store",
+      }
+    );
+
+    const contentType = response.headers.get("content-type") ?? "";
+    if (!contentType.includes("application/json")) {
+      return { success: false, student: null };
+    }
+
+    const data = await response.json();
+    if (!response.ok) return { success: false, student: null };
+
+    return { success: true, student: data.student ?? null };
+  } catch {
+    return { success: false, student: null };
   }
 }

@@ -1,19 +1,20 @@
-import { UserDataProps } from "@/helpers/types";
-import { createSlice } from "@reduxjs/toolkit";
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+
+import { IAdmin } from "@/helpers/types";
 
 export interface UserProps {
-  user:  any;
+  user: IAdmin | null;
 }
 
 const initialState: UserProps = {
-  user: null
+  user: null,
 };
 
 export const userSlice = createSlice({
   name: "user",
   initialState,
   reducers: {
-    userData: (state, action) => {
+    userData: (state, action: PayloadAction<IAdmin | null>) => {
       state.user = action.payload;
     },
   },

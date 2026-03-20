@@ -1,20 +1,29 @@
 "use server";
+
 import { revalidateTag } from "next/cache";
+
+import { z } from "zod";
+
+import { CreateInstituteFormSchema } from "@/helpers/schema/createInstituteSchema";
+import { IInstitute } from "@/helpers/types";
+
 import { getCookie } from "./cookie_actions";
 
-interface InstituteCreateData {
-  name: string;
-  logo?: any;
-  subjects?: string[];
-  standards?: string[];
-}
+type InstituteCreateData = z.infer<typeof CreateInstituteFormSchema> & {
+  logo?: { name: string; type: string };
+};
+
+type InstituteUpdateData = Partial<z.infer<typeof CreateInstituteFormSchema>> & {
+  logo?: { name: string; type: string };
+  docLogo?: { name: string; type: string };
+};
 
 export const createInstitute = async (data: InstituteCreateData) => {
-  const token = await getCookie("token");
+  const token = await getCookie();
 
   try {
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL}/api/institute/create`,
+      `${process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL}/api/institute`,
       {
         method: "POST",
         body: JSON.stringify(data),
@@ -26,17 +35,65 @@ export const createInstitute = async (data: InstituteCreateData) => {
       }
     );
 
-    revalidateTag("userData");
+    const responseData: {
+      success: boolean;
+      data: IInstitute;
+      logoUploadUrl?: string;
+      error?: string;
+    } = await res.json();
 
-    const responseData = await res.json();
+    revalidateTag("userData", "max");
+
     return responseData;
   } catch (error) {
-      return new Error(`Error: ${(error as Error).message}`);
+    console.log(error);
+
+    return { success: false, data: null, logoUploadUrl: undefined, error: (error as Error).message };
+  }
+};
+
+export const updateInstitute = async (instituteId: string, data: InstituteUpdateData) => {
+  const token = await getCookie();
+
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL}/api/institute/${instituteId}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(data),
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: `token=${token}`,
+        },
+        credentials: "include",
+      }
+    );
+
+    const responseData: {
+      success: boolean;
+      data: IInstitute;
+      logoUploadUrl?: string;
+      docLogoUploadUrl?: string;
+      error?: string;
+    } = await res.json();
+
+    revalidateTag("userData", "max");
+
+    return responseData;
+  } catch (error) {
+    console.log(error);
+    return {
+      success: false,
+      data: null,
+      logoUploadUrl: undefined,
+      docLogoUploadUrl: undefined,
+      error: (error as Error).message,
+    };
   }
 };
 
 export const getMyInstitute = async () => {
-  const token = await getCookie("token");
+  const token = await getCookie();
 
   try {
     const res = await fetch(
@@ -57,15 +114,49 @@ export const getMyInstitute = async () => {
     if (error instanceof Error) {
       throw new Error(`Error: ${error.message}`);
     } else {
-      throw new Error(
-        "An unknown error occurred while fetching institute!"
-      );
+      throw new Error("An unknown error occurred while fetching institute!");
+    }
+  }
+};
+
+export const getActiveInstitute = async ({
+  instituteId,
+}: {
+  instituteId: string;
+}) => {
+  if (!instituteId || instituteId === "undefined") {
+    return { success: false, institute: null };
+  }
+
+  const token = await getCookie();
+
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL}/api/institute/${instituteId}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: `token=${token}`,
+        },
+        credentials: "include",
+      }
+    );
+
+    const responseData: { success: boolean; institute: IInstitute } =
+      await res.json();
+    return responseData;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Error: ${error.message}`);
+    } else {
+      throw new Error("An unknown error occurred while fetching institute!");
     }
   }
 };
 
 export const getAllUserInstitutes = async () => {
-  const token = await getCookie("token");
+  const token = await getCookie();
 
   try {
     const res = await fetch(
@@ -80,21 +171,23 @@ export const getAllUserInstitutes = async () => {
       }
     );
 
-    const responseData = await res.json();
+    const responseData: {
+      success: boolean;
+      institutes: IInstitute[];
+      count: number;
+    } = await res.json();
     return responseData;
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(`Error: ${error.message}`);
     } else {
-      throw new Error(
-        "An unknown error occurred while fetching institutes!"
-      );
+      throw new Error("An unknown error occurred while fetching institutes!");
     }
   }
 };
 
 // export const setCurrentInstitute = async (instituteId: string) => {
-//   const token = await getCookie("token");
+//   const token = await getCookie();
 
 //   try {
 //     const res = await fetch(

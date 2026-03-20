@@ -1,10 +1,10 @@
-import axios from 'axios';
+import axios from "axios";
 
 const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL, 
-  withCredentials: true, 
+  baseURL: process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL,
+  withCredentials: true,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 

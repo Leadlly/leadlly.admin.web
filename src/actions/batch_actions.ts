@@ -4,13 +4,19 @@ import { getCookie } from "./cookie_actions";
 interface BatchCreateData {
   name: string;
   standard: string;
-  subjects?: string[];
-  teacherIds?: string[];
+  mentors?: string[];
   institute?: string;
+  description?: string;
+  about?: string;
+  payment?: {
+    subscriptionType: "Free" | "Paid";
+    amount: number;
+    currency: "INR";
+  };
 }
 
 export const createBatch = async (data: BatchCreateData) => {
-  const token = await getCookie("token");
+  const token = await getCookie();
 
   try {
     const res = await fetch(
@@ -23,7 +29,7 @@ export const createBatch = async (data: BatchCreateData) => {
           Cookie: `token=${token}`,
         },
         credentials: "include",
-      }
+      },
     );
 
     const responseData = await res.json();
@@ -33,37 +39,112 @@ export const createBatch = async (data: BatchCreateData) => {
       throw new Error(`Error in saving daily quiz answers: ${error.message}`);
     } else {
       throw new Error(
-        "An unknown error occurred while saving daily quiz answers!"
+        "An unknown error occurred while saving daily quiz answers!",
       );
     }
   }
 };
 
 export const getInstituteBatch = async (instituteId: string) => {
-  const token = await getCookie("token");
+  if (!instituteId) {
+    throw new Error("Institute ID is required to fetch batches");
+  }
+  const token = await getCookie();
 
   try {
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL}/api/batch/institute/${instituteId}`,
+      `${process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL}/api/institute/${instituteId}/batches`,
       {
         method: "GET",
         headers: {
           Cookie: `token=${token}`,
         },
         credentials: "include",
-      }
+      },
     );
 
     const responseData = await res.json();
     return responseData;
   } catch (error) {
     if (error instanceof Error) {
-      throw new Error(`Error in saving daily quiz answers: ${error.message}`);
+      throw new Error(`Error fetching institute batches: ${error.message}`);
     } else {
-      throw new Error(
-        "An unknown error occurred while saving daily quiz answers!"
-      );
+      throw new Error("An unknown error occurred while fetching institute batches!");
     }
   }
 };
 
+export const getBatchDetails = async (batchId: string) => {
+  const token = await getCookie();
+
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL}/api/batch/${batchId}`,
+      {
+        method: "GET",
+        headers: {
+          Cookie: `token=${token}`,
+        },
+        credentials: "include",
+        cache: "no-store",
+      },
+    );
+
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.data ?? data;
+  } catch (error) {
+    console.error("Error fetching batch details:", error);
+    return null;
+  }
+};
+
+export const getBatchClasses = async (batchId: string) => {
+  const token = await getCookie();
+
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL}/api/class/batch/${batchId}`,
+      {
+        method: "GET",
+        headers: {
+          Cookie: `token=${token}`,
+        },
+        credentials: "include",
+        cache: "no-store",
+      },
+    );
+
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.data ?? [];
+  } catch (error) {
+    console.error("Error fetching batch classes:", error);
+    return [];
+  }
+};
+
+export const getBatchStudents = async (batchId: string) => {
+  const token = await getCookie();
+
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL}/api/batch/${batchId}/students`,
+      {
+        method: "GET",
+        headers: {
+          Cookie: `token=${token}`,
+        },
+        credentials: "include",
+        cache: "no-store",
+      },
+    );
+
+    if (!res.ok) return { students: [] };
+    const data = await res.json();
+    return data;
+  } catch (error) {
+    console.error("Error fetching batch students:", error);
+    return { students: [] };
+  }
+};

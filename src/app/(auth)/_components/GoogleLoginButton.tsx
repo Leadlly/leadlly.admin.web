@@ -1,21 +1,21 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { useAppDispatch } from "@/redux/hooks";
-import { userData } from "@/redux/slices/userSlice";
-import { useGoogleLogin } from "@react-oauth/google";
-import axios from "axios";
-import { Loader2 } from "lucide-react";
+import { useState } from "react";
+
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+
+import { useGoogleLogin } from "@react-oauth/google";
+import axios, { AxiosError } from "axios";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
 
 const GoogleLoginButton = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const router = useRouter();
-  const dispatch = useAppDispatch();
 
   const login = useGoogleLogin({
     onSuccess: async (credentialResponse) => {
@@ -26,6 +26,7 @@ const GoogleLoginButton = () => {
           "/api/google/auth",
           {
             access_token: credentialResponse.access_token,
+            isAdmin: true,
           },
           {
             withCredentials: true,
@@ -35,31 +36,32 @@ const GoogleLoginButton = () => {
           }
         );
 
-
-        dispatch(userData(res.data.user));
-
         toast.success("Login success", {
           description: res.data.message,
         });
 
+        console.log(res.data);
+
         if (res.status === 201) {
-          router.replace("/initial-info");
+          router.replace("/create-institute");
         } else {
-          router.replace("/");
+          router.replace(
+            res.data.user.institutes.length > 0 ? "/" : "/create-institute"
+          );
         }
-      } catch (error: any) {
+      } catch (error) {
         console.error("Axios error:", error);
         toast.error("Google login failed!", {
-          description: error.response?.data?.message || error.message,
+          description: `${error instanceof AxiosError ? error.response?.data?.message : error instanceof Error ? error.message : "An unknown error occurred while logging in with Google!"}`,
         });
       } finally {
         setIsLoading(false);
       }
     },
-    onError: (error: any) => {
+    onError: (error) => {
       console.error("Google login error:", error);
       toast.error("Google login failed!", {
-        description: error.message,
+        description: `${error instanceof AxiosError ? error.response?.data?.message : error instanceof Error ? error.message : "An unknown error occurred while logging in with Google!"}`,
       });
     },
   });
@@ -79,7 +81,7 @@ const GoogleLoginButton = () => {
       ) : (
         <>
           <Image
-            src="/assets/icons/google-icon.svg"
+            src="/google-icon.svg"
             alt="Sign in with Google"
             width={17}
             height={17}
