@@ -20,6 +20,7 @@ export interface FeeRecordData {
   center?: string;
   paymentMode?: string;
   tuitionFees: number;
+  amountReceived?: number;
   igstPercent?: number;
   discount?: number;
   additionalFees?: AdditionalFeeItem[];
@@ -36,19 +37,22 @@ export interface IFeeRecord extends FeeRecordData {
   acknowledgementNo: string;
   igstAmount: number;
   totalAmount: number;
+  balanceAmount?: number;
   status: "Active" | "Deleted";
   createdAt: string;
   updatedAt: string;
 }
 
 export interface FeeUidGroup {
-  _id: string; // uniqueIdentificationNo
+  _id: string;
   studentName: string;
   fatherName?: string;
   streamName?: string;
   academicSession?: string;
   recordCount: number;
   totalPaid: number;
+  totalAmountReceived: number;
+  totalBalance: number;
   lastPaymentDate: string;
   studentId?: string;
 }

@@ -142,6 +142,10 @@ export default function StudentDetailPage() {
 
   const fmt = (d?: string) => d ? new Date(d).toLocaleDateString("en-IN") : "—";
   const fmtCur = (n?: number) => n !== undefined ? `₹${n.toLocaleString("en-IN")}` : "—";
+  const getPaidAmount = (rec: IFeeRecord) =>
+    rec.amountReceived ?? 0;
+  const getBalanceAmount = (rec: IFeeRecord) =>
+    rec.balanceAmount ?? Math.max((rec.totalAmount ?? 0) - getPaidAmount(rec), 0);
 
   const fullName = student
     ? `${student.firstname ?? ""}${student.lastname ? " " + student.lastname : ""}`.trim()
@@ -277,7 +281,9 @@ export default function StudentDetailPage() {
                     <TableHead>Ack. No.</TableHead>
                     <TableHead>Course</TableHead>
                     <TableHead>Payment Mode</TableHead>
-                    <TableHead className="text-right">Total (₹)</TableHead>
+                    <TableHead className="text-right">Net (₹)</TableHead>
+                    <TableHead className="text-right">Paid (₹)</TableHead>
+                    <TableHead className="text-right">Balance (₹)</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead className="text-center">Actions</TableHead>
                   </TableRow>
@@ -285,11 +291,11 @@ export default function StudentDetailPage() {
                 <TableBody>
                   {feeLoading ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">Loading…</TableCell>
+                      <TableCell colSpan={9} className="text-center py-10 text-muted-foreground">Loading…</TableCell>
                     </TableRow>
                   ) : records.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
+                      <TableCell colSpan={9} className="text-center py-10 text-muted-foreground">
                         No fee records yet.{" "}
                         <button onClick={openCreate} className="text-primary underline">Add one</button>
                       </TableCell>
@@ -305,6 +311,12 @@ export default function StudentDetailPage() {
                         </TableCell>
                         <TableCell className="text-sm">{rec.paymentMode ?? "—"}</TableCell>
                         <TableCell className="text-right font-semibold tabular-nums">{fmtCur(rec.totalAmount)}</TableCell>
+                        <TableCell className="text-right font-semibold tabular-nums text-green-600">
+                          {fmtCur(getPaidAmount(rec))}
+                        </TableCell>
+                        <TableCell className="text-right font-semibold tabular-nums text-red-600">
+                          {fmtCur(getBalanceAmount(rec))}
+                        </TableCell>
                         <TableCell className="text-sm whitespace-nowrap">{fmt(rec.paymentDate as unknown as string)}</TableCell>
                         <TableCell>
                           <div className="flex items-center justify-center gap-1">

@@ -87,6 +87,12 @@ function UidCard({
         <span className="text-sm font-bold text-primary">
           ₹{(group.totalPaid ?? 0).toLocaleString("en-IN")}
         </span>
+        <span className="text-xs text-green-600 font-medium">
+          Paid: ₹{(group.totalAmountReceived ?? 0).toLocaleString("en-IN")}
+        </span>
+        <span className="text-xs text-red-500 font-medium">
+          Balance: ₹{(group.totalBalance ?? 0).toLocaleString("en-IN")}
+        </span>
         <Badge variant="secondary" className="text-xs">
           {group.recordCount} receipt{group.recordCount !== 1 ? "s" : ""}
         </Badge>
@@ -125,6 +131,10 @@ function FeeReceiptViewDialog({
 
   const igstAmt = record.igstAmount ?? 0;
   const addFees = record.additionalFees ?? [];
+  const amountReceived =
+    record.amountReceived ?? 0;
+  const balance =
+    record.balanceAmount ?? Math.max((record.totalAmount ?? 0) - amountReceived, 0);
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -220,6 +230,14 @@ function FeeReceiptViewDialog({
                 <span>Total Amount</span>
                 <span>₹{(record.totalAmount ?? 0).toLocaleString("en-IN")}</span>
               </div>
+              <div className="flex justify-between px-3 py-2">
+                <span>Amount Received</span>
+                <span className="font-medium">₹{amountReceived.toLocaleString("en-IN")}</span>
+              </div>
+              <div className="flex justify-between px-3 py-2.5 bg-red-50 font-semibold text-red-600">
+                <span>Balance</span>
+                <span>₹{balance.toLocaleString("en-IN")}</span>
+              </div>
             </div>
           </div>
 
@@ -304,6 +322,13 @@ function UidDetailView({
 
   const formatDate = (d?: string) =>
     d ? new Date(d).toLocaleDateString("en-IN") : "—";
+  const getPaidAmount = (rec: IFeeRecord) =>
+    rec.amountReceived ?? 0;
+  const getBalanceAmount = (rec: IFeeRecord) =>
+    rec.balanceAmount ?? Math.max((rec.totalAmount ?? 0) - getPaidAmount(rec), 0);
+  const totalNet = records.reduce((s, r) => s + (r.totalAmount ?? 0), 0);
+  const totalPaidAmount = records.reduce((s, r) => s + getPaidAmount(r), 0);
+  const totalBalanceAmount = records.reduce((s, r) => s + getBalanceAmount(r), 0);
 
   return (
     <div>
@@ -340,18 +365,27 @@ function UidDetailView({
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         <div className="bg-white rounded-xl border p-4">
           <p className="text-xs text-muted-foreground">Total Receipts</p>
           <p className="text-2xl font-bold mt-1">{records.length}</p>
         </div>
         <div className="bg-white rounded-xl border p-4">
-          <p className="text-xs text-muted-foreground">Total Paid</p>
+          <p className="text-xs text-muted-foreground">Net Fee</p>
           <p className="text-2xl font-bold mt-1 text-primary">
-            ₹
-            {records
-              .reduce((s, r) => s + (r.totalAmount ?? 0), 0)
-              .toLocaleString("en-IN")}
+            ₹{totalNet.toLocaleString("en-IN")}
+          </p>
+        </div>
+        <div className="bg-white rounded-xl border p-4">
+          <p className="text-xs text-muted-foreground">Paid</p>
+          <p className="text-2xl font-bold mt-1 text-green-600">
+            ₹{totalPaidAmount.toLocaleString("en-IN")}
+          </p>
+        </div>
+        <div className="bg-white rounded-xl border p-4">
+          <p className="text-xs text-muted-foreground">Balance</p>
+          <p className="text-2xl font-bold mt-1 text-red-600">
+            ₹{totalBalanceAmount.toLocaleString("en-IN")}
           </p>
         </div>
       </div>
@@ -365,7 +399,9 @@ function UidDetailView({
                 <TableHead>Form No.</TableHead>
                 <TableHead>Course</TableHead>
                 <TableHead>Payment Mode</TableHead>
-                <TableHead className="text-right">Total (₹)</TableHead>
+                <TableHead className="text-right">Net (₹)</TableHead>
+                <TableHead className="text-right">Paid (₹)</TableHead>
+                <TableHead className="text-right">Balance (₹)</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead className="text-center">Actions</TableHead>
               </TableRow>
@@ -374,7 +410,7 @@ function UidDetailView({
               {loading ? (
                 <TableRow>
                   <TableCell
-                    colSpan={6}
+                    colSpan={8}
                     className="text-center py-10 text-muted-foreground"
                   >
                     Loading…
@@ -383,7 +419,7 @@ function UidDetailView({
               ) : records.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={6}
+                    colSpan={8}
                     className="text-center py-10 text-muted-foreground"
                   >
                     No records yet.
@@ -412,6 +448,12 @@ function UidDetailView({
                     </TableCell>
                     <TableCell className="text-right font-semibold tabular-nums">
                       ₹{(rec.totalAmount ?? 0).toLocaleString("en-IN")}
+                    </TableCell>
+                    <TableCell className="text-right font-semibold tabular-nums text-green-600">
+                      ₹{getPaidAmount(rec).toLocaleString("en-IN")}
+                    </TableCell>
+                    <TableCell className="text-right font-semibold tabular-nums text-red-600">
+                      ₹{getBalanceAmount(rec).toLocaleString("en-IN")}
                     </TableCell>
                     <TableCell className="text-sm whitespace-nowrap">
                       {formatDate(rec.paymentDate as unknown as string)}
@@ -483,9 +525,11 @@ function UidDetailView({
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="font-mono text-xs font-semibold">{rec.formNo}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <p className="text-sm font-semibold">
                     {formatDate(rec.paymentDate as unknown as string)}
+                  </p>
+                  <p className="font-mono text-xs text-muted-foreground mt-0.5">
+                    Form No: {rec.formNo}
                   </p>
                 </div>
                 <p className="font-semibold text-primary text-sm">
@@ -495,6 +539,14 @@ function UidDetailView({
               <div className="mt-2 text-sm">
                 <p className="font-medium">{rec.courseName ?? "—"}</p>
                 <p className="text-muted-foreground text-xs mt-0.5">{rec.paymentMode ?? "—"}</p>
+                <div className="mt-1 flex items-center gap-3 text-xs">
+                  <p className="text-green-600 font-medium">
+                    Paid: ₹{getPaidAmount(rec).toLocaleString("en-IN")}
+                  </p>
+                  <p className="text-red-600 font-medium">
+                    Balance: ₹{getBalanceAmount(rec).toLocaleString("en-IN")}
+                  </p>
+                </div>
               </div>
               <div className="mt-3 flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                 <Button
@@ -626,6 +678,14 @@ export default function FeesPage() {
     if (!instituteId) return;
     setLoading(true);
     const res = await getFeeUidGroups(instituteId, debouncedSearch);
+    console.log("[FeeGroups] API response:", JSON.stringify(
+      (res.data ?? []).map((g) => ({
+        uid: g._id,
+        totalPaid: g.totalPaid,
+        totalAmountReceived: g.totalAmountReceived,
+        totalBalance: g.totalBalance,
+      }))
+    ));
     if (res.success) setGroups(res.data ?? []);
     else toast.error(res.message ?? "Failed to load records");
     setLoading(false);
@@ -671,7 +731,7 @@ export default function FeesPage() {
       </div>
 
       {/* Stats bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         <div className="bg-white rounded-xl border p-4 flex items-center gap-3">
           <div className="size-9 rounded-lg bg-primary/10 flex items-center justify-center">
             <Users className="size-5 text-primary" />
@@ -682,27 +742,35 @@ export default function FeesPage() {
           </div>
         </div>
         <div className="bg-white rounded-xl border p-4 flex items-center gap-3">
-          <div className="size-9 rounded-lg bg-green-100 flex items-center justify-center">
-            <IndianRupee className="size-5 text-green-600" />
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Total Collected</p>
-            <p className="text-xl font-bold text-green-600">
-              ₹
-              {groups
-                .reduce((s, g) => s + (g.totalPaid ?? 0), 0)
-                .toLocaleString("en-IN")}
-            </p>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl border p-4 flex items-center gap-3">
           <div className="size-9 rounded-lg bg-blue-100 flex items-center justify-center">
             <FileText className="size-5 text-blue-600" />
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Total Receipts</p>
+            <p className="text-xs text-muted-foreground">Net Fee</p>
             <p className="text-xl font-bold text-blue-600">
-              {groups.reduce((s, g) => s + (g.recordCount ?? 0), 0)}
+              ₹{groups.reduce((s, g) => s + (g.totalPaid ?? 0), 0).toLocaleString("en-IN")}
+            </p>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl border p-4 flex items-center gap-3">
+          <div className="size-9 rounded-lg bg-green-100 flex items-center justify-center">
+            <IndianRupee className="size-5 text-green-600" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Total Paid</p>
+            <p className="text-xl font-bold text-green-600">
+              ₹{groups.reduce((s, g) => s + (g.totalAmountReceived ?? 0), 0).toLocaleString("en-IN")}
+            </p>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl border p-4 flex items-center gap-3">
+          <div className="size-9 rounded-lg bg-red-100 flex items-center justify-center">
+            <IndianRupee className="size-5 text-red-500" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Total Balance</p>
+            <p className="text-xl font-bold text-red-500">
+              ₹{groups.reduce((s, g) => s + (g.totalBalance ?? 0), 0).toLocaleString("en-IN")}
             </p>
           </div>
         </div>

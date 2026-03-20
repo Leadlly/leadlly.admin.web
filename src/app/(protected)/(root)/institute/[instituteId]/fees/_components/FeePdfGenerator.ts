@@ -92,8 +92,8 @@ function getParticulars(record: IFeeRecord) {
 function calcReceiptHeight(record: IFeeRecord): number {
   const feeRows = getParticulars(record).length + 1;
   const feeSectionH = feeRows * 7 + 2;
-  // header(22) + divider(5) + title(7) + formRow(10) + infoRows(3*7=21) + feeSection + bottom(17)
-  return 22 + 5 + 7 + 10 + 21 + feeSectionH + 17;
+  // header(22) + divider(5) + title(7) + formRow(10) + infoRows(3*7=21) + feeSection + bottom(21)
+  return 22 + 5 + 7 + 10 + 21 + feeSectionH + 21;
 }
 
 // ─── Draw one receipt copy ────────────────────────────────────────────────────
@@ -110,6 +110,9 @@ function drawReceipt(
   const IW = W - 2 * M;
   const totalH = calcReceiptHeight(record);
   let y = startY;
+  const totalAmount = record.totalAmount ?? 0;
+  const amountReceived = record.amountReceived ?? 0;
+  const balance = record.balanceAmount ?? Math.max(totalAmount - amountReceived, 0);
 
   // ── Outer border ──────────────────────────────────────────────────────────
   doc.setDrawColor(0);
@@ -278,16 +281,17 @@ function drawReceipt(
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7.5);
   doc.text(`Payment Mode   : ${record.paymentMode ?? ""}`, M + 2, y + 3);
-  doc.text(`Total Paid Amount : ₹ ${(record.totalAmount ?? 0).toLocaleString("en-IN")}`, M + 2, y + 7);
-  doc.text(`Amount in Word  : ₹ ${record.amountInWords || toWords(record.totalAmount ?? 0) + " Only"}`, M + 2, y + 11);
+  doc.text(`Net Fee        : Rs. ${totalAmount.toLocaleString("en-IN")}`, M + 2, y + 7);
+  doc.text(`Amount Received: Rs. ${amountReceived.toLocaleString("en-IN")}`, M + 2, y + 11);
+  doc.text(`Balance        : Rs. ${balance.toLocaleString("en-IN")}`, M + 2, y + 15);
 
   doc.text("Received By :", W - M - 50, y + 3);
   doc.setLineWidth(0.2);
   doc.line(W - M - 36, y + 9, W - M - 2, y + 9);
   doc.setFontSize(6.5);
-  doc.text("(Authorised Signatory)", W - M - 19, y + 12.5, { align: "center" });
+  doc.text("(Authorised Signatory)", W - M - 19, y + 16.5, { align: "center" });
 
-  y += 17;
+  y += 21;
 
 }
 

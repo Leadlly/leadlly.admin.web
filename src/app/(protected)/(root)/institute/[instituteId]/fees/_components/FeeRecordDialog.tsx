@@ -69,6 +69,7 @@ const EMPTY: FeeRecordData = {
   center: "",
   paymentMode: "Online Lumpsum Amount",
   tuitionFees: 0,
+  amountReceived: 0,
   igstPercent: 18,
   discount: 0,
   additionalFees: [],
@@ -104,6 +105,8 @@ const FeeRecordDialog = ({
         center: record.center ?? "",
         paymentMode: record.paymentMode ?? "Online Lumpsum Amount",
         tuitionFees: record.tuitionFees,
+        amountReceived:
+          record.amountReceived ?? 0,
         igstPercent: record.igstPercent ?? 18,
         discount: record.discount ?? 0,
         additionalFees: record.additionalFees ?? [],
@@ -170,6 +173,7 @@ const FeeRecordDialog = ({
   const igstPct = Number(form.igstPercent) || 0;
   const igstAmt = Math.round((tuition * igstPct) / 100);
   const discountAmt = Number(form.discount) || 0;
+  const amountReceived = Number(form.amountReceived) || 0;
   const additionsTotal = (form.additionalFees ?? [])
     .filter((f) => f.type === "addition")
     .reduce((s, f) => s + (Number(f.amount) || 0), 0);
@@ -177,6 +181,7 @@ const FeeRecordDialog = ({
     .filter((f) => f.type === "deduction")
     .reduce((s, f) => s + (Number(f.amount) || 0), 0);
   const total = tuition + igstAmt + additionsTotal - deductionsTotal - discountAmt;
+  const balance = Math.max(total - amountReceived, 0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -197,6 +202,7 @@ const FeeRecordDialog = ({
       const payload: FeeRecordData = {
         ...form,
         tuitionFees: Number(form.tuitionFees),
+        amountReceived: Number(form.amountReceived) || 0,
         igstPercent: Number(form.igstPercent),
         discount: Number(form.discount) || 0,
         additionalFees: (form.additionalFees ?? []).map((f) => ({
@@ -289,14 +295,6 @@ const FeeRecordDialog = ({
               />
             </div>
             <div className="space-y-1">
-              <Label>Mother&apos;s Name</Label>
-              <Input
-                placeholder="Mother's name"
-                value={form.motherName}
-                onChange={(e) => set("motherName", e.target.value)}
-              />
-            </div>
-            <div className="space-y-1">
               <Label>Stream</Label>
               <Input
                 placeholder="e.g. JEE (Main + Advanced)"
@@ -318,14 +316,6 @@ const FeeRecordDialog = ({
                 placeholder="e.g. 161153"
                 value={form.courseCode}
                 onChange={(e) => set("courseCode", e.target.value)}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>Center</Label>
-              <Input
-                placeholder="e.g. Distance Learning"
-                value={form.center}
-                onChange={(e) => set("center", e.target.value)}
               />
             </div>
             <div className="space-y-1">
@@ -378,16 +368,28 @@ const FeeRecordDialog = ({
               </div>
             </div>
 
-            {/* Discount */}
-            <div className="space-y-1 max-w-xs">
-              <Label>Discount (₹)</Label>
-              <Input
-                type="number"
-                min={0}
-                placeholder="0"
-                value={form.discount === 0 ? "" : form.discount}
-                onChange={(e) => set("discount", e.target.value)}
-              />
+            {/* Discount + Paid fee */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <Label>Discount (₹)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  placeholder="0"
+                  value={form.discount === 0 ? "" : form.discount}
+                  onChange={(e) => set("discount", e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Paid Fee / Amount Received (₹)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  placeholder="0"
+                  value={form.amountReceived === 0 ? "" : form.amountReceived}
+                  onChange={(e) => set("amountReceived", e.target.value)}
+                />
+              </div>
             </div>
 
             {/* Additional fee rows */}
@@ -411,8 +413,8 @@ const FeeRecordDialog = ({
               {(form.additionalFees ?? []).map((row, idx) => (
                 <div key={idx} className="flex gap-2 items-center">
                   <Input
-                    className="flex-1"
-                    placeholder="Label (e.g. Admission Fee)"
+                    className="flex-1 min-w-0"
+                    placeholder="Label"
                     value={row.label}
                     onChange={(e) => updateExtraFee(idx, "label", e.target.value)}
                   />
@@ -422,7 +424,7 @@ const FeeRecordDialog = ({
                       updateExtraFee(idx, "type", v as "addition" | "deduction")
                     }
                   >
-                    <SelectTrigger className="w-32">
+                    <SelectTrigger className="w-24 sm:w-32">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -433,7 +435,7 @@ const FeeRecordDialog = ({
                   <Input
                     type="number"
                     min={0}
-                    className="w-28"
+                    className="w-20 sm:w-28"
                     placeholder="0"
                     value={row.amount === 0 ? "" : row.amount}
                     onChange={(e) => updateExtraFee(idx, "amount", Number(e.target.value))}
@@ -483,6 +485,14 @@ const FeeRecordDialog = ({
               <div className="flex justify-between font-bold border-t pt-1 mt-1 text-primary text-base">
                 <span>Total Amount</span>
                 <span>₹{total.toLocaleString("en-IN")}</span>
+              </div>
+              <div className="flex justify-between text-muted-foreground">
+                <span>Amount Received</span>
+                <span className="font-medium">₹{amountReceived.toLocaleString("en-IN")}</span>
+              </div>
+              <div className="flex justify-between font-semibold">
+                <span>Balance</span>
+                <span className="text-red-500">₹{balance.toLocaleString("en-IN")}</span>
               </div>
             </div>
           </div>
