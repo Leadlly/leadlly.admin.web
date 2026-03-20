@@ -124,17 +124,18 @@ export default function TeacherDetailPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-4 md:space-y-6">
-      {/* Back + Header */}
-      <div className="flex items-center gap-4 mb-2">
+      <div>
         <Link href={`/institute/${instituteId}/teachers`}>
           <Button variant="ghost" size="sm" className="gap-2">
             <ArrowLeft className="size-4" /> Back
           </Button>
         </Link>
-        <div>
-          <h1 className="text-3xl font-bold">{teacherName}</h1>
-          {teacher?.email && <p className="text-gray-500 text-sm">{teacher.email}</p>}
-        </div>
+      </div>
+
+      {/* Header */}
+      <div className="mb-2">
+        <h1 className="text-2xl md:text-3xl font-bold">{teacherName}</h1>
+        {teacher?.email && <p className="text-gray-500 text-sm">{teacher.email}</p>}
       </div>
 
       {/* Overview Cards */}

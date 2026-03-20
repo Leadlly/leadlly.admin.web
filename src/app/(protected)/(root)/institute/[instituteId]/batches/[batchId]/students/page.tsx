@@ -130,29 +130,30 @@ export default function BatchStudentsPage({
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex flex-col md:flex-row justify-between items-center mb-6">
-        <div className="mb-4 md:mb-0">
-          <Link
-            href="/batches"
-            className="text-purple-600 hover:text-purple-800 flex items-center gap-1 mb-2"
+      <div className="mb-3">
+        <Link
+          href="/batches"
+          className="text-purple-600 hover:text-purple-800 inline-flex items-center gap-1.5"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-5 w-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M10 19l-7-7m0 0l7-7m-7 7h18"
-              />
-            </svg>
-            Back to Batches
-          </Link>
-        </div>
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M10 19l-7-7m0 0l7-7m-7 7h18"
+            />
+          </svg>
+          Back to Batches
+        </Link>
+      </div>
+
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
         <Button className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition">
           Add Student
         </Button>

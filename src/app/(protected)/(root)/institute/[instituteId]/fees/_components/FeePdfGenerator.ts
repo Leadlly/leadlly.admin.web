@@ -41,18 +41,37 @@ function toWords(n: number): string {
 type JsPDFType = InstanceType<typeof import("jspdf").default>;
 
 async function loadImageAsDataUrl(url: string): Promise<string | null> {
-  try {
-    const res = await fetch(url);
+  const toDataUrl = async (input: string) => {
+    const res = await fetch(input);
+    if (!res.ok) throw new Error("Image fetch failed");
     const blob = await res.blob();
-    return new Promise((resolve) => {
+    return new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = () => resolve(null);
+      reader.onerror = () => reject(new Error("FileReader failed"));
       reader.readAsDataURL(blob);
     });
+  };
+
+  try {
+    // Primary attempt: direct image URL (works when CORS allows)
+    return await toDataUrl(url);
   } catch {
-    return null;
+    try {
+      // Fallback: same-origin proxy for production CORS-restricted buckets
+      const proxied = `/api/image-proxy?url=${encodeURIComponent(url)}`;
+      return await toDataUrl(proxied);
+    } catch {
+      return null;
+    }
   }
+}
+
+function getImageFormat(dataUrl: string): "PNG" | "JPEG" | "WEBP" {
+  const m = dataUrl.match(/^data:image\/([a-zA-Z0-9+.-]+);base64,/i)?.[1]?.toLowerCase();
+  if (m?.includes("png")) return "PNG";
+  if (m?.includes("webp")) return "WEBP";
+  return "JPEG";
 }
 
 function getParticulars(record: IFeeRecord) {
@@ -102,7 +121,7 @@ function drawReceipt(
     try {
       const logoMaxW = IW / 2 - 4;
       const logoMaxH = 18;
-      doc.addImage(logoData, "PNG", M + 2, y + 2, logoMaxW, logoMaxH);
+      doc.addImage(logoData, getImageFormat(logoData), M + 2, y + 2, logoMaxW, logoMaxH);
     } catch { /* skip */ }
   }
 

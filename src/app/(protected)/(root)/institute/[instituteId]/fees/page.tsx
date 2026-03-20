@@ -307,31 +307,32 @@ function UidDetailView({
 
   return (
     <div>
+      <div className="mb-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onBack}
+          className="gap-1.5 -ml-2"
+        >
+          <ArrowLeft className="size-4" />
+          Back
+        </Button>
+      </div>
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-        <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onBack}
-            className="gap-1.5 -ml-2"
-          >
-            <ArrowLeft className="size-4" />
-            Back
-          </Button>
-          <div>
-            <h2 className="text-xl font-bold">{group.studentName}</h2>
-            <p className="text-xs text-muted-foreground font-mono">
-              UID: {uid}
-            </p>
-          </div>
+        <div>
+          <h2 className="text-xl font-bold">{group.studentName}</h2>
+          <p className="text-xs text-muted-foreground font-mono">
+            UID: {uid}
+          </p>
         </div>
         <Button
           onClick={() => {
             setEditRecord(null);
             setDialogOpen(true);
           }}
-          className="gap-2"
+          className="gap-2 w-full sm:w-auto"
         >
           <Plus className="size-4" />
           Add Another Record
@@ -355,9 +356,9 @@ function UidDetailView({
         </div>
       </div>
 
-      {/* Records Table */}
-      <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
-        <div className="overflow-x-auto">
+      {/* Records Table (desktop/tablet) */}
+      <div className="hidden md:block bg-white rounded-2xl shadow-sm border overflow-hidden">
+        <div className="overflow-x-auto custom__scrollbar">
           <Table>
             <TableHeader>
               <TableRow>
@@ -461,6 +462,74 @@ function UidDetailView({
             </TableBody>
           </Table>
         </div>
+      </div>
+
+      {/* Records Cards (mobile) */}
+      <div className="md:hidden space-y-3">
+        {loading ? (
+          <div className="bg-white rounded-xl border p-6 text-center text-muted-foreground">
+            Loading…
+          </div>
+        ) : records.length === 0 ? (
+          <div className="bg-white rounded-xl border p-6 text-center text-muted-foreground">
+            No records yet.
+          </div>
+        ) : (
+          records.map((rec) => (
+            <div
+              key={rec._id}
+              className="bg-white rounded-xl border p-3 shadow-sm"
+              onClick={() => setReceiptRecord(rec)}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-mono text-xs font-semibold">{rec.formNo}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {formatDate(rec.paymentDate as unknown as string)}
+                  </p>
+                </div>
+                <p className="font-semibold text-primary text-sm">
+                  ₹{(rec.totalAmount ?? 0).toLocaleString("en-IN")}
+                </p>
+              </div>
+              <div className="mt-2 text-sm">
+                <p className="font-medium">{rec.courseName ?? "—"}</p>
+                <p className="text-muted-foreground text-xs mt-0.5">{rec.paymentMode ?? "—"}</p>
+              </div>
+              <div className="mt-3 flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  title="Edit"
+                  onClick={() => {
+                    setEditRecord(rec);
+                    setDialogOpen(true);
+                  }}
+                >
+                  <Pencil className="size-4" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  title="Print"
+                  onClick={() => {
+                    printFeePdf(rec, pdfMeta).catch(() => toast.error("Failed to print"));
+                  }}
+                >
+                  <Printer className="size-4 text-blue-600" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  title="Delete"
+                  onClick={() => setDeleteId(rec._id)}
+                >
+                  <Trash2 className="size-4 text-destructive" />
+                </Button>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* Add/Edit dialog - UID locked, student details pre-filled */}
