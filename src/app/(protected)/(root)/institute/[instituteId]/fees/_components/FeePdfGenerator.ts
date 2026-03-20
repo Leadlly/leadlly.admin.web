@@ -9,231 +9,327 @@ export interface PdfMeta {
   website?: string;
   email?: string;
   cin?: string;
+  docLogoUrl?: string;
 }
 
 function toWords(n: number): string {
+  if (n <= 0) return "Zero";
   const ones = [
-    "", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine",
-    "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen",
-    "Seventeen", "Eighteen", "Nineteen",
+    "", "One", "Two", "Three", "Four", "Five", "Six", "Seven",
+    "Eight", "Nine", "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen",
+    "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen",
   ];
-  const tens = [
-    "", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety",
-  ];
-
-  if (n === 0) return "Zero";
-
+  const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
   function chunk(num: number): string {
     if (num === 0) return "";
     if (num < 20) return ones[num] + " ";
     if (num < 100) return tens[Math.floor(num / 10)] + (num % 10 ? " " + ones[num % 10] : "") + " ";
     return ones[Math.floor(num / 100)] + " Hundred " + chunk(num % 100);
   }
-
-  let result = "";
+  let r = "";
   const crore = Math.floor(n / 10000000);
   const lakh = Math.floor((n % 10000000) / 100000);
   const thousand = Math.floor((n % 100000) / 1000);
   const rest = n % 1000;
-
-  if (crore) result += chunk(crore) + "Crore ";
-  if (lakh) result += chunk(lakh) + "Lakh ";
-  if (thousand) result += chunk(thousand) + "Thousand ";
-  if (rest) result += chunk(rest);
-  return result.trim();
+  if (crore) r += chunk(crore) + "Crore ";
+  if (lakh) r += chunk(lakh) + "Lakh ";
+  if (thousand) r += chunk(thousand) + "Thousand ";
+  if (rest) r += chunk(rest);
+  return r.trim();
 }
 
-export async function generateFeePdf(
+type JsPDFType = InstanceType<typeof import("jspdf").default>;
+
+async function loadImageAsDataUrl(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
+function getParticulars(record: IFeeRecord) {
+  const items: { label: string; amount: number; deduction: boolean }[] = [
+    { label: "Tuition Fees", amount: record.tuitionFees ?? 0, deduction: false },
+    ...(record.additionalFees ?? []).slice(0, 4).map((f) => ({
+      label: f.label,
+      amount: f.amount,
+      deduction: f.type === "deduction",
+    })),
+    ...(record.discount && record.discount > 0
+      ? [{ label: "Concession", amount: record.discount, deduction: true }]
+      : []),
+  ];
+  return items;
+}
+
+function calcReceiptHeight(record: IFeeRecord): number {
+  const feeRows = getParticulars(record).length + 1;
+  const feeSectionH = feeRows * 7 + 2;
+  // header(22) + divider(5) + title(7) + formRow(10) + infoRows(3*7=21) + feeSection + bottom(17)
+  return 22 + 5 + 7 + 10 + 21 + feeSectionH + 17;
+}
+
+// ─── Draw one receipt copy ────────────────────────────────────────────────────
+
+function drawReceipt(
+  doc: JsPDFType,
   record: IFeeRecord,
-  meta: PdfMeta
-): Promise<void> {
-  const { default: jsPDF } = await import("jspdf");
-
-  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-
+  meta: PdfMeta,
+  startY: number,
+  logoData: string | null,
+) {
   const W = 210;
-  const margin = 15;
-  let y = margin;
+  const M = 14;
+  const IW = W - 2 * M;
+  const totalH = calcReceiptHeight(record);
+  let y = startY;
 
-  // ─── Outer border ───────────────────────────────────────────────────────────
+  // ── Outer border ──────────────────────────────────────────────────────────
   doc.setDrawColor(0);
   doc.setLineWidth(0.6);
-  doc.rect(margin, margin, W - 2 * margin, 275);
+  doc.rect(M, y, IW, totalH);
 
-  // ─── Header area ────────────────────────────────────────────────────────────
-  // Right block: institute info
-  doc.setFontSize(11);
-  doc.setFont("helvetica", "bold");
-  doc.text(meta.instituteName, W - margin - 2, y + 6, { align: "right" });
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8.5);
-  if (meta.address) doc.text(meta.address, W - margin - 2, y + 12, { align: "right" });
-  if (meta.phone) doc.text(`Ph.: ${meta.phone}`, W - margin - 2, y + 17, { align: "right" });
-  const webEmail = [meta.website, meta.email].filter(Boolean).join(", E-mail: ");
-  if (webEmail) doc.text(`Website: ${webEmail}`, W - margin - 2, y + 22, { align: "right" });
+  // ── Header: Logo left | Institute info right ──────────────────────────────
+  if (logoData) {
+    try {
+      const logoMaxW = IW / 2 - 4;
+      const logoMaxH = 18;
+      doc.addImage(logoData, "PNG", M + 2, y + 2, logoMaxW, logoMaxH);
+    } catch { /* skip */ }
+  }
 
-  y += 28;
-
-  // Divider
-  doc.setLineWidth(0.3);
-  doc.line(margin, y, W - margin, y);
-  y += 5;
-
-  // ─── Title ──────────────────────────────────────────────────────────────────
+  const rx = W - M - 2;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(13);
+  doc.setTextColor(0);
+  doc.text(meta.instituteName || "Institution", rx, y + 7, { align: "right" });
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  if (meta.address) doc.text(meta.address, rx, y + 12, { align: "right" });
+  if (meta.phone) doc.text(`Ph.: ${meta.phone}`, rx, y + 16, { align: "right" });
+  const webEmail = [
+    meta.website ? `Website: ${meta.website}` : null,
+    meta.email ? `E-mail: ${meta.email}` : null,
+  ].filter(Boolean).join(", ");
+  if (webEmail) doc.text(webEmail, rx, y + 20, { align: "right" });
+
+  y += 22;
+  doc.setLineWidth(0.4);
+  doc.line(M, y, M + IW, y);
+
+  // ── Title ─────────────────────────────────────────────────────────────────
+  y += 5;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
   doc.text(
     `Fee Acknowledgement - Academic Session:${record.academicSession ?? ""}`,
-    W / 2,
-    y + 5,
-    { align: "center" }
+    W / 2, y, { align: "center" },
   );
-  y += 12;
 
-  // ─── Form/Ack row ────────────────────────────────────────────────────────────
+  // ── Form No | Ack No ─────────────────────────────────────────────────────
+  y += 7;
+  const midX = M + IW / 2;
+
   doc.setLineWidth(0.3);
-  doc.rect(margin, y, W - 2 * margin, 10);
-  // Split in half
-  const midX = margin + (W - 2 * margin) / 2;
+  doc.rect(M, y, IW, 10);
   doc.line(midX, y, midX, y + 10);
 
-  doc.setFontSize(9);
   doc.setFont("helvetica", "bold");
-  doc.text(`Form No.:${record.formNo}`, margin + 3, y + 6.5);
+  doc.setFontSize(9);
+  doc.text(`Form No.:${record.formNo}`, M + 3, y + 4.5);
 
-  // Right half: Acknowledgement No + barcode-ish lines
   doc.setFont("helvetica", "normal");
-  doc.text(`Acknowledgement No: ${record.acknowledgementNo}`, midX + 3, y + 4);
-  // Simulate barcode using thin vertical rects
-  let bx = midX + 3;
-  const bY = y + 5.5;
-  const heights = [3.5, 2, 3.5, 2.5, 3.5, 2, 3, 2.5, 3.5, 2, 3.5, 2, 3, 2.5, 3.5];
-  const widths = [0.7, 0.3, 0.7, 0.3, 0.7, 0.3, 0.5, 0.3, 0.7, 0.3, 0.7, 0.3, 0.5, 0.3, 0.7];
-  bx = midX + 55;
-  doc.setFillColor(0, 0, 0);
-  for (let i = 0; i < heights.length; i++) {
-    doc.rect(bx, bY, widths[i], heights[i], "F");
-    bx += widths[i] + 0.4;
-  }
-  y += 10;
+  doc.setFontSize(7.5);
+  doc.text(`UID: ${record.uniqueIdentificationNo ?? ""}`, M + 3, y + 8.5);
 
-  // ─── Info rows ───────────────────────────────────────────────────────────────
-  const rowH = 8;
-  const col1w = (W - 2 * margin) / 2;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8.5);
+  doc.text(`Acknowledgement No: ${record.acknowledgementNo}`, midX + 3, y + 4);
+
+  // Barcode
+  let bx = midX + IW / 2 - 22;
+  const bY = y + 1;
+  const bws = [0.7, 0.3, 0.7, 0.3, 0.7, 0.3, 0.5, 0.3, 0.7, 0.3, 0.7, 0.3, 0.5, 0.3, 0.7];
+  const bhs = [4, 2.5, 4, 3, 4, 2.5, 3.5, 2.5, 4, 2.5, 4, 2.5, 3.5, 3, 4];
+  doc.setFillColor(0);
+  for (let i = 0; i < bws.length; i++) {
+    doc.rect(bx, bY, bws[i], bhs[i], "F");
+    bx += bws[i] + 0.4;
+  }
+
+  // ── Student info rows ─────────────────────────────────────────────────────
+  y += 10;
+  const rh = 7;
+  const halfW = IW / 2;
 
   const rows: [string, string, string, string][] = [
     ["Name:", record.studentName, "Acknowledgement Dated:", record.paymentDate ? new Date(record.paymentDate).toLocaleDateString("en-IN") : ""],
-    ["Father's Name:", record.fatherName ?? "", "Mother's Name:", record.motherName ?? ""],
-    ["Stream Name:", record.streamName ?? "", "Course Name:", record.courseName ?? ""],
-    ["Course Code:", record.courseCode ?? "", "Payment Mode:", record.paymentMode ?? ""],
-    ["Center:", record.center ?? "", "", ""],
+    ["Father's Name:", record.fatherName ?? "", "Stream Name:", record.streamName ?? ""],
+    ["Course Name:", `${record.courseName ?? ""}${record.courseCode ? ` (${record.courseCode})` : ""}`, "Payment Mode:", record.paymentMode ?? ""],
   ];
 
   for (const [l1, v1, l2, v2] of rows) {
     doc.setLineWidth(0.2);
-    doc.rect(margin, y, col1w, rowH);
-    doc.rect(margin + col1w, y, col1w, rowH);
+    doc.rect(M, y, halfW, rh);
+    doc.rect(M + halfW, y, halfW, rh);
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(8.5);
-    doc.text(l1, margin + 2, y + 5.5);
+    doc.setFontSize(8);
+    doc.setTextColor(0);
+    doc.text(l1, M + 2, y + 5);
     doc.setFont("helvetica", "bold");
-    doc.text(v1, margin + 30, y + 5.5);
+    doc.text(v1, M + 28, y + 5);
 
     if (l2) {
       doc.setFont("helvetica", "normal");
-      doc.text(l2, margin + col1w + 2, y + 5.5);
+      doc.text(l2, midX + 2, y + 5);
       doc.setFont("helvetica", "bold");
-      doc.text(v2, margin + col1w + 40, y + 5.5);
+      doc.text(v2, midX + 35, y + 5);
     }
-    y += rowH;
+    y += rh;
   }
 
-  // ─── Amounts row ─────────────────────────────────────────────────────────────
-  const amtLeft = col1w;
-  const amtRight = W - 2 * margin - amtLeft;
-  const amtRows = [
-    ["Tuition Fees", String(record.tuitionFees.toLocaleString("en-IN"))],
-    [`IGST @ ${record.igstPercent} %`, String(record.igstAmount.toLocaleString("en-IN"))],
-    ["Total Amount", String(record.totalAmount.toLocaleString("en-IN"))],
-  ];
-  const amtH = amtRows.length * 7 + 2;
+  // ── Fee: Amount in words (left) | Fee table (right) ───────────────────────
+  const particulars = getParticulars(record);
+  const feeRowH = 7;
+  const feeSectionH = (particulars.length + 1) * feeRowH + 2;
 
   doc.setLineWidth(0.2);
-  doc.rect(margin, y, amtLeft, amtH);
-  doc.rect(margin + amtLeft, y, amtRight, amtH);
+  doc.rect(M, y, halfW, feeSectionH);
 
-  // Left: amount in words
+  const words = record.amountInWords || `${toWords(record.totalAmount ?? 0)} Only`;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8.5);
-  const words =
-    record.amountInWords ||
-    `RUPEES ${toWords(record.totalAmount)} Only`;
-  doc.text("Total Amount in Words: RUPEES", margin + 2, y + 6);
+  doc.text("Total Amount in Words: RUPEES", M + 2, y + 5);
   doc.setFont("helvetica", "normal");
-  const wordLines = doc.splitTextToSize(words.replace(/^RUPEES\s*/i, ""), amtLeft - 4);
-  doc.text(wordLines, margin + 2, y + 11);
-
-  // Right: amounts table
-  let ay = y + 1;
-  const col3 = margin + amtLeft;
-  const lw3 = amtRight * 0.65;
-  const rw3 = amtRight - lw3;
-  for (const [label, val] of amtRows) {
-    doc.setLineWidth(0.15);
-    doc.rect(col3, ay, lw3, 7);
-    doc.rect(col3 + lw3, ay, rw3, 7);
-    doc.setFont("helvetica", label === "Total Amount" ? "bold" : "normal");
-    doc.setFontSize(8.5);
-    doc.text(label, col3 + 2, ay + 5);
-    doc.text(val, col3 + lw3 + rw3 - 2, ay + 5, { align: "right" });
-    ay += 7;
-  }
-  y += amtH;
-
-  // ─── GST note + footer notes ─────────────────────────────────────────────────
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7.5);
-  const notes = [
-    `GSTIN:${meta.cin ?? ""}`,
-    "This is not a GST Tax Invoice.",
-    "GST Invoice Cum Receipt will be uploaded on student portal within 30 days.",
-    "This is computer generated acknowledgement, hence no signature required.",
-    "All disputes are subject to local jurisdiction only.",
-    "Duplicate \"Fee Receipt\" will be issued from office on cash payment of Rs. 100/- (Inclusive of taxes)",
-    "Kindly keep this acknowledgement safe.",
-  ];
-  y += 4;
-  for (const note of notes) {
-    doc.text(note, margin + 3, y);
-    y += 5;
-  }
-
-  y += 3;
-  // Bottom divider
-  doc.setLineWidth(0.3);
-  doc.line(margin, y, W - margin, y);
-  y += 5;
-
-  // Footer
-  doc.setFont("helvetica", "bold");
   doc.setFontSize(8);
-  const footerText = `Registered & Corporate Office: ${meta.address ?? ""}`;
-  doc.text(footerText, W / 2, y, { align: "center" });
-  if (meta.cin) {
+  const wl = doc.splitTextToSize(words.replace(/^RUPEES\s*/i, ""), halfW - 6);
+  doc.text(wl, M + 2, y + 10);
+
+  const rx2 = M + halfW;
+  const labelColW = halfW * 0.62;
+  const amtColW = halfW - labelColW;
+  let fy = y;
+
+  for (const p of particulars) {
+    doc.setLineWidth(0.15);
+    doc.rect(rx2, fy, labelColW, feeRowH);
+    doc.rect(rx2 + labelColW, fy, amtColW, feeRowH);
+
     doc.setFont("helvetica", "normal");
-    doc.text(`CIN: - ${meta.cin}`, W / 2, y + 5, { align: "center" });
+    doc.setFontSize(8);
+    doc.setTextColor(p.deduction ? 180 : 0, 0, 0);
+    doc.text(p.label, rx2 + 2, fy + 5);
+    const amtStr = p.deduction
+      ? `-${p.amount.toLocaleString("en-IN")}`
+      : p.amount.toLocaleString("en-IN");
+    doc.text(amtStr, rx2 + labelColW + amtColW - 2, fy + 5, { align: "right" });
+    doc.setTextColor(0);
+    fy += feeRowH;
   }
 
-  // Timestamp bottom-right
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7);
+  // Total row
+  doc.setLineWidth(0.15);
+  doc.rect(rx2, fy, labelColW, feeRowH);
+  doc.rect(rx2 + labelColW, fy, amtColW, feeRowH);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8.5);
+  doc.text("Total Amount", rx2 + 2, fy + 5);
   doc.text(
-    new Date().toLocaleString("en-IN"),
-    W - margin - 2,
-    margin + 275 + 5,
-    { align: "right" }
+    (record.totalAmount ?? 0).toLocaleString("en-IN"),
+    rx2 + labelColW + amtColW - 2, fy + 5, { align: "right" },
   );
 
-  doc.save(`fee-acknowledgement-${record.formNo}.pdf`);
+  y += feeSectionH;
+
+  // ── Bottom: Payment + Signature ───────────────────────────────────────────
+  doc.setLineWidth(0.3);
+  doc.line(M, y, M + IW, y);
+  y += 2;
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  doc.text(`Payment Mode   : ${record.paymentMode ?? ""}`, M + 2, y + 3);
+  doc.text(`Total Paid Amount : ₹ ${(record.totalAmount ?? 0).toLocaleString("en-IN")}`, M + 2, y + 7);
+  doc.text(`Amount in Word  : ₹ ${record.amountInWords || toWords(record.totalAmount ?? 0) + " Only"}`, M + 2, y + 11);
+
+  doc.text("Received By :", W - M - 50, y + 3);
+  doc.setLineWidth(0.2);
+  doc.line(W - M - 36, y + 9, W - M - 2, y + 9);
+  doc.setFontSize(6.5);
+  doc.text("(Authorised Signatory)", W - M - 19, y + 12.5, { align: "center" });
+
+  y += 17;
+
+}
+
+// ─── Build PDF ───────────────────────────────────────────────────────────────
+
+async function buildDoc(record: IFeeRecord, meta: PdfMeta): Promise<JsPDFType> {
+  const { default: jsPDF } = await import("jspdf");
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
+  let logoData: string | null = null;
+  if (meta.docLogoUrl) {
+    logoData = await loadImageAsDataUrl(meta.docLogoUrl);
+  }
+
+  const PAGE_H = 297;
+  const receiptH = calcReceiptHeight(record);
+  const gap = 6;
+  const topMargin = Math.max(4, (PAGE_H - 2 * receiptH - gap) / 2);
+
+  drawReceipt(doc, record, meta, topMargin, logoData);
+
+  // Cut line
+  const cutY = topMargin + receiptH + gap / 2;
+  doc.setDrawColor(130, 130, 130);
+  doc.setLineWidth(0.2);
+  doc.setLineDashPattern([2, 2], 0);
+  doc.line(14, cutY, 196, cutY);
+  doc.setLineDashPattern([], 0);
+
+  drawReceipt(doc, record, meta, cutY + gap / 2, logoData);
+
+  return doc;
+}
+
+export async function generateFeePdf(
+  record: IFeeRecord,
+  meta: PdfMeta,
+): Promise<void> {
+  const doc = await buildDoc(record, meta);
+  const safeName = (record.studentName ?? "Student").replace(/[^a-zA-Z0-9 ]/g, "").replace(/\s+/g, "_");
+  const uid = record.uniqueIdentificationNo ?? record.formNo;
+  doc.save(`Fee_Receipt_${safeName}_${uid}.pdf`);
+}
+
+export async function printFeePdf(
+  record: IFeeRecord,
+  meta: PdfMeta,
+): Promise<void> {
+  const doc = await buildDoc(record, meta);
+  const blob = doc.output("blob");
+  const url = URL.createObjectURL(blob);
+  const win = window.open(url, "_blank");
+  if (win) {
+    win.onload = () => {
+      win.focus();
+      win.print();
+      setTimeout(() => URL.revokeObjectURL(url), 8000);
+    };
+  } else {
+    const safeName = (record.studentName ?? "Student").replace(/[^a-zA-Z0-9 ]/g, "").replace(/\s+/g, "_");
+  const uid = record.uniqueIdentificationNo ?? record.formNo;
+  doc.save(`Fee_Receipt_${safeName}_${uid}.pdf`);
+  }
 }

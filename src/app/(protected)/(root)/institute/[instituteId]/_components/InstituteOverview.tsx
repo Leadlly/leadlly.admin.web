@@ -2,22 +2,27 @@
 
 import React from "react";
 
-import Image from "next/image";
-
-import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 
 import { getActiveInstitute } from "@/actions/institute_actions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import EditInstituteForm from "@/components/edit-institute-form";
 
 interface InstituteOverviewProps {
   instituteId: string;
 }
 
 const InstituteOverview = ({ instituteId }: InstituteOverviewProps) => {
+  const queryClient = useQueryClient();
+
   const { data: activeInstitute } = useSuspenseQuery({
     queryKey: ["active_institute", instituteId],
     queryFn: () => getActiveInstitute({ instituteId }),
   });
+
+  const handleEditSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ["active_institute", instituteId] });
+  };
 
   return (
     <div className="bg-primary/5 px-4 py-6 sm:px-6 md:px-8 sm:py-8 rounded-3xl mb-6 shadow-xs border border-primary/30">
@@ -56,6 +61,14 @@ const InstituteOverview = ({ instituteId }: InstituteOverviewProps) => {
             </svg>
             Institute Code: {activeInstitute?.institute?.instituteCode}
           </p>
+          {activeInstitute?.institute && (
+            <div className="mt-3">
+              <EditInstituteForm
+                institute={activeInstitute.institute}
+                onSuccess={handleEditSuccess}
+              />
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col gap-4 mt-4 md:mt-0">

@@ -629,6 +629,10 @@ export interface IInstitute {
     url: string;
     key: string;
   } | null;
+  docLogo?: {
+    url: string;
+    key: string;
+  } | null;
   description?: string;
   subjects?: string[];
   standards?: string[];

@@ -1,6 +1,6 @@
 "use server";
 
-import { updateTag } from "next/cache";
+import { revalidateTag } from "next/cache";
 
 import { z } from "zod";
 
@@ -11,6 +11,11 @@ import { getCookie } from "./cookie_actions";
 
 type InstituteCreateData = z.infer<typeof CreateInstituteFormSchema> & {
   logo?: { name: string; type: string };
+};
+
+type InstituteUpdateData = Partial<z.infer<typeof CreateInstituteFormSchema>> & {
+  logo?: { name: string; type: string };
+  docLogo?: { name: string; type: string };
 };
 
 export const createInstitute = async (data: InstituteCreateData) => {
@@ -37,13 +42,53 @@ export const createInstitute = async (data: InstituteCreateData) => {
       error?: string;
     } = await res.json();
 
-    updateTag("userData");
+    revalidateTag("userData");
 
     return responseData;
   } catch (error) {
     console.log(error);
 
     return { success: false, data: null, logoUploadUrl: undefined, error: (error as Error).message };
+  }
+};
+
+export const updateInstitute = async (instituteId: string, data: InstituteUpdateData) => {
+  const token = await getCookie();
+
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL}/api/institute/${instituteId}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(data),
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: `token=${token}`,
+        },
+        credentials: "include",
+      }
+    );
+
+    const responseData: {
+      success: boolean;
+      data: IInstitute;
+      logoUploadUrl?: string;
+      docLogoUploadUrl?: string;
+      error?: string;
+    } = await res.json();
+
+    revalidateTag("userData");
+
+    return responseData;
+  } catch (error) {
+    console.log(error);
+    return {
+      success: false,
+      data: null,
+      logoUploadUrl: undefined,
+      docLogoUploadUrl: undefined,
+      error: (error as Error).message,
+    };
   }
 };
 

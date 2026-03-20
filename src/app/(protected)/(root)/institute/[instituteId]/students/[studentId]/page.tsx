@@ -84,6 +84,7 @@ export default function StudentDetailPage() {
           phone: inst.contactNumber,
           website: inst.website,
           email: inst.email,
+          docLogoUrl: inst.docLogo?.url || inst.logo?.url || "",
         });
       }
     });

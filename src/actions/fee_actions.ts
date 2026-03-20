@@ -3,7 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { getCookie } from "./cookie_actions";
 
+export interface AdditionalFeeItem {
+  label: string;
+  amount: number;
+  type: "addition" | "deduction";
+}
+
 export interface FeeRecordData {
+  uniqueIdentificationNo: string;
   studentName: string;
   fatherName?: string;
   motherName?: string;
@@ -14,6 +21,8 @@ export interface FeeRecordData {
   paymentMode?: string;
   tuitionFees: number;
   igstPercent?: number;
+  discount?: number;
+  additionalFees?: AdditionalFeeItem[];
   amountInWords?: string;
   paymentDate?: string;
   academicSession?: string;
@@ -30,6 +39,18 @@ export interface IFeeRecord extends FeeRecordData {
   status: "Active" | "Deleted";
   createdAt: string;
   updatedAt: string;
+}
+
+export interface FeeUidGroup {
+  _id: string; // uniqueIdentificationNo
+  studentName: string;
+  fatherName?: string;
+  streamName?: string;
+  academicSession?: string;
+  recordCount: number;
+  totalPaid: number;
+  lastPaymentDate: string;
+  studentId?: string;
 }
 
 const getBase = () => process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL;
@@ -64,7 +85,8 @@ export async function getFeeRecords(
   instituteId: string,
   page = 1,
   search = "",
-  studentId?: string
+  studentId?: string,
+  uid?: string
 ): Promise<{
   success: boolean;
   data?: IFeeRecord[];
@@ -79,6 +101,7 @@ export async function getFeeRecords(
       limit: "20",
       ...(search ? { search } : {}),
       ...(studentId ? { studentId } : {}),
+      ...(uid ? { uid } : {}),
     });
     const res = await fetch(
       `${getBase()}/api/institute/${instituteId}/fees?${params}`,
@@ -99,6 +122,43 @@ export async function getFeeRecords(
       total: json.total,
       totalPages: json.totalPages,
     };
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Unknown error",
+      data: [],
+    };
+  }
+}
+
+export async function getFeeUidGroups(
+  instituteId: string,
+  search = ""
+): Promise<{
+  success: boolean;
+  data?: FeeUidGroup[];
+  total?: number;
+  message?: string;
+}> {
+  const token = await getCookie();
+  try {
+    const params = new URLSearchParams({
+      ...(search ? { search } : {}),
+    });
+    const res = await fetch(
+      `${getBase()}/api/institute/${instituteId}/fees/uid-groups?${params}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: `token=${token}`,
+        },
+        cache: "no-store",
+      }
+    );
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message ?? "Failed to fetch UID groups");
+    return { success: true, data: json.data, total: json.total };
   } catch (error) {
     return {
       success: false,
