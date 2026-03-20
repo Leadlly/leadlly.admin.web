@@ -160,7 +160,7 @@ function drawReceipt(
   const bY = y + 1;
   const bws = [0.7, 0.3, 0.7, 0.3, 0.7, 0.3, 0.5, 0.3, 0.7, 0.3, 0.7, 0.3, 0.5, 0.3, 0.7];
   const bhs = [4, 2.5, 4, 3, 4, 2.5, 3.5, 2.5, 4, 2.5, 4, 2.5, 3.5, 3, 4];
-  doc.setFillColor(0);
+  doc.setFillColor(0, 0, 0);
   for (let i = 0; i < bws.length; i++) {
     doc.rect(bx, bY, bws[i], bhs[i], "F");
     bx += bws[i] + 0.4;

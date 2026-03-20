@@ -42,7 +42,7 @@ export const createInstitute = async (data: InstituteCreateData) => {
       error?: string;
     } = await res.json();
 
-    revalidateTag("userData");
+    revalidateTag("userData", "max");
 
     return responseData;
   } catch (error) {
@@ -77,7 +77,7 @@ export const updateInstitute = async (instituteId: string, data: InstituteUpdate
       error?: string;
     } = await res.json();
 
-    revalidateTag("userData");
+    revalidateTag("userData", "max");
 
     return responseData;
   } catch (error) {

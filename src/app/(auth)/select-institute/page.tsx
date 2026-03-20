@@ -17,13 +17,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useAppDispatch } from "@/redux/hooks";
-import { instituteData } from "@/redux/slices/instituteSlice";
-
 interface Institute {
   _id: string;
   name: string;
-  logo?: string;
+  logo?: { url?: string | null } | null;
   createdAt: string;
 }
 

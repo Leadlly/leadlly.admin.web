@@ -1,25 +1,31 @@
 import React, { Suspense } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 
-import Link from "next/link";
-
 import {
   dehydrate,
   HydrationBoundary,
   QueryClient,
-  useQuery,
 } from "@tanstack/react-query";
-import { toast } from "sonner";
 
 import { getActiveInstitute } from "@/actions/institute_actions";
-import { addTeacherToInstitute } from "@/actions/mentor_actions";
-import { addStudentsToInstitute } from "@/actions/student_action";
-import { Button } from "@/components/ui/button";
-
-import AddStudentsDialog from "./_components/add-students-dialog";
+import { getInstituteBatch } from "@/actions/batch_actions";
+import { getInstituteStudents } from "@/actions/student_action";
+import { getInstituteTeachers } from "@/actions/teacher_actions";
 import InstituteOverview from "./_components/InstituteOverview";
 import StudentsOverview from "./_components/StudentsOverview";
 import TeachersOverview from "./_components/TeachersOverview";
+
+type DashboardStudent = {
+  academic?: { competitiveExam?: string | null } | null;
+  details?: { level?: { number?: number | null } | null } | null;
+};
+
+type DashboardTeacher = {
+  academic?: {
+    degree?: string | null;
+    schoolOrCollegeName?: string | null;
+  } | null;
+};
 
 export default async function Dashboard({
   params,
@@ -35,28 +41,40 @@ export default async function Dashboard({
     queryFn: () => getActiveInstitute({ instituteId }),
   });
 
-  // const [isAddTeachersOpen, setIsAddTeachersOpen] = useState(false);
-  // const [studentEmails, setStudentEmails] = useState("");
-  // const [teacherEmails, setTeacherEmails] = useState("");
+  const [studentsRes, teachersRes, batchesRes] = await Promise.all([
+    getInstituteStudents(instituteId),
+    getInstituteTeachers(instituteId),
+    getInstituteBatch(instituteId).catch(() => ({ success: false, data: [] })),
+  ]);
 
-  // // Get institute data from Redux store
-  // const instituteData = useAppSelector((state) => state.institute.institute);
+  const students: DashboardStudent[] = studentsRes.success
+    ? ((studentsRes.students ?? []) as DashboardStudent[])
+    : [];
+  const teachers: DashboardTeacher[] = teachersRes.success
+    ? ((teachersRes.teachers ?? []) as DashboardTeacher[])
+    : [];
+  const batches = Array.isArray((batchesRes as { data?: unknown[] })?.data)
+    ? ((batchesRes as { data: unknown[] }).data ?? [])
+    : [];
 
-  // Mock data for students and teachers (would come from API in real app)
-  const dashboardData = {
-    students: {
-      totalStudents: 1250,
-      activeCourses: 42,
-      averageAttendance: 92,
-      performanceIndex: 8.7,
-    },
-    teachers: {
-      totalTeachers: 68,
-      departments: 12,
-      activeClasses: 86,
-      satisfactionRate: 9.2,
-    },
-  };
+  const activeCourses = new Set(
+    students
+      .map((s) => s?.academic?.competitiveExam)
+      .filter(Boolean),
+  ).size;
+  const avgLevel =
+    students.length > 0
+      ? students.reduce((sum, s) => {
+          return sum + Number(s?.details?.level?.number ?? 0);
+        }, 0) / students.length
+      : 0;
+  const departments = new Set(
+    teachers
+      .map((t) => {
+        return t?.academic?.degree ?? t?.academic?.schoolOrCollegeName;
+      })
+      .filter(Boolean),
+  ).size;
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
@@ -78,10 +96,10 @@ export default async function Dashboard({
             <h2 className="text-xl font-bold">Students</h2>
           </div>
           <StudentsOverview
-            totalStudents={dashboardData.students.totalStudents}
-            activeCourses={dashboardData.students.activeCourses}
-            averageAttendance={dashboardData.students.averageAttendance}
-            performanceIndex={dashboardData.students.performanceIndex}
+            totalStudents={students.length}
+            activeCourses={activeCourses}
+            averageAttendance={0}
+            performanceIndex={Number(avgLevel.toFixed(1))}
             instituteId={instituteId}
           />
         </div>
@@ -91,10 +109,10 @@ export default async function Dashboard({
             <h2 className="text-xl font-bold">Teachers</h2>
           </div>
           <TeachersOverview
-            totalTeachers={dashboardData.teachers.totalTeachers}
-            departments={dashboardData.teachers.departments}
-            activeClasses={dashboardData.teachers.activeClasses}
-            satisfactionRate={dashboardData.teachers.satisfactionRate}
+            totalTeachers={teachers.length}
+            departments={departments}
+            activeClasses={batches.length}
+            satisfactionRate={0}
             instituteId={instituteId}
           />
         </div>

@@ -203,7 +203,7 @@ export default function BatchStudentsPage({
             {/* Filter Buttons */}
             <div className="flex flex-wrap gap-2 w-full md:w-auto">
               <Button
-                variant={filter === "All" ? "default" : "outline-solid"}
+                variant={filter === "All" ? "default" : "outline"}
                 className={
                   filter === "All"
                     ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
@@ -214,7 +214,7 @@ export default function BatchStudentsPage({
                 All
               </Button>
               <Button
-                variant={filter === "Excellent" ? "default" : "outline-solid"}
+                variant={filter === "Excellent" ? "default" : "outline"}
                 className={
                   filter === "Excellent"
                     ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
@@ -225,7 +225,7 @@ export default function BatchStudentsPage({
                 Excellent
               </Button>
               <Button
-                variant={filter === "Optimal" ? "default" : "outline-solid"}
+                variant={filter === "Optimal" ? "default" : "outline"}
                 className={
                   filter === "Optimal"
                     ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
@@ -236,7 +236,7 @@ export default function BatchStudentsPage({
                 Optimal
               </Button>
               <Button
-                variant={filter === "Insufficient" ? "default" : "outline-solid"}
+                variant={filter === "Insufficient" ? "default" : "outline"}
                 className={
                   filter === "Insufficient"
                     ? "bg-blue-100 text-blue-700 hover:bg-blue-200"

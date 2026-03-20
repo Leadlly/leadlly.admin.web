@@ -64,7 +64,7 @@ const CreateInstituteForm = ({
   const dispatch = useAppDispatch();
   const anchor = useComboboxAnchor();
 
-  const form = useForm<z.infer<typeof CreateInstituteFormSchema>>({
+  const form = useForm<z.input<typeof CreateInstituteFormSchema>>({
     resolver: zodResolver(CreateInstituteFormSchema),
     defaultValues: {
       name: "",
@@ -108,13 +108,15 @@ const CreateInstituteForm = ({
   };
 
   const handleSubmit = async (
-    data: z.infer<typeof CreateInstituteFormSchema>
+    data: z.input<typeof CreateInstituteFormSchema>
   ) => {
     try {
       setLoading(true);
 
       const res = await createInstitute({
         ...data,
+        subjects: data.subjects ?? [],
+        standards: data.standards ?? [],
         logo: logoFile ? { name: logoFile.name, type: logoFile.type } : undefined,
       });
 
