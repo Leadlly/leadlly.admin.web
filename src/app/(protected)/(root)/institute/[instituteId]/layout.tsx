@@ -5,6 +5,7 @@ import Image from "next/image";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 
 import InstituteSidebar from "./_components/institute-sidebar";
+import MobileBottomNav from "./_components/mobile-bottom-nav";
 
 const InstituteLayout = async ({
   children,
@@ -31,10 +32,11 @@ const InstituteLayout = async ({
           />
         </div>
 
-        <main className="flex-1 overflow-y-auto custom__scrollbar pb-10 pt-3">
+        <main className="flex-1 overflow-y-auto custom__scrollbar pb-24 md:pb-10 pt-3">
           {children}
         </main>
       </div>
+      <MobileBottomNav instituteId={instituteId} />
     </SidebarProvider>
   );
 };
