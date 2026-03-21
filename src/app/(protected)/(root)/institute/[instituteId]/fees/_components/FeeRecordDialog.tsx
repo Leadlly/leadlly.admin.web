@@ -411,7 +411,7 @@ const FeeRecordDialog = ({
                     <span className="text-green-700 font-medium">
                       {uidRecords.length} existing record{uidRecords.length > 1 ? "s" : ""} found —
                       student details &amp; session fees pre-filled.{" "}
-                      {firstRecord && `Next installment: #${nextInstallmentNo}`}
+                      {hasUidRecords && `Next installment: #${nextInstallmentNo}`}
                     </span>
                   </>
                 )}
