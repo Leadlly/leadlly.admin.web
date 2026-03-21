@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams } from "next/navigation";
 import {
   Plus,
@@ -53,7 +53,7 @@ import {
 } from "@/actions/fee_actions";
 import { getActiveInstitute } from "@/actions/institute_actions";
 import FeeRecordDialog from "./_components/FeeRecordDialog";
-import { generateFeePdf, printFeePdf, PdfMeta } from "./_components/FeePdfGenerator";
+import { generateFeePdf, printFeePdf, PdfMeta, InstallmentContext } from "./_components/FeePdfGenerator";
 
 // ─── UID Block Card ──────────────────────────────────────────────────────────
 
@@ -94,7 +94,7 @@ function UidCard({
           Balance: ₹{(group.totalBalance ?? 0).toLocaleString("en-IN")}
         </span>
         <Badge variant="secondary" className="text-xs">
-          {group.recordCount} receipt{group.recordCount !== 1 ? "s" : ""}
+          {group.recordCount} installment{group.recordCount !== 1 ? "s" : ""}
         </Badge>
         <ChevronRight className="size-4 text-muted-foreground group-hover:text-primary transition-colors mt-0.5" />
       </div>
@@ -109,32 +109,34 @@ function FeeReceiptViewDialog({
   onClose,
   record,
   pdfMeta,
+  installmentContext,
 }: {
   open: boolean;
   onClose: () => void;
   record: IFeeRecord | null;
   pdfMeta: PdfMeta;
+  installmentContext?: InstallmentContext;
 }) {
   if (!record) return null;
 
   const handlePrint = () => {
-    printFeePdf(record, pdfMeta).catch(() =>
+    printFeePdf(record, pdfMeta, installmentContext).catch(() =>
       toast.error("Failed to print receipt")
     );
   };
 
   const handleDownload = () => {
-    generateFeePdf(record, pdfMeta).catch(() =>
+    generateFeePdf(record, pdfMeta, installmentContext).catch(() =>
       toast.error("Failed to generate PDF")
     );
   };
 
   const igstAmt = record.igstAmount ?? 0;
   const addFees = record.additionalFees ?? [];
-  const amountReceived =
-    record.amountReceived ?? 0;
-  const balance =
-    record.balanceAmount ?? Math.max((record.totalAmount ?? 0) - amountReceived, 0);
+  const amountReceived = record.amountReceived ?? 0;
+  const sessionNetFee = installmentContext?.sessionNetFee ?? (record.totalAmount ?? 0);
+  const alreadyPaid = installmentContext ? installmentContext.alreadyPaidTotal : 0;
+  const balance = Math.max(sessionNetFee - alreadyPaid - amountReceived, 0);
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -161,6 +163,10 @@ function FeeReceiptViewDialog({
             <div>
               <span className="text-muted-foreground">Session</span>
               <p className="font-semibold">{record.academicSession ?? "—"}</p>
+            </div>
+            <div className="col-span-2">
+              <span className="text-muted-foreground">Installment</span>
+              <p className="font-semibold">#{record.installmentNo ?? 1}</p>
             </div>
           </div>
 
@@ -227,15 +233,23 @@ function FeeReceiptViewDialog({
                 </div>
               )}
               <div className="flex justify-between px-3 py-2.5 bg-primary/5 font-bold text-primary">
-                <span>Total Amount</span>
-                <span>₹{(record.totalAmount ?? 0).toLocaleString("en-IN")}</span>
+                <span>Session Net Fee</span>
+                <span>₹{sessionNetFee.toLocaleString("en-IN")}</span>
               </div>
+              {(installmentContext?.previousInstallments ?? []).map((inst) => (
+                <div key={inst.no} className="flex justify-between px-3 py-2 text-muted-foreground">
+                  <span>Installment {inst.no}</span>
+                  <span className="font-medium text-green-600">
+                    ₹{inst.amount.toLocaleString("en-IN")}
+                  </span>
+                </div>
+              ))}
               <div className="flex justify-between px-3 py-2">
-                <span>Amount Received</span>
-                <span className="font-medium">₹{amountReceived.toLocaleString("en-IN")}</span>
+                <span>Installment {record.installmentNo ?? 1}</span>
+                <span className="font-medium text-green-600">₹{amountReceived.toLocaleString("en-IN")}</span>
               </div>
               <div className="flex justify-between px-3 py-2.5 bg-red-50 font-semibold text-red-600">
-                <span>Balance</span>
+                <span>Balance Due</span>
                 <span>₹{balance.toLocaleString("en-IN")}</span>
               </div>
             </div>
@@ -285,6 +299,8 @@ function UidDetailView({
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [receiptRecord, setReceiptRecord] = useState<IFeeRecord | null>(null);
+  const [receiptContext, setReceiptContext] = useState<InstallmentContext | undefined>();
+  const [sessionFilter, setSessionFilter] = useState<string>("all");
 
   const fetchRecords = useCallback(async () => {
     setLoading(true);
@@ -312,23 +328,90 @@ function UidDetailView({
     setDeleteId(null);
   };
 
+  const formatDate = (d?: string) =>
+    d ? new Date(d).toLocaleDateString("en-IN") : "—";
+  const getPaidAmount = (rec: IFeeRecord) =>
+    rec.amountReceived ?? 0;
+
+  // ── Session-aware stats ─────────────────────────────────────────────────────
+  // Group records by academicSession; net fee per session = totalAmount of installmentNo=1
+  const sessionGroups = useMemo(() => {
+    const map = new Map<string, IFeeRecord[]>();
+    for (const r of records) {
+      const s = r.academicSession ?? "Unknown";
+      if (!map.has(s)) map.set(s, []);
+      map.get(s)!.push(r);
+    }
+    // Sort each group by installmentNo asc
+    map.forEach((recs, key) =>
+      map.set(key, [...recs].sort((a, b) => (a.installmentNo ?? 1) - (b.installmentNo ?? 1)))
+    );
+    return map;
+  }, [records]);
+
+  // Total net = sum of each session's first installment totalAmount
+  const totalNetFee = useMemo(() => {
+    let sum = 0;
+    sessionGroups.forEach((recs) => {
+      sum += recs[0]?.totalAmount ?? 0;
+    });
+    return sum;
+  }, [sessionGroups]);
+
+  const totalPaidAmount = records.reduce((s, r) => s + getPaidAmount(r), 0);
+  const totalBalanceAmount = Math.max(totalNetFee - totalPaidAmount, 0);
+
+  // Unique sessions for filter dropdown
+  const availableSessions = useMemo(
+    () => Array.from(sessionGroups.keys()).sort((a, b) => b.localeCompare(a)),
+    [sessionGroups]
+  );
+
+  // Records shown in the table (filtered by selected session)
+  const filteredRecords = useMemo(
+    () => sessionFilter === "all" ? records : records.filter((r) => r.academicSession === sessionFilter),
+    [records, sessionFilter]
+  );
+
   const studentDefaults = {
     uniqueIdentificationNo: uid,
     studentName: group.studentName,
     fatherName: group.fatherName,
     streamName: group.streamName,
     academicSession: group.academicSession,
+    tuitionFees: group.sessionTuitionFees,
+    igstPercent: group.sessionIgstPercent,
+    discount: group.sessionDiscount,
+    nextInstallmentNo: records.length + 1,
+    alreadyPaidTotal: totalPaidAmount,
   };
 
-  const formatDate = (d?: string) =>
-    d ? new Date(d).toLocaleDateString("en-IN") : "—";
-  const getPaidAmount = (rec: IFeeRecord) =>
-    rec.amountReceived ?? 0;
-  const getBalanceAmount = (rec: IFeeRecord) =>
-    rec.balanceAmount ?? Math.max((rec.totalAmount ?? 0) - getPaidAmount(rec), 0);
-  const totalNet = records.reduce((s, r) => s + (r.totalAmount ?? 0), 0);
-  const totalPaidAmount = records.reduce((s, r) => s + getPaidAmount(r), 0);
-  const totalBalanceAmount = records.reduce((s, r) => s + getBalanceAmount(r), 0);
+  // Build InstallmentContext scoped to the SAME session as the record
+  const getInstallmentContext = (rec: IFeeRecord): InstallmentContext => {
+    const recSession = rec.academicSession ?? "";
+    const sessionRecs = (sessionGroups.get(recSession) ?? [...records])
+      .sort((a, b) => (a.installmentNo ?? 1) - (b.installmentNo ?? 1));
+    const sessionNetFee = sessionRecs[0]?.totalAmount ?? 0;
+    const thisNo = rec.installmentNo ?? 1;
+    const previous = sessionRecs.filter((r) => (r.installmentNo ?? 1) < thisNo);
+    const alreadyPaidTotal = previous.reduce((s, r) => s + (r.amountReceived ?? 0), 0);
+    const previousInstallments = previous.map((r) => ({
+      no: r.installmentNo ?? 1,
+      amount: r.amountReceived ?? 0,
+    }));
+    return { installmentNo: thisNo, sessionNetFee, alreadyPaidTotal, previousInstallments };
+  };
+
+  // Balance for a record = session net fee minus all payments up to and including this installment
+  const getBalanceAmount = (rec: IFeeRecord) => {
+    const ctx = getInstallmentContext(rec);
+    return Math.max(ctx.sessionNetFee - ctx.alreadyPaidTotal - (rec.amountReceived ?? 0), 0);
+  };
+
+  const openReceipt = (rec: IFeeRecord) => {
+    setReceiptRecord(rec);
+    setReceiptContext(getInstallmentContext(rec));
+  };
 
   return (
     <div>
@@ -360,35 +443,67 @@ function UidDetailView({
           className="gap-2 w-full sm:w-auto"
         >
           <Plus className="size-4" />
-          Add Another Record
+          Add Record
         </Button>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         <div className="bg-white rounded-xl border p-4">
-          <p className="text-xs text-muted-foreground">Total Receipts</p>
+          <p className="text-xs text-muted-foreground">Total Installments</p>
           <p className="text-2xl font-bold mt-1">{records.length}</p>
         </div>
         <div className="bg-white rounded-xl border p-4">
-          <p className="text-xs text-muted-foreground">Net Fee</p>
+          <p className="text-xs text-muted-foreground">Total Net Fee</p>
           <p className="text-2xl font-bold mt-1 text-primary">
-            ₹{totalNet.toLocaleString("en-IN")}
+            ₹{totalNetFee.toLocaleString("en-IN")}
           </p>
         </div>
         <div className="bg-white rounded-xl border p-4">
-          <p className="text-xs text-muted-foreground">Paid</p>
+          <p className="text-xs text-muted-foreground">Total Paid</p>
           <p className="text-2xl font-bold mt-1 text-green-600">
             ₹{totalPaidAmount.toLocaleString("en-IN")}
           </p>
         </div>
         <div className="bg-white rounded-xl border p-4">
-          <p className="text-xs text-muted-foreground">Balance</p>
+          <p className="text-xs text-muted-foreground">Total Balance</p>
           <p className="text-2xl font-bold mt-1 text-red-600">
             ₹{totalBalanceAmount.toLocaleString("en-IN")}
           </p>
         </div>
       </div>
+
+      {/* Session filter */}
+      {availableSessions.length > 1 && (
+        <div className="flex items-center gap-3 mb-4">
+          <span className="text-sm text-muted-foreground">Filter by session:</span>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setSessionFilter("all")}
+              className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                sessionFilter === "all"
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-white text-muted-foreground border-border hover:border-primary hover:text-primary"
+              }`}
+            >
+              All Sessions
+            </button>
+            {availableSessions.map((s) => (
+              <button
+                key={s}
+                onClick={() => setSessionFilter(s)}
+                className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                  sessionFilter === s
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-white text-muted-foreground border-border hover:border-primary hover:text-primary"
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Records Table (desktop/tablet) */}
       <div className="hidden md:block bg-white rounded-2xl shadow-sm border overflow-hidden">
@@ -396,11 +511,11 @@ function UidDetailView({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Form No.</TableHead>
+                <TableHead>Installment</TableHead>
+                <TableHead>Session</TableHead>
                 <TableHead>Course</TableHead>
                 <TableHead>Payment Mode</TableHead>
-                <TableHead className="text-right">Net (₹)</TableHead>
-                <TableHead className="text-right">Paid (₹)</TableHead>
+                <TableHead className="text-right">Amount Paid (₹)</TableHead>
                 <TableHead className="text-right">Balance (₹)</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead className="text-center">Actions</TableHead>
@@ -416,24 +531,29 @@ function UidDetailView({
                     Loading…
                   </TableCell>
                 </TableRow>
-              ) : records.length === 0 ? (
+              ) : filteredRecords.length === 0 ? (
                 <TableRow>
                   <TableCell
                     colSpan={8}
                     className="text-center py-10 text-muted-foreground"
                   >
-                    No records yet.
+                    No records for this session.
                   </TableCell>
                 </TableRow>
               ) : (
-                records.map((rec) => (
+                filteredRecords.map((rec) => (
                   <TableRow
                     key={rec._id}
                     className="cursor-pointer hover:bg-muted/30"
-                    onClick={() => setReceiptRecord(rec)}
+                    onClick={() => openReceipt(rec)}
                   >
+                    <TableCell>
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold bg-primary/10 text-primary rounded-full px-2 py-0.5">
+                        #{rec.installmentNo ?? 1}
+                      </span>
+                    </TableCell>
                     <TableCell className="font-mono text-xs">
-                      {rec.formNo}
+                      {rec.academicSession ?? "—"}
                     </TableCell>
                     <TableCell>
                       <div>{rec.courseName ?? "—"}</div>
@@ -445,9 +565,6 @@ function UidDetailView({
                     </TableCell>
                     <TableCell className="text-sm">
                       {rec.paymentMode ?? "—"}
-                    </TableCell>
-                    <TableCell className="text-right font-semibold tabular-nums">
-                      ₹{(rec.totalAmount ?? 0).toLocaleString("en-IN")}
                     </TableCell>
                     <TableCell className="text-right font-semibold tabular-nums text-green-600">
                       ₹{getPaidAmount(rec).toLocaleString("en-IN")}
@@ -478,7 +595,7 @@ function UidDetailView({
                           title="Print"
                           onClick={(e) => {
                             e.stopPropagation();
-                            printFeePdf(rec, pdfMeta).catch(() =>
+                            printFeePdf(rec, pdfMeta, getInstallmentContext(rec)).catch(() =>
                               toast.error("Failed to print")
                             );
                           }}
@@ -512,28 +629,33 @@ function UidDetailView({
           <div className="bg-white rounded-xl border p-6 text-center text-muted-foreground">
             Loading…
           </div>
-        ) : records.length === 0 ? (
+        ) : filteredRecords.length === 0 ? (
           <div className="bg-white rounded-xl border p-6 text-center text-muted-foreground">
-            No records yet.
+            No records for this session.
           </div>
         ) : (
-          records.map((rec) => (
+          filteredRecords.map((rec) => (
             <div
               key={rec._id}
               className="bg-white rounded-xl border p-3 shadow-sm"
-              onClick={() => setReceiptRecord(rec)}
+              onClick={() => openReceipt(rec)}
             >
               <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold">
-                    {formatDate(rec.paymentDate as unknown as string)}
-                  </p>
-                  <p className="font-mono text-xs text-muted-foreground mt-0.5">
-                    Form No: {rec.formNo}
-                  </p>
+                <div className="min-w-0 flex items-center gap-2">
+                  <span className="inline-flex items-center text-xs font-semibold bg-primary/10 text-primary rounded-full px-2 py-0.5 shrink-0">
+                    #{rec.installmentNo ?? 1}
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold">
+                      {formatDate(rec.paymentDate as unknown as string)}
+                    </p>
+                    <p className="font-mono text-xs text-muted-foreground mt-0.5">
+                      Form No: {rec.formNo}
+                    </p>
+                  </div>
                 </div>
-                <p className="font-semibold text-primary text-sm">
-                  ₹{(rec.totalAmount ?? 0).toLocaleString("en-IN")}
+                <p className="font-semibold text-green-600 text-sm">
+                  ₹{getPaidAmount(rec).toLocaleString("en-IN")}
                 </p>
               </div>
               <div className="mt-2 text-sm">
@@ -565,7 +687,7 @@ function UidDetailView({
                   variant="ghost"
                   title="Print"
                   onClick={() => {
-                    printFeePdf(rec, pdfMeta).catch(() => toast.error("Failed to print"));
+                    printFeePdf(rec, pdfMeta, getInstallmentContext(rec)).catch(() => toast.error("Failed to print"));
                   }}
                 >
                   <Printer className="size-4 text-blue-600" />
@@ -598,9 +720,10 @@ function UidDetailView({
       {/* Receipt view dialog */}
       <FeeReceiptViewDialog
         open={!!receiptRecord}
-        onClose={() => setReceiptRecord(null)}
+        onClose={() => { setReceiptRecord(null); setReceiptContext(undefined); }}
         record={receiptRecord}
         pdfMeta={pdfMeta}
+        installmentContext={receiptContext}
       />
 
       {/* Delete confirm */}
@@ -746,7 +869,7 @@ export default function FeesPage() {
             <FileText className="size-5 text-blue-600" />
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Net Fee</p>
+            <p className="text-xs text-muted-foreground">Total Net</p>
             <p className="text-xl font-bold text-blue-600">
               ₹{groups.reduce((s, g) => s + (g.totalPaid ?? 0), 0).toLocaleString("en-IN")}
             </p>

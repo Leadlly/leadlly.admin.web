@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -18,10 +18,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Trash2 } from "lucide-react";
+import { CheckCircle2, Loader2, Plus, Trash2 } from "lucide-react";
 import {
   createFeeRecord,
   updateFeeRecord,
+  getFeeRecordsByUid,
   FeeRecordData,
   IFeeRecord,
   AdditionalFeeItem,
@@ -36,6 +37,20 @@ const PAYMENT_MODES = [
   "UPI",
   "Card",
 ];
+
+// Generate academic session options: 4 years back → 2 years ahead
+function generateSessionOptions(): string[] {
+  const now = new Date();
+  // Indian academic year starts in April; if current month < April use prev year as start
+  const currentYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+  const sessions: string[] = [];
+  for (let y = currentYear - 4; y <= currentYear + 2; y++) {
+    sessions.push(`${y}-${String(y + 1).slice(2)}`);
+  }
+  return sessions.reverse(); // most recent first
+}
+
+const SESSION_OPTIONS = generateSessionOptions();
 
 interface Props {
   open: boolean;
@@ -54,6 +69,13 @@ interface Props {
     center?: string;
     academicSession?: string;
     studentId?: string;
+    // Session-level fee — pre-filled and locked for installments
+    tuitionFees?: number;
+    igstPercent?: number;
+    discount?: number;
+    nextInstallmentNo?: number;
+    // Sum of all previous installments already paid (used for balance calculation)
+    alreadyPaidTotal?: number;
   };
   lockUid?: boolean;
 }
@@ -92,6 +114,96 @@ const FeeRecordDialog = ({
   const [form, setForm] = useState<FeeRecordData>(EMPTY);
   const [loading, setLoading] = useState(false);
 
+  // ── UID + session lookup state ─────────────────────────────────────────────
+  // Holds the records found for the current UID+session combination
+  const [uidRecords, setUidRecords] = useState<IFeeRecord[]>([]);
+  const [uidLookupState, setUidLookupState] = useState<"idle" | "loading" | "found" | "notfound">("idle");
+  const uidDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Whether tuition fee is locked:
+  // Only lock when records actually exist for the currently selected UID+session.
+  // lockUid only prevents changing the UID input — fee editability depends solely on DB records.
+  const hasUidRecords = uidRecords.length > 0;
+  const isLookupLoading = uidLookupState === "loading";
+  // While loading, treat as locked to avoid flash of editable fields
+  const isFeeLocked = !record && (isLookupLoading || hasUidRecords);
+
+  // Compute installment info from UID lookup (installmentNo 1 when no records yet)
+  const nextInstallmentNo = hasUidRecords ? uidRecords.length + 1 : 1;
+  const alreadyPaidTotal = hasUidRecords
+    ? uidRecords.reduce((s, r) => s + (r.amountReceived ?? 0), 0)
+    : 0;
+
+  // ── Lookup helper ──────────────────────────────────────────────────────────
+  const lookupUid = async (uid: string, session: string) => {
+    if (!uid.trim()) return;
+    setUidLookupState("loading");
+    const res = await getFeeRecordsByUid(instituteId, uid.trim(), session);
+    if (!res.success) {
+      setUidLookupState("idle");
+      return;
+    }
+    const found = res.data ?? [];
+    setUidRecords(found);
+    setUidLookupState(found.length > 0 ? "found" : "notfound");
+
+    if (found.length > 0) {
+      const first = found[0];
+      // Pre-fill student details and session-level fees from the first record.
+      // Never overwrite academicSession — always keep what the user selected.
+      setForm((prev) => ({
+        ...prev,
+        studentName: first.studentName || prev.studentName,
+        fatherName: first.fatherName ?? prev.fatherName,
+        motherName: first.motherName ?? prev.motherName,
+        streamName: first.streamName ?? prev.streamName,
+        courseName: first.courseName ?? prev.courseName,
+        courseCode: first.courseCode ?? prev.courseCode,
+        center: first.center ?? prev.center,
+        // academicSession intentionally NOT overwritten — user controls it
+        tuitionFees: first.tuitionFees ?? prev.tuitionFees,
+        igstPercent: first.igstPercent ?? prev.igstPercent,
+        discount: first.discount ?? prev.discount,
+        additionalFees: first.additionalFees ?? prev.additionalFees,
+        amountReceived: 0,
+      }));
+    } else {
+      // No records for this UID+session — reset fee fields so teacher fills fresh.
+      // Keep student identity fields and academicSession as-is.
+      setForm((prev) => ({
+        ...prev,
+        tuitionFees: 0,
+        igstPercent: 18,
+        discount: 0,
+        additionalFees: [],
+        amountReceived: 0,
+      }));
+    }
+  };
+
+  // Debounced UID trigger
+  const onUidChange = (val: string) => {
+    set("uniqueIdentificationNo", val);
+    // Reset lookup state immediately when UID changes
+    setUidRecords([]);
+    setUidLookupState("idle");
+    if (uidDebounceRef.current) clearTimeout(uidDebounceRef.current);
+    if (!val.trim()) return;
+    uidDebounceRef.current = setTimeout(() => {
+      lookupUid(val, form.academicSession ?? EMPTY.academicSession!);
+    }, 600);
+  };
+
+  // When session changes, re-lookup for this UID+session
+  const onSessionChange = (val: string) => {
+    set("academicSession", val);
+    if (form.uniqueIdentificationNo.trim()) {
+      setUidRecords([]);
+      setUidLookupState("loading");
+      lookupUid(form.uniqueIdentificationNo, val);
+    }
+  };
+
   useEffect(() => {
     if (record) {
       setForm({
@@ -105,8 +217,7 @@ const FeeRecordDialog = ({
         center: record.center ?? "",
         paymentMode: record.paymentMode ?? "Online Lumpsum Amount",
         tuitionFees: record.tuitionFees,
-        amountReceived:
-          record.amountReceived ?? 0,
+        amountReceived: record.amountReceived ?? 0,
         igstPercent: record.igstPercent ?? 18,
         discount: record.discount ?? 0,
         additionalFees: record.additionalFees ?? [],
@@ -117,10 +228,15 @@ const FeeRecordDialog = ({
         academicSession: record.academicSession ?? EMPTY.academicSession,
         studentId: record.studentId ?? studentDefaults?.studentId,
       });
+      setUidRecords([]);
+      setUidLookupState("idle");
     } else {
+      // Default to current academic session regardless of what session the group is in
+      const currentSession = EMPTY.academicSession!;
+      const uid = studentDefaults?.uniqueIdentificationNo ?? "";
       setForm({
         ...EMPTY,
-        uniqueIdentificationNo: studentDefaults?.uniqueIdentificationNo ?? "",
+        uniqueIdentificationNo: uid,
         studentName: studentDefaults?.studentName ?? "",
         fatherName: studentDefaults?.fatherName ?? "",
         motherName: studentDefaults?.motherName ?? "",
@@ -128,11 +244,22 @@ const FeeRecordDialog = ({
         courseName: studentDefaults?.courseName ?? "",
         courseCode: studentDefaults?.courseCode ?? "",
         center: studentDefaults?.center ?? "",
-        academicSession: studentDefaults?.academicSession ?? EMPTY.academicSession,
+        academicSession: currentSession,
         studentId: studentDefaults?.studentId,
+        tuitionFees: 0,
+        igstPercent: 18,
+        discount: 0,
+        amountReceived: 0,
       });
+      setUidRecords([]);
+      setUidLookupState("idle");
+      // When opening from UidDetailView (lockUid), auto-lookup the UID in current session
+      if (lockUid && uid) {
+        lookupUid(uid, currentSession);
+      }
     }
-  }, [record, open, studentDefaults]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [record, open]);
 
   const set = (key: keyof FeeRecordData, value: string | number | AdditionalFeeItem[]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -180,8 +307,14 @@ const FeeRecordDialog = ({
   const deductionsTotal = (form.additionalFees ?? [])
     .filter((f) => f.type === "deduction")
     .reduce((s, f) => s + (Number(f.amount) || 0), 0);
-  const total = tuition + igstAmt + additionsTotal - deductionsTotal - discountAmt;
-  const balance = Math.max(total - amountReceived, 0);
+  const sessionNetFee = tuition + igstAmt + additionsTotal - deductionsTotal - discountAmt;
+
+  // For installments: remaining balance before this payment = sessionNetFee - already paid
+  const alreadyPaid = isFeeLocked ? alreadyPaidTotal : 0;
+  const remainingBeforeThis = isFeeLocked
+    ? Math.max(sessionNetFee - alreadyPaid, 0)
+    : sessionNetFee;
+  const balance = Math.max(remainingBeforeThis - amountReceived, 0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -231,8 +364,22 @@ const FeeRecordDialog = ({
       <DialogContent className="sm:max-w-2xl max-h-[95dvh] overflow-y-auto custom__scrollbar">
         <DialogHeader>
           <DialogTitle>
-            {record ? "Edit Fee Record" : "New Fee Record"}
+            {record
+              ? `Edit Fee Record — Installment ${record.installmentNo ?? 1}`
+              : hasUidRecords
+              ? `Add Installment ${nextInstallmentNo}`
+              : "New Fee Record"}
           </DialogTitle>
+          {hasUidRecords && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Session fees pre-filled from existing records. Change session to load fees for a different year.
+            </p>
+          )}
+          {uidLookupState === "notfound" && (lockUid || form.uniqueIdentificationNo.trim()) && (
+            <p className="text-xs text-muted-foreground mt-1">
+              No records found for this session — enter fee details for a fresh entry.
+            </p>
+          )}
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
@@ -245,24 +392,62 @@ const FeeRecordDialog = ({
             <Input
               placeholder="e.g. UID-2024-001"
               value={form.uniqueIdentificationNo}
-              onChange={(e) => set("uniqueIdentificationNo", e.target.value)}
+              onChange={(e) => onUidChange(e.target.value)}
               disabled={lockUid}
               className={lockUid ? "bg-muted text-muted-foreground" : ""}
             />
-            <p className="text-xs text-muted-foreground">
-              Used to group all fee records for the same student
-            </p>
+            {/* Lookup status indicator */}
+            {!lockUid && form.uniqueIdentificationNo.trim() && (
+              <div className="flex items-center gap-1.5 text-xs">
+                {uidLookupState === "loading" && (
+                  <>
+                    <Loader2 className="size-3 animate-spin text-muted-foreground" />
+                    <span className="text-muted-foreground">Looking up UID…</span>
+                  </>
+                )}
+                {uidLookupState === "found" && (
+                  <>
+                    <CheckCircle2 className="size-3 text-green-600" />
+                    <span className="text-green-700 font-medium">
+                      {uidRecords.length} existing record{uidRecords.length > 1 ? "s" : ""} found —
+                      student details &amp; session fees pre-filled.{" "}
+                      {firstRecord && `Next installment: #${nextInstallmentNo}`}
+                    </span>
+                  </>
+                )}
+                {uidLookupState === "notfound" && (
+                  <span className="text-muted-foreground">
+                    No records found for this UID — creating a new entry.
+                  </span>
+                )}
+              </div>
+            )}
+            {uidLookupState === "idle" && !lockUid && (
+              <p className="text-xs text-muted-foreground">
+                Used to group all fee records for the same student
+              </p>
+            )}
           </div>
 
           {/* Academic Session + Payment Date */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <Label>Academic Session</Label>
-              <Input
-                placeholder="2024-25"
-                value={form.academicSession}
-                onChange={(e) => set("academicSession", e.target.value)}
-              />
+              <Select
+                value={form.academicSession ?? ""}
+                onValueChange={onSessionChange}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select session" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SESSION_OPTIONS.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1">
               <Label>Payment Date</Label>
@@ -347,6 +532,9 @@ const FeeRecordDialog = ({
               <div className="space-y-1">
                 <Label>
                   Tuition Fees (₹) <span className="text-destructive">*</span>
+                  {isFeeLocked && (
+                    <span className="ml-1 text-xs text-muted-foreground font-normal">(session fee)</span>
+                  )}
                 </Label>
                 <Input
                   type="number"
@@ -354,6 +542,8 @@ const FeeRecordDialog = ({
                   placeholder="0"
                   value={form.tuitionFees === 0 ? "" : form.tuitionFees}
                   onChange={(e) => set("tuitionFees", e.target.value)}
+                  disabled={isFeeLocked}
+                  className={isFeeLocked ? "bg-muted text-muted-foreground" : ""}
                 />
               </div>
               <div className="space-y-1">
@@ -364,11 +554,13 @@ const FeeRecordDialog = ({
                   max={100}
                   value={form.igstPercent}
                   onChange={(e) => set("igstPercent", e.target.value)}
+                  disabled={isFeeLocked}
+                  className={isFeeLocked ? "bg-muted text-muted-foreground" : ""}
                 />
               </div>
             </div>
 
-            {/* Discount + Paid fee */}
+            {/* Discount + Installment payment */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <Label>Discount (₹)</Label>
@@ -378,10 +570,16 @@ const FeeRecordDialog = ({
                   placeholder="0"
                   value={form.discount === 0 ? "" : form.discount}
                   onChange={(e) => set("discount", e.target.value)}
+                  disabled={isFeeLocked}
+                  className={isFeeLocked ? "bg-muted text-muted-foreground" : ""}
                 />
               </div>
               <div className="space-y-1">
-                <Label>Paid Fee / Amount Received (₹)</Label>
+                <Label>
+                  {isFeeLocked
+                    ? `Installment ${nextInstallmentNo} Amount (₹)`
+                    : "Paid Fee / Amount Received (₹)"}
+                </Label>
                 <Input
                   type="number"
                   min={0}
@@ -389,6 +587,11 @@ const FeeRecordDialog = ({
                   value={form.amountReceived === 0 ? "" : form.amountReceived}
                   onChange={(e) => set("amountReceived", e.target.value)}
                 />
+                {isFeeLocked && (
+                  <p className="text-xs text-muted-foreground">
+                    Enter only the amount paid in this installment
+                  </p>
+                )}
               </div>
             </div>
 
@@ -483,16 +686,49 @@ const FeeRecordDialog = ({
                 </div>
               )}
               <div className="flex justify-between font-bold border-t pt-1 mt-1 text-primary text-base">
-                <span>Total Amount</span>
-                <span>₹{total.toLocaleString("en-IN")}</span>
+                <span>Session Net Fee</span>
+                <span>₹{sessionNetFee.toLocaleString("en-IN")}</span>
               </div>
+
+              {/* Installment breakdown — only shown when adding subsequent installments */}
+              {isFeeLocked && alreadyPaid > 0 && (
+                <>
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>
+                      Previously Paid
+                      {nextInstallmentNo > 2
+                        ? ` (Installments 1–${nextInstallmentNo - 1})`
+                        : " (Installment 1)"}
+                    </span>
+                    <span className="text-green-600 font-medium">
+                      −₹{alreadyPaid.toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-muted-foreground border-b pb-1">
+                    <span>Remaining Balance</span>
+                    <span className="font-medium text-orange-500">
+                      ₹{remainingBeforeThis.toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                </>
+              )}
+
               <div className="flex justify-between text-muted-foreground">
-                <span>Amount Received</span>
-                <span className="font-medium">₹{amountReceived.toLocaleString("en-IN")}</span>
+                <span>
+                  {isFeeLocked
+                    ? `Installment ${nextInstallmentNo} Amount`
+                    : "Amount Received"}
+                </span>
+                <span className="font-medium text-green-600">
+                  −₹{amountReceived.toLocaleString("en-IN")}
+                </span>
               </div>
-              <div className="flex justify-between font-semibold">
-                <span>Balance</span>
-                <span className="text-red-500">₹{balance.toLocaleString("en-IN")}</span>
+              <div className={`flex justify-between font-semibold border-t pt-1 mt-1 ${balance === 0 ? "text-green-600" : ""}`}>
+                <span>Balance After This Payment</span>
+                <span className={balance === 0 ? "text-green-600" : "text-red-500"}>
+                  ₹{balance.toLocaleString("en-IN")}
+                  {balance === 0 && " ✓"}
+                </span>
               </div>
             </div>
           </div>

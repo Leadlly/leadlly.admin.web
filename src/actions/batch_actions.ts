@@ -148,3 +148,33 @@ export const getBatchStudents = async (batchId: string) => {
     return { students: [] };
   }
 };
+
+export const getTeacherAssignedBatches = async (
+  teacherId: string
+): Promise<{ success: boolean; batchIds: string[]; message?: string }> => {
+  if (!teacherId) return { success: false, batchIds: [], message: "Teacher ID is required" };
+  const token = await getCookie();
+
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL}/api/admin/teacher/${teacherId}/dashboard`,
+      {
+        method: "GET",
+        headers: {
+          Cookie: `token=${token}`,
+        },
+        credentials: "include",
+        cache: "no-store",
+      },
+    );
+
+    if (!res.ok) return { success: false, batchIds: [], message: "Failed to fetch teacher batches" };
+    const data = await res.json();
+    // Dashboard returns batchPerformance array, each item has batchId
+    const batchPerformance: Array<{ batchId: string }> = data?.data?.batchPerformance ?? [];
+    return { success: true, batchIds: batchPerformance.map((b) => String(b.batchId)) };
+  } catch (error) {
+    console.error("Error fetching teacher assigned batches:", error);
+    return { success: false, batchIds: [], message: error instanceof Error ? error.message : "Failed to fetch" };
+  }
+};

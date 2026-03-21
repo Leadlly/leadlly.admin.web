@@ -12,6 +12,13 @@ export interface PdfMeta {
   docLogoUrl?: string;
 }
 
+export interface InstallmentContext {
+  installmentNo: number;
+  sessionNetFee: number;
+  alreadyPaidTotal: number; // sum of all installments BEFORE this one
+  previousInstallments: { no: number; amount: number }[]; // each prior installment
+}
+
 function toWords(n: number): string {
   if (n <= 0) return "Zero";
   const ones = [
@@ -89,11 +96,13 @@ function getParticulars(record: IFeeRecord) {
   return items;
 }
 
-function calcReceiptHeight(record: IFeeRecord): number {
+function calcReceiptHeight(record: IFeeRecord, ctx?: InstallmentContext): number {
   const feeRows = getParticulars(record).length + 1;
   const feeSectionH = feeRows * 7 + 2;
-  // header(22) + divider(5) + title(7) + formRow(10) + infoRows(3*7=21) + feeSection + bottom(21)
-  return 22 + 5 + 7 + 10 + 21 + feeSectionH + 21;
+  // Extra bottom rows: one per previous installment (only when ctx has installments before this)
+  const extraBottomRows = ctx ? ctx.previousInstallments.length : 0;
+  // header(22) + divider(5) + title(7) + formRow(10) + infoRows(3*7=21) + feeSection + bottom(21 + extra*4)
+  return 22 + 5 + 7 + 10 + 21 + feeSectionH + 21 + extraBottomRows * 4;
 }
 
 // ─── Draw one receipt copy ────────────────────────────────────────────────────
@@ -104,15 +113,18 @@ function drawReceipt(
   meta: PdfMeta,
   startY: number,
   logoData: string | null,
+  ctx?: InstallmentContext,
 ) {
   const W = 210;
   const M = 14;
   const IW = W - 2 * M;
-  const totalH = calcReceiptHeight(record);
+  const totalH = calcReceiptHeight(record, ctx);
   let y = startY;
-  const totalAmount = record.totalAmount ?? 0;
+  const sessionNetFee = ctx?.sessionNetFee ?? (record.totalAmount ?? 0);
   const amountReceived = record.amountReceived ?? 0;
-  const balance = record.balanceAmount ?? Math.max(totalAmount - amountReceived, 0);
+  const alreadyPaid = ctx ? ctx.alreadyPaidTotal : 0;
+  const remainingBeforeThis = ctx ? Math.max(sessionNetFee - alreadyPaid, 0) : sessionNetFee;
+  const balanceAfterThis = Math.max(remainingBeforeThis - amountReceived, 0);
 
   // ── Outer border ──────────────────────────────────────────────────────────
   doc.setDrawColor(0);
@@ -152,8 +164,9 @@ function drawReceipt(
   y += 5;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
+  const installmentLabel = ctx ? ` — Installment #${ctx.installmentNo}` : "";
   doc.text(
-    `Fee Acknowledgement - Academic Session:${record.academicSession ?? ""}`,
+    `Fee Acknowledgement - Academic Session:${record.academicSession ?? ""}${installmentLabel}`,
     W / 2, y, { align: "center" },
   );
 
@@ -281,9 +294,34 @@ function drawReceipt(
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7.5);
   doc.text(`Payment Mode   : ${record.paymentMode ?? ""}`, M + 2, y + 3);
-  doc.text(`Net Fee        : Rs. ${totalAmount.toLocaleString("en-IN")}`, M + 2, y + 7);
-  doc.text(`Amount Received: Rs. ${amountReceived.toLocaleString("en-IN")}`, M + 2, y + 11);
-  doc.text(`Balance        : Rs. ${balance.toLocaleString("en-IN")}`, M + 2, y + 15);
+
+  // Build flat installment list:
+  // Net Fee → Installment 1 → Installment 2 → … → Installment N (this) → Balance Due
+  const prevInstallments = ctx?.previousInstallments ?? [];
+  let lineY = y + 7;
+  const lineSpacing = 4;
+
+  doc.text(`Net Fee        : Rs. ${sessionNetFee.toLocaleString("en-IN")}`, M + 2, lineY);
+  lineY += lineSpacing;
+
+  for (const inst of prevInstallments) {
+    doc.text(
+      `Installment ${inst.no.toString().padEnd(2)} : Rs. ${inst.amount.toLocaleString("en-IN")}`,
+      M + 2, lineY
+    );
+    lineY += lineSpacing;
+  }
+
+  // Current installment
+  doc.text(
+    `Installment ${ctx?.installmentNo ?? 1}  : Rs. ${amountReceived.toLocaleString("en-IN")}`,
+    M + 2, lineY
+  );
+  lineY += lineSpacing;
+
+  doc.setFont("helvetica", "bold");
+  doc.text(`Balance Due    : Rs. ${balanceAfterThis.toLocaleString("en-IN")}`, M + 2, lineY);
+  doc.setFont("helvetica", "normal");
 
   doc.text("Received By :", W - M - 50, y + 3);
   doc.setLineWidth(0.2);
@@ -291,13 +329,12 @@ function drawReceipt(
   doc.setFontSize(6.5);
   doc.text("(Authorised Signatory)", W - M - 19, y + 16.5, { align: "center" });
 
-  y += 21;
-
+  y += 21 + prevInstallments.length * 4;
 }
 
 // ─── Build PDF ───────────────────────────────────────────────────────────────
 
-async function buildDoc(record: IFeeRecord, meta: PdfMeta): Promise<JsPDFType> {
+async function buildDoc(record: IFeeRecord, meta: PdfMeta, ctx?: InstallmentContext): Promise<JsPDFType> {
   const { default: jsPDF } = await import("jspdf");
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
@@ -307,11 +344,11 @@ async function buildDoc(record: IFeeRecord, meta: PdfMeta): Promise<JsPDFType> {
   }
 
   const PAGE_H = 297;
-  const receiptH = calcReceiptHeight(record);
+  const receiptH = calcReceiptHeight(record, ctx);
   const gap = 6;
   const topMargin = Math.max(4, (PAGE_H - 2 * receiptH - gap) / 2);
 
-  drawReceipt(doc, record, meta, topMargin, logoData);
+  drawReceipt(doc, record, meta, topMargin, logoData, ctx);
 
   // Cut line
   const cutY = topMargin + receiptH + gap / 2;
@@ -321,7 +358,7 @@ async function buildDoc(record: IFeeRecord, meta: PdfMeta): Promise<JsPDFType> {
   doc.line(14, cutY, 196, cutY);
   doc.setLineDashPattern([], 0);
 
-  drawReceipt(doc, record, meta, cutY + gap / 2, logoData);
+  drawReceipt(doc, record, meta, cutY + gap / 2, logoData, ctx);
 
   return doc;
 }
@@ -329,8 +366,9 @@ async function buildDoc(record: IFeeRecord, meta: PdfMeta): Promise<JsPDFType> {
 export async function generateFeePdf(
   record: IFeeRecord,
   meta: PdfMeta,
+  ctx?: InstallmentContext,
 ): Promise<void> {
-  const doc = await buildDoc(record, meta);
+  const doc = await buildDoc(record, meta, ctx);
   const safeName = (record.studentName ?? "Student").replace(/[^a-zA-Z0-9 ]/g, "").replace(/\s+/g, "_");
   const uid = record.uniqueIdentificationNo ?? record.formNo;
   doc.save(`Fee_Receipt_${safeName}_${uid}.pdf`);
@@ -339,8 +377,9 @@ export async function generateFeePdf(
 export async function printFeePdf(
   record: IFeeRecord,
   meta: PdfMeta,
+  ctx?: InstallmentContext,
 ): Promise<void> {
-  const doc = await buildDoc(record, meta);
+  const doc = await buildDoc(record, meta, ctx);
   const blob = doc.output("blob");
   const url = URL.createObjectURL(blob);
   const win = window.open(url, "_blank");
@@ -352,7 +391,7 @@ export async function printFeePdf(
     };
   } else {
     const safeName = (record.studentName ?? "Student").replace(/[^a-zA-Z0-9 ]/g, "").replace(/\s+/g, "_");
-  const uid = record.uniqueIdentificationNo ?? record.formNo;
-  doc.save(`Fee_Receipt_${safeName}_${uid}.pdf`);
+    const uid = record.uniqueIdentificationNo ?? record.formNo;
+    doc.save(`Fee_Receipt_${safeName}_${uid}.pdf`);
   }
 }

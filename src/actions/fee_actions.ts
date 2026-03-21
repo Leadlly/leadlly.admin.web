@@ -35,6 +35,7 @@ export interface IFeeRecord extends FeeRecordData {
   institute: string;
   formNo: string;
   acknowledgementNo: string;
+  installmentNo: number;
   igstAmount: number;
   totalAmount: number;
   balanceAmount?: number;
@@ -55,6 +56,10 @@ export interface FeeUidGroup {
   totalBalance: number;
   lastPaymentDate: string;
   studentId?: string;
+  // Session-level fee info (from first installment)
+  sessionTuitionFees?: number;
+  sessionIgstPercent?: number;
+  sessionDiscount?: number;
 }
 
 const getBase = () => process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL;
@@ -194,6 +199,44 @@ export async function updateFeeRecord(
     if (!res.ok) throw new Error(json.message ?? "Failed to update record");
     revalidatePath(`/institute/${instituteId}/fees`);
     return { success: true, data: json.data };
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+/**
+ * Fetch all active fee records for a given UID within an institute.
+ * Optionally filter by academicSession. Returns records sorted by installmentNo asc.
+ */
+export async function getFeeRecordsByUid(
+  instituteId: string,
+  uid: string,
+  academicSession?: string
+): Promise<{ success: boolean; data?: IFeeRecord[]; message?: string }> {
+  const token = await getCookie();
+  try {
+    const params = new URLSearchParams({ uid, limit: "50" });
+    if (academicSession) params.set("session", academicSession);
+    const res = await fetch(
+      `${getBase()}/api/institute/${instituteId}/fees?${params}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: `token=${token}`,
+        },
+        cache: "no-store",
+      }
+    );
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message ?? "Failed to fetch records");
+    const records: IFeeRecord[] = (json.data ?? []).sort(
+      (a: IFeeRecord, b: IFeeRecord) => (a.installmentNo ?? 1) - (b.installmentNo ?? 1)
+    );
+    return { success: true, data: records };
   } catch (error) {
     return {
       success: false,
