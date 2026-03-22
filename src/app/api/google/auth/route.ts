@@ -3,11 +3,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { AxiosError } from "axios";
 
 import apiClient from "@/apiClient/apiClient";
+import { logger } from "@/lib/logger";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    console.log(body, "here is the body");
+    logger.debug("Google auth payload received", { body });
 
     const response = await apiClient.post("/api/google/auth", body);
 

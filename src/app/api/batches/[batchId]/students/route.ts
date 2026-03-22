@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 
 // Mock data for students in batches - in a real app, this would come from a database
 const getStudentsData = (batchId: string) => {
@@ -172,7 +173,7 @@ export async function GET(
       throw error;
     }
   } catch (error) {
-    console.error('Error fetching students:', error);
+    logger.error("Error fetching students", { error });
     return NextResponse.json(
       { error: 'Failed to fetch students' },
       { status: 500 }

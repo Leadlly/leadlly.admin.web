@@ -11,6 +11,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { logger } from "@/lib/logger";
 
 const GoogleLoginButton = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -20,7 +21,7 @@ const GoogleLoginButton = () => {
   const login = useGoogleLogin({
     onSuccess: async (credentialResponse) => {
       setIsLoading(true);
-      console.log("Google login successful:", credentialResponse);
+      logger.debug("Google login successful", { credentialResponse });
       try {
         const res = await axios.post(
           "/api/google/auth",
@@ -40,7 +41,7 @@ const GoogleLoginButton = () => {
           description: res.data.message,
         });
 
-        console.log(res.data);
+        logger.debug("Google auth response received", { data: res.data });
 
         if (res.status === 201) {
           router.replace("/create-institute");
@@ -50,7 +51,7 @@ const GoogleLoginButton = () => {
           );
         }
       } catch (error) {
-        console.error("Axios error:", error);
+        logger.error("Axios error during Google login", { error });
         toast.error("Google login failed!", {
           description: `${error instanceof AxiosError ? error.response?.data?.message : error instanceof Error ? error.message : "An unknown error occurred while logging in with Google!"}`,
         });
@@ -59,7 +60,7 @@ const GoogleLoginButton = () => {
       }
     },
     onError: (error) => {
-      console.error("Google login error:", error);
+      logger.error("Google login error", { error });
       toast.error("Google login failed!", {
         description: `${error instanceof AxiosError ? error.response?.data?.message : error instanceof Error ? error.message : "An unknown error occurred while logging in with Google!"}`,
       });

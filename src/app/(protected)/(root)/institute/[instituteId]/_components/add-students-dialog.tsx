@@ -24,6 +24,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Textarea } from "@/components/ui/textarea";
+import { logger } from "@/lib/logger";
 
 const AddStudentsFormSchema = z.object({
   emails: z.string().min(1, { error: "Enter valid email addresses" }),
@@ -43,7 +44,7 @@ const AddStudentsDialog = ({ instituteId }: { instituteId: string }) => {
     data: z.infer<typeof AddStudentsFormSchema>
   ) => {
     try {
-      console.log(data);
+      logger.debug("Add students form submitted", { data });
 
       const emails = data.emails
         .split(",")
@@ -59,7 +60,7 @@ const AddStudentsDialog = ({ instituteId }: { instituteId: string }) => {
       //     form.reset();
       //   setIsAddStudentsOpen(false);
     } catch (error) {
-      console.error("Error adding students:", error);
+      logger.error("Error adding students", { error });
       toast.error("Failed to add students. Please try again.");
     }
   };

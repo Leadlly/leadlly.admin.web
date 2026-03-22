@@ -52,6 +52,7 @@ import {
   FeeUidGroup,
 } from "@/actions/fee_actions";
 import { getActiveInstitute } from "@/actions/institute_actions";
+import { logger } from "@/lib/logger";
 import FeeRecordDialog from "./_components/FeeRecordDialog";
 import { generateFeePdf, printFeePdf, PdfMeta, InstallmentContext } from "./_components/FeePdfGenerator";
 
@@ -801,14 +802,14 @@ export default function FeesPage() {
     if (!instituteId) return;
     setLoading(true);
     const res = await getFeeUidGroups(instituteId, debouncedSearch);
-    console.log("[FeeGroups] API response:", JSON.stringify(
-      (res.data ?? []).map((g) => ({
+    logger.debug("Fee groups API response", {
+      groups: (res.data ?? []).map((g) => ({
         uid: g._id,
         totalPaid: g.totalPaid,
         totalAmountReceived: g.totalAmountReceived,
         totalBalance: g.totalBalance,
-      }))
-    ));
+      })),
+    });
     if (res.success) setGroups(res.data ?? []);
     else toast.error(res.message ?? "Failed to load records");
     setLoading(false);

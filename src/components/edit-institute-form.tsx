@@ -50,6 +50,7 @@ import {
 } from "@/components/ui/select";
 import { CreateInstituteFormSchema } from "@/helpers/schema/createInstituteSchema";
 import { IInstitute } from "@/helpers/types";
+import { logger } from "@/lib/logger";
 import { useAppDispatch } from "@/redux/hooks";
 import { instituteData } from "@/redux/slices/instituteSlice";
 
@@ -199,7 +200,7 @@ const EditInstituteFormInner = ({
         toast.error(res.error || "Failed to update institute");
       }
     } catch (error) {
-      console.error("Error updating institute:", error);
+      logger.error("Error updating institute", { error });
       toast.error("Failed to update institute. Please try again.");
     } finally {
       setLoading(false);

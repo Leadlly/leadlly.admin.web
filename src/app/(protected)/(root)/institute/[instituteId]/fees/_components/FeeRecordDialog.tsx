@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -52,6 +53,71 @@ function generateSessionOptions(): string[] {
 
 const SESSION_OPTIONS = generateSessionOptions();
 
+function feeDobToInput(value: unknown): string {
+  if (value == null || value === "") return "";
+  if (typeof value === "string") return value.split("T")[0];
+  try {
+    return new Date(value as Date).toISOString().split("T")[0];
+  } catch {
+    return "";
+  }
+}
+
+function normalizeSession(s: string | undefined): string {
+  return (s ?? "").trim();
+}
+
+function sortRecordsByInstallment(records: IFeeRecord[]): IFeeRecord[] {
+  return [...records].sort((a, b) => (a.installmentNo ?? 1) - (b.installmentNo ?? 1));
+}
+
+function sortRecordsByNewestFirst(records: IFeeRecord[]): IFeeRecord[] {
+  return [...records].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
+}
+
+/** Latest non-empty value across all installments / sessions (corrections win). */
+function pickLatestNonEmpty(
+  records: IFeeRecord[],
+  pick: (r: IFeeRecord) => string | undefined | null,
+): string {
+  for (const r of sortRecordsByNewestFirst(records)) {
+    const v = pick(r);
+    if (v != null && String(v).trim() !== "") return String(v).trim();
+  }
+  return "";
+}
+
+function pickLatestDateOfBirth(records: IFeeRecord[]): string {
+  for (const r of sortRecordsByNewestFirst(records)) {
+    if (r.dateOfBirth) return feeDobToInput(r.dateOfBirth);
+  }
+  return "";
+}
+
+type GlobalIdentity = {
+  studentName: string;
+  fatherName: string;
+  motherName: string;
+  center: string;
+  school: string;
+  dateOfBirth: string;
+  address: string;
+};
+
+function buildGlobalIdentityFromRecords(all: IFeeRecord[]): GlobalIdentity {
+  return {
+    studentName: pickLatestNonEmpty(all, (r) => r.studentName),
+    fatherName: pickLatestNonEmpty(all, (r) => r.fatherName),
+    motherName: pickLatestNonEmpty(all, (r) => r.motherName),
+    center: pickLatestNonEmpty(all, (r) => r.center),
+    school: pickLatestNonEmpty(all, (r) => r.school),
+    dateOfBirth: pickLatestDateOfBirth(all),
+    address: pickLatestNonEmpty(all, (r) => r.address),
+  };
+}
+
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -89,6 +155,9 @@ const EMPTY: FeeRecordData = {
   courseName: "",
   courseCode: "",
   center: "",
+  school: "",
+  dateOfBirth: "",
+  address: "",
   paymentMode: "Online Lumpsum Amount",
   tuitionFees: 0,
   amountReceived: 0,
@@ -138,29 +207,42 @@ const FeeRecordDialog = ({
   const lookupUid = async (uid: string, session: string) => {
     if (!uid.trim()) return;
     setUidLookupState("loading");
-    const res = await getFeeRecordsByUid(instituteId, uid.trim(), session);
+    // Fetch all sessions for this UID so one-time identity can be merged from any past record.
+    const res = await getFeeRecordsByUid(instituteId, uid.trim());
     if (!res.success) {
       setUidLookupState("idle");
       return;
     }
-    const found = res.data ?? [];
-    setUidRecords(found);
-    setUidLookupState(found.length > 0 ? "found" : "notfound");
+    const all = res.data ?? [];
+    const sessionKey = normalizeSession(session);
+    const sessionRecords = sortRecordsByInstallment(
+      all.filter((r) => normalizeSession(r.academicSession) === sessionKey),
+    );
 
-    if (found.length > 0) {
-      const first = found[0];
-      // Pre-fill student details and session-level fees from the first record.
-      // Never overwrite academicSession — always keep what the user selected.
+    setUidRecords(sessionRecords);
+    setUidLookupState(sessionRecords.length > 0 ? "found" : "notfound");
+
+    const global = buildGlobalIdentityFromRecords(all);
+
+    if (sessionRecords.length > 0) {
+      const first = sessionRecords[0];
       setForm((prev) => ({
         ...prev,
-        studentName: first.studentName || prev.studentName,
-        fatherName: first.fatherName ?? prev.fatherName,
-        motherName: first.motherName ?? prev.motherName,
+        studentName:
+          (first.studentName && String(first.studentName).trim()) ||
+          global.studentName ||
+          prev.studentName,
+        fatherName: global.fatherName || first.fatherName?.trim() || prev.fatherName,
+        motherName: global.motherName || first.motherName?.trim() || prev.motherName,
+        center: global.center || first.center?.trim() || prev.center,
+        school: global.school || first.school?.trim() || prev.school,
+        dateOfBirth:
+          global.dateOfBirth ||
+          (first.dateOfBirth ? feeDobToInput(first.dateOfBirth) : prev.dateOfBirth),
+        address: global.address || first.address?.trim() || prev.address,
         streamName: first.streamName ?? prev.streamName,
         courseName: first.courseName ?? prev.courseName,
         courseCode: first.courseCode ?? prev.courseCode,
-        center: first.center ?? prev.center,
-        // academicSession intentionally NOT overwritten — user controls it
         tuitionFees: first.tuitionFees ?? prev.tuitionFees,
         igstPercent: first.igstPercent ?? prev.igstPercent,
         discount: first.discount ?? prev.discount,
@@ -168,10 +250,18 @@ const FeeRecordDialog = ({
         amountReceived: 0,
       }));
     } else {
-      // No records for this UID+session — reset fee fields so teacher fills fresh.
-      // Keep student identity fields and academicSession as-is.
       setForm((prev) => ({
         ...prev,
+        studentName: global.studentName || prev.studentName,
+        fatherName: global.fatherName || prev.fatherName,
+        motherName: global.motherName || prev.motherName,
+        center: global.center || prev.center,
+        school: global.school || prev.school,
+        dateOfBirth: global.dateOfBirth || prev.dateOfBirth,
+        address: global.address || prev.address,
+        streamName: pickLatestNonEmpty(all, (r) => r.streamName) || prev.streamName,
+        courseName: pickLatestNonEmpty(all, (r) => r.courseName) || prev.courseName,
+        courseCode: pickLatestNonEmpty(all, (r) => r.courseCode) || prev.courseCode,
         tuitionFees: 0,
         igstPercent: 18,
         discount: 0,
@@ -215,6 +305,9 @@ const FeeRecordDialog = ({
         courseName: record.courseName ?? "",
         courseCode: record.courseCode ?? "",
         center: record.center ?? "",
+        school: record.school ?? "",
+        dateOfBirth: feeDobToInput(record.dateOfBirth),
+        address: record.address ?? "",
         paymentMode: record.paymentMode ?? "Online Lumpsum Amount",
         tuitionFees: record.tuitionFees,
         amountReceived: record.amountReceived ?? 0,
@@ -244,6 +337,9 @@ const FeeRecordDialog = ({
         courseName: studentDefaults?.courseName ?? "",
         courseCode: studentDefaults?.courseCode ?? "",
         center: studentDefaults?.center ?? "",
+        school: "",
+        dateOfBirth: "",
+        address: "",
         academicSession: currentSession,
         studentId: studentDefaults?.studentId,
         tuitionFees: 0,
@@ -477,6 +573,48 @@ const FeeRecordDialog = ({
                 placeholder="Father's name"
                 value={form.fatherName}
                 onChange={(e) => set("fatherName", e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Mother&apos;s Name</Label>
+              <Input
+                placeholder="Mother's name"
+                value={form.motherName}
+                onChange={(e) => set("motherName", e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Center</Label>
+              <Input
+                placeholder="e.g. Branch / center name"
+                value={form.center}
+                onChange={(e) => set("center", e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>School</Label>
+              <Input
+                placeholder="School name"
+                value={form.school}
+                onChange={(e) => set("school", e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Date of Birth</Label>
+              <Input
+                type="date"
+                value={form.dateOfBirth}
+                onChange={(e) => set("dateOfBirth", e.target.value)}
+              />
+            </div>
+            <div className="space-y-1 sm:col-span-2">
+              <Label>Address</Label>
+              <Textarea
+                placeholder="Full address (optional)"
+                rows={3}
+                value={form.address}
+                onChange={(e) => set("address", e.target.value)}
+                className="resize-y min-h-[72px]"
               />
             </div>
             <div className="space-y-1">

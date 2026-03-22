@@ -43,6 +43,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CreateInstituteFormSchema } from "@/helpers/schema/createInstituteSchema";
+import { logger } from "@/lib/logger";
 import { useAppDispatch } from "@/redux/hooks";
 import { instituteData } from "@/redux/slices/instituteSlice";
 
@@ -138,7 +139,7 @@ const CreateInstituteForm = ({
         toast.error(res.error || "Error occurred");
       }
     } catch (error) {
-      console.error("Error creating institute:", error);
+      logger.error("Error creating institute", { error });
       toast.error("Failed to create institute. Please try again.");
     } finally {
       setLoading(false);

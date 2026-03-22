@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { getCookie } from "./cookie_actions";
+import { logger } from "@/lib/logger";
 
 /**
  * Add students to an institute by email
@@ -65,7 +66,7 @@ export async function addStudentsToInstitute(
       data: data,
     };
   } catch (error) {
-    console.error("Error adding students:", error);
+    logger.error("Error adding students", { error });
     return {
       success: false,
       message:
@@ -124,7 +125,7 @@ export async function getInstituteStudents(instituteId: string) {
       students: data.students ?? [],
     };
   } catch (error) {
-    console.error("Error fetching students:", error);
+    logger.error("Error fetching students", { error });
     return {
       success: false,
       message:

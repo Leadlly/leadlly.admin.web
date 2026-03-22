@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { CreateInstituteFormSchema } from "@/helpers/schema/createInstituteSchema";
 import { IInstitute } from "@/helpers/types";
+import { logger } from "@/lib/logger";
 
 import { getCookie } from "./cookie_actions";
 
@@ -46,7 +47,7 @@ export const createInstitute = async (data: InstituteCreateData) => {
 
     return responseData;
   } catch (error) {
-    console.log(error);
+    logger.error("Error creating institute", { error });
 
     return { success: false, data: null, logoUploadUrl: undefined, error: (error as Error).message };
   }
@@ -81,7 +82,7 @@ export const updateInstitute = async (instituteId: string, data: InstituteUpdate
 
     return responseData;
   } catch (error) {
-    console.log(error);
+    logger.error("Error updating institute", { error });
     return {
       success: false,
       data: null,

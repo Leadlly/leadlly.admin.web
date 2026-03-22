@@ -35,6 +35,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useAppSelector } from "@/redux/hooks";
+import { logger } from "@/lib/logger";
 
 const FALLBACK_STANDARDS = ["9", "10", "11", "12"];
 
@@ -131,7 +132,7 @@ export default function CreateBatch({
         toast.error(response?.message || "Failed to create batch");
       }
     } catch (error) {
-      console.error("Error creating batch:", error);
+      logger.error("Error creating batch", { error });
       toast.error("Failed to create batch. Please try again.");
     }
   };

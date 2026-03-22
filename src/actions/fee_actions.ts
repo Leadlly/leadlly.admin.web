@@ -18,6 +18,9 @@ export interface FeeRecordData {
   courseName?: string;
   courseCode?: string;
   center?: string;
+  school?: string;
+  dateOfBirth?: string;
+  address?: string;
   paymentMode?: string;
   tuitionFees: number;
   amountReceived?: number;
@@ -209,7 +212,8 @@ export async function updateFeeRecord(
 
 /**
  * Fetch all active fee records for a given UID within an institute.
- * Optionally filter by academicSession. Returns records sorted by installmentNo asc.
+ * Omit academicSession to load every session (used to merge one-time student fields).
+ * With academicSession, the API filters to that year. Sorted by installmentNo asc.
  */
 export async function getFeeRecordsByUid(
   instituteId: string,

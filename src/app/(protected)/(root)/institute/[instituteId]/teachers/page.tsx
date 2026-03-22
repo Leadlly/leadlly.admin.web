@@ -22,6 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { logger } from "@/lib/logger";
 
 type ApiBatch = {
   _id: string;
@@ -106,7 +107,7 @@ export default function TeachersPage() {
       .catch((err) => {
         if (!cancelled) {
           setError("Error loading teachers. Please try again later.");
-          console.error(err);
+          logger.error("Error loading teachers", { err });
         }
       })
       .finally(() => { if (!cancelled) setLoading(false); });

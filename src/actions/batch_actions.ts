@@ -1,5 +1,6 @@
 "use server";
 import { getCookie } from "./cookie_actions";
+import { logger } from "@/lib/logger";
 
 interface BatchCreateData {
   name: string;
@@ -94,7 +95,7 @@ export const getBatchDetails = async (batchId: string) => {
     const data = await res.json();
     return data.data ?? data;
   } catch (error) {
-    console.error("Error fetching batch details:", error);
+    logger.error("Error fetching batch details", { error });
     return null;
   }
 };
@@ -119,7 +120,7 @@ export const getBatchClasses = async (batchId: string) => {
     const data = await res.json();
     return data.data ?? [];
   } catch (error) {
-    console.error("Error fetching batch classes:", error);
+    logger.error("Error fetching batch classes", { error });
     return [];
   }
 };
@@ -144,7 +145,7 @@ export const getBatchStudents = async (batchId: string) => {
     const data = await res.json();
     return data;
   } catch (error) {
-    console.error("Error fetching batch students:", error);
+    logger.error("Error fetching batch students", { error });
     return { students: [] };
   }
 };
@@ -174,7 +175,7 @@ export const getTeacherAssignedBatches = async (
     const batchPerformance: Array<{ batchId: string }> = data?.data?.batchPerformance ?? [];
     return { success: true, batchIds: batchPerformance.map((b) => String(b.batchId)) };
   } catch (error) {
-    console.error("Error fetching teacher assigned batches:", error);
+    logger.error("Error fetching teacher assigned batches", { error });
     return { success: false, batchIds: [], message: error instanceof Error ? error.message : "Failed to fetch" };
   }
 };

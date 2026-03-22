@@ -25,6 +25,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { logger } from "@/lib/logger";
 
 const NavUser = () => {
   const { isMobile } = useSidebar();
@@ -51,7 +52,7 @@ const NavUser = () => {
       toast.success("Logged out successfully");
       router.replace("/login");
     } catch (error) {
-      console.log(error);
+      logger.error("Logout failed", { error });
 
       toast.error("Failed to logout");
     }

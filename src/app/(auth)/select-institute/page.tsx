@@ -9,6 +9,7 @@ import { Loader2 } from "lucide-react";
 
 import { getAllUserInstitutes } from "@/actions/institute_actions";
 import { Button } from "@/components/ui/button";
+import { logger } from "@/lib/logger";
 import {
   Card,
   CardContent,
@@ -39,7 +40,7 @@ export default function SelectInstitutePage() {
         setInstitutes(data.institutes || []);
       } catch (err) {
         setError("Failed to load institutes. Please try again.");
-        console.error(err);
+        logger.error("Failed to load institutes", { err });
       } finally {
         setLoading(false);
       }
@@ -57,7 +58,7 @@ export default function SelectInstitutePage() {
       router.push(`/institute/${institute._id}`);
     } catch (err) {
       setError("Failed to select institute. Please try again.");
-      console.error(err);
+      logger.error("Failed to select institute", { err });
     } finally {
       setLoading(false);
     }
