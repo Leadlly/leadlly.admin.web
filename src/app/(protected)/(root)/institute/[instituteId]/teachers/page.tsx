@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 
 import { toast } from "sonner";
-import { Check, Loader2, Search, X } from "lucide-react";
+import { Check, ChevronDown, Loader2, Search, X } from "lucide-react";
 
 import { getInstituteBatch, getTeacherAssignedBatches } from "@/actions/batch_actions";
 import {
@@ -15,7 +15,12 @@ import {
 } from "@/actions/teacher_actions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -201,23 +206,33 @@ export default function TeachersPage() {
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [teachers]);
 
-  const filteredTeachers = teachers.filter((t) => {
-    const q = searchTerm.trim().toLowerCase();
-    const matchesSub = selectedSubject === "All" || t.subject === selectedSubject;
-    if (!matchesSub) return false;
-    if (!q) return true;
-    return (
-      t.name.toLowerCase().includes(q) ||
-      t.subject.toLowerCase().includes(q) ||
-      t.email.toLowerCase().includes(q)
-    );
-  });
+  const filteredTeachers = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase().replace(/\s+/g, " ");
+    return teachers.filter((t) => {
+      const matchesSub =
+        selectedSubject === "All" || t.subject === selectedSubject;
+      if (!matchesSub) return false;
+      if (!q) return true;
+      const name = (t.name ?? "").toLowerCase().replace(/\s+/g, " ");
+      const subject = (t.subject ?? "").toLowerCase();
+      const email = (t.email ?? "").toLowerCase();
+      const contact = String(t.contact ?? "")
+        .toLowerCase()
+        .replace(/\s+/g, "");
+      return (
+        name.includes(q) ||
+        subject.includes(q) ||
+        email.includes(q) ||
+        contact.includes(q.replace(/\s+/g, ""))
+      );
+    });
+  }, [teachers, searchTerm, selectedSubject]);
 
   // ── Render ────────────────────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8 flex justify-center items-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500" />
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500" />
       </div>
     );
   }
@@ -233,89 +248,115 @@ export default function TeachersPage() {
     );
   }
 
+  const subjectFilterLabel =
+    selectedSubject === "All" ? "All subjects" : selectedSubject;
+
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex flex-col md:flex-row justify-between items-center mb-6 px-8">
-        <h1 className="text-4xl font-bold mb-4 md:mb-0">Teachers</h1>
-        <Button className="bg-blue-600 text-white hover:bg-blue-700 rounded-2xl">
-          Add Teacher
-        </Button>
+      <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+        <h1 className="text-2xl md:text-4xl font-bold text-center md:text-left">
+          Teachers of Institute
+        </h1>
       </div>
 
-      {/* Search & Subject Filter */}
-      <div className="bg-white p-6 rounded-lg mb-8 flex flex-col md:flex-row items-center gap-4">
-        <div className="relative flex-1 w-full md:w-auto">
+      {/* Toolbar — aligned with batch list */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        <div className="relative w-full sm:max-w-md">
+          <Search
+            className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none"
+            aria-hidden
+          />
           <input
-            type="text"
+            type="search"
             placeholder="Search teachers..."
-            className="w-full pl-10 pr-4 py-2 border rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+            autoComplete="off"
+            className="w-full pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-hidden focus:ring-2 focus:ring-purple-300 focus:border-transparent"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-          <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
         </div>
-        <div className="flex flex-wrap gap-2 w-full md:w-auto">
-          <Button
-            variant={selectedSubject === "All" ? "default" : "outline"}
-            className={selectedSubject === "All" ? "bg-blue-100 text-blue-700 hover:bg-blue-200" : ""}
-            onClick={() => setSelectedSubject("All")}
-          >
-            All
-          </Button>
-          {subjects.map((sub) => (
-            <Button
-              key={sub}
-              variant={selectedSubject === sub ? "default" : "outline"}
-              className={selectedSubject === sub ? "bg-blue-100 text-blue-700 hover:bg-blue-200" : ""}
-              onClick={() => setSelectedSubject(sub)}
-            >
-              {sub}
-            </Button>
-          ))}
+        <div className="flex items-center gap-3 shrink-0">
+          <span className="text-sm font-medium text-gray-500">Filter by:</span>
+          <DropdownMenu>
+            <DropdownMenuTrigger className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-left min-w-[160px] hover:bg-gray-50 transition-colors">
+              <span className="flex-1 truncate">{subjectFilterLabel}</span>
+              <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56 max-h-72 overflow-y-auto">
+              <DropdownMenuItem
+                onClick={() => setSelectedSubject("All")}
+              >
+                All subjects
+              </DropdownMenuItem>
+              {subjects.map((sub) => (
+                <DropdownMenuItem
+                  key={sub}
+                  onClick={() => setSelectedSubject(sub)}
+                >
+                  {sub}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
-      {/* Teacher Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {filteredTeachers.length > 0 ? (
-          filteredTeachers.map((teacher) => (
-            <Card key={teacher.id} className="shadow-xl transition rounded-3xl">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-4">
-                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-xl shrink-0">
-                    {teacher.name.charAt(0)}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="font-bold text-lg truncate">{teacher.name}</p>
-                    <p className="text-gray-500 text-sm font-normal truncate">
-                      {teacher.subject !== "—" ? teacher.subject : ""}
-                    </p>
-                  </div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex gap-2 mt-1">
-                  <Link href={`/institute/${instituteId}/teachers/${teacher.id}`} className="flex-1">
-                    <Button size="sm" className="w-full bg-blue-600 text-white hover:bg-blue-700 rounded-xl">
-                      View Teacher
-                    </Button>
-                  </Link>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="flex-1 rounded-xl"
-                    onClick={() => openAssignDialog(teacher.id)}
-                  >
-                    Assign Batch
-                  </Button>
+      {/* Teacher cards — same shell as batch cards */}
+      {filteredTeachers.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
+          {filteredTeachers.map((teacher) => (
+            <div
+              key={teacher.id}
+              className="bg-white rounded-2xl p-5 flex flex-col border border-gray-200 shadow-sm hover:bg-gray-50/70 hover:border-gray-300 transition-colors"
+            >
+              <div className="flex items-start gap-3 mb-4">
+                <div className="w-11 h-11 shrink-0 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm">
+                  {teacher.name.charAt(0).toUpperCase()}
                 </div>
-              </CardContent>
-            </Card>
-          ))
-        ) : (
-          <p className="text-gray-600">No teachers found. Try adjusting your search.</p>
-        )}
-      </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold text-sm text-gray-900 truncate">
+                    {teacher.name}
+                  </h3>
+                  <p className="text-gray-400 text-[11px] font-medium mt-0.5 truncate">
+                    {teacher.subject !== "—" ? teacher.subject : "Teacher"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="text-[12px] mb-3 text-gray-500">
+                Email:{" "}
+                <span className="font-semibold text-gray-800 break-all">
+                  {teacher.email || "—"}
+                </span>
+              </div>
+
+              <div className="flex gap-2 mt-auto">
+                <Button
+                  asChild
+                  className="flex-1 h-8 text-xs rounded-lg font-medium bg-purple-500 hover:bg-purple-600 text-white shadow-none"
+                >
+                  <Link href={`/institute/${instituteId}/teachers/${teacher.id}`}>
+                    View Teacher
+                  </Link>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1 h-8 text-xs rounded-lg font-medium border-purple-200 text-purple-600 hover:bg-purple-50 hover:border-purple-300 shadow-none"
+                  onClick={() => openAssignDialog(teacher.id)}
+                >
+                  Assign Batch
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="py-16 text-center">
+          <p className="text-gray-400 text-sm">
+            No teachers found. Try adjusting your search or subject filter.
+          </p>
+        </div>
+      )}
 
       {/* ── Assign Batch Dialog ─────────────────────────────────────────────── */}
       <Dialog
@@ -370,7 +411,7 @@ export default function TeachersPage() {
                 placeholder="Search batches..."
                 value={batchSearch}
                 onChange={(e) => setBatchSearch(e.target.value)}
-                className="w-full pl-4 pr-8 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent"
+                className="w-full pl-4 pr-8 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-transparent"
               />
               {batchSearch && (
                 <button
@@ -387,7 +428,7 @@ export default function TeachersPage() {
           <div className="flex-1 overflow-y-auto px-6 py-3 min-h-0">
             {batchesLoading ? (
               <div className="flex items-center justify-center py-12">
-                <Loader2 className="size-6 text-blue-500 animate-spin" />
+                <Loader2 className="size-6 text-purple-500 animate-spin" />
               </div>
             ) : filteredBatches.length === 0 ? (
               <div className="py-10 text-center text-sm text-gray-400">
@@ -407,15 +448,15 @@ export default function TeachersPage() {
                       onClick={() => toggleBatch(batch._id)}
                       className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-colors ${
                         isSelected
-                          ? "bg-blue-50 border border-blue-200"
+                          ? "bg-purple-50 border border-purple-200"
                           : "bg-gray-50 border border-transparent hover:bg-gray-100"
                       }`}
                     >
                       <div
                         className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${
                           isSelected
-                            ? "bg-blue-500 text-white"
-                            : "bg-white text-blue-500 border border-blue-200"
+                            ? "bg-purple-500 text-white"
+                            : "bg-white text-purple-600 border border-purple-200"
                         }`}
                       >
                         {isSelected ? (
@@ -425,7 +466,7 @@ export default function TeachersPage() {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-semibold truncate ${isSelected ? "text-blue-700" : "text-gray-900"}`}>
+                        <p className={`text-sm font-semibold truncate ${isSelected ? "text-purple-700" : "text-gray-900"}`}>
                           {batch.name ?? "Batch"}
                         </p>
                         {batch.standard && (
@@ -461,7 +502,7 @@ export default function TeachersPage() {
                 size="sm"
                 onClick={handleAssign}
                 disabled={assignSubmitting || selectedBatchIds.length === 0}
-                className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-none"
+                className="bg-purple-500 hover:bg-purple-600 text-white rounded-lg shadow-none"
               >
                 {assignSubmitting ? (
                   <><Loader2 className="size-3.5 mr-1.5 animate-spin" /> Assigning...</>

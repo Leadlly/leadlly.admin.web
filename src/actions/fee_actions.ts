@@ -224,7 +224,7 @@ export async function getFeeRecordsByUid(
 ): Promise<{ success: boolean; data?: IFeeRecord[]; message?: string }> {
   const token = await getCookie();
   try {
-    const params = new URLSearchParams({ uid, limit: "50" });
+    const params = new URLSearchParams({ uid, limit: "200" });
     if (academicSession) params.set("session", academicSession);
     const res = await fetch(
       `${getBase()}/api/institute/${instituteId}/fees?${params}`,

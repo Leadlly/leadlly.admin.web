@@ -138,16 +138,11 @@ export default function BatchList({ instituteId }: { instituteId: string }) {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
           {filteredBatches.map((batch) => {
             const totalStudents = batch.totalStudents ?? 0;
-            const totalCapacity = batch.totalCapacity ?? 180;
-            const progress = Math.min(
-              (totalStudents / Math.max(totalCapacity, 1)) * 100,
-              100
-            );
 
             return (
               <div
                 key={batch._id}
-                className="bg-white rounded-2xl p-5 flex flex-col hover:bg-gray-50/70 transition-colors"
+                className="bg-white rounded-2xl p-5 flex flex-col border border-gray-200 shadow-sm hover:bg-gray-50/70 hover:border-gray-300 transition-colors"
               >
                 <div className="flex items-start gap-3 mb-4">
                   <div
@@ -209,21 +204,9 @@ export default function BatchList({ instituteId }: { instituteId: string }) {
                   </span>
                 </div>
 
-                <div className="flex justify-between items-center text-[12px] mb-1.5 mt-auto">
-                  <span className="text-gray-500">
-                    Students:{" "}
-                    <span className="font-bold text-gray-900">{totalStudents}</span>
-                  </span>
-                  <span className="text-[11px] font-semibold text-gray-500">
-                    {totalStudents}/{totalCapacity}
-                  </span>
-                </div>
-
-                <div className="w-full bg-gray-100 rounded-full h-1.5 mb-4 overflow-hidden">
-                  <div
-                    className="bg-purple-500 h-1.5 rounded-full transition-all duration-500"
-                    style={{ width: `${progress}%` }}
-                  />
+                <div className="text-[12px] mb-4 mt-auto text-gray-500">
+                  Students:{" "}
+                  <span className="font-bold text-gray-900">{totalStudents}</span>
                 </div>
 
                 <div className="flex gap-2">

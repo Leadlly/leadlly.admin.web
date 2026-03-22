@@ -56,6 +56,19 @@ const SESSION_OPTIONS = generateSessionOptions();
 const STANDARD_OPTIONS = ["6", "7", "8", "9", "10", "11", "12"] as const;
 const STANDARD_SELECT_NONE = "__none__";
 
+/** Map API / legacy values to a Select value "6"…"12" or "". */
+function normalizeStandardFromApi(raw: unknown): string {
+  if (raw == null || raw === "") return "";
+  const s = String(raw).trim();
+  if ((STANDARD_OPTIONS as readonly string[]).includes(s)) return s;
+  const asNum = Number(raw);
+  if (Number.isInteger(asNum) && asNum >= 6 && asNum <= 12) return String(asNum);
+  const compact = s.toLowerCase().replace(/\s+/g, "");
+  const m = compact.match(/^(\d{1,2})(?:th|st|nd|rd)?(?:class)?$/);
+  if (m && (STANDARD_OPTIONS as readonly string[]).includes(m[1])) return m[1];
+  return "";
+}
+
 function feeDobToInput(value: unknown): string {
   if (value == null || value === "") return "";
   if (typeof value === "string") return value.split("T")[0];
@@ -117,7 +130,7 @@ function buildGlobalIdentityFromRecords(all: IFeeRecord[]): GlobalIdentity {
     motherName: pickLatestNonEmpty(all, (r) => r.motherName),
     center: pickLatestNonEmpty(all, (r) => r.center),
     school: pickLatestNonEmpty(all, (r) => r.school),
-    standard: pickLatestNonEmpty(all, (r) => r.standard),
+    standard: pickLatestNonEmpty(all, (r) => normalizeStandardFromApi(r.standard)),
     dateOfBirth: pickLatestDateOfBirth(all),
     address: pickLatestNonEmpty(all, (r) => r.address),
   };
@@ -242,7 +255,10 @@ const FeeRecordDialog = ({
         motherName: global.motherName || first.motherName?.trim() || prev.motherName,
         center: global.center || first.center?.trim() || prev.center,
         school: global.school || first.school?.trim() || prev.school,
-        standard: global.standard || first.standard?.trim() || prev.standard,
+        standard:
+          global.standard ||
+          normalizeStandardFromApi(first.standard) ||
+          prev.standard,
         dateOfBirth:
           global.dateOfBirth ||
           (first.dateOfBirth ? feeDobToInput(first.dateOfBirth) : prev.dateOfBirth),
@@ -314,7 +330,7 @@ const FeeRecordDialog = ({
         courseCode: record.courseCode ?? "",
         center: record.center ?? "",
         school: record.school ?? "",
-        standard: record.standard ?? "",
+        standard: normalizeStandardFromApi(record.standard),
         dateOfBirth: feeDobToInput(record.dateOfBirth),
         address: record.address ?? "",
         paymentMode: record.paymentMode ?? "Online Lumpsum Amount",
@@ -438,12 +454,10 @@ const FeeRecordDialog = ({
     }
     setLoading(true);
     try {
-      const std = form.standard?.trim();
-      const standardOk =
-        std && (STANDARD_OPTIONS as readonly string[]).includes(std) ? std : undefined;
+      const stdNorm = normalizeStandardFromApi(form.standard);
       const payload: FeeRecordData = {
         ...form,
-        standard: standardOk,
+        standard: stdNorm,
         tuitionFees: Number(form.tuitionFees),
         amountReceived: Number(form.amountReceived) || 0,
         igstPercent: Number(form.igstPercent),
