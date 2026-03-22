@@ -19,6 +19,8 @@ export interface FeeRecordData {
   courseCode?: string;
   center?: string;
   school?: string;
+  /** Class / grade 6–12 */
+  standard?: string;
   dateOfBirth?: string;
   address?: string;
   paymentMode?: string;

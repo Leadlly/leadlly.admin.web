@@ -53,6 +53,9 @@ function generateSessionOptions(): string[] {
 
 const SESSION_OPTIONS = generateSessionOptions();
 
+const STANDARD_OPTIONS = ["6", "7", "8", "9", "10", "11", "12"] as const;
+const STANDARD_SELECT_NONE = "__none__";
+
 function feeDobToInput(value: unknown): string {
   if (value == null || value === "") return "";
   if (typeof value === "string") return value.split("T")[0];
@@ -102,6 +105,7 @@ type GlobalIdentity = {
   motherName: string;
   center: string;
   school: string;
+  standard: string;
   dateOfBirth: string;
   address: string;
 };
@@ -113,6 +117,7 @@ function buildGlobalIdentityFromRecords(all: IFeeRecord[]): GlobalIdentity {
     motherName: pickLatestNonEmpty(all, (r) => r.motherName),
     center: pickLatestNonEmpty(all, (r) => r.center),
     school: pickLatestNonEmpty(all, (r) => r.school),
+    standard: pickLatestNonEmpty(all, (r) => r.standard),
     dateOfBirth: pickLatestDateOfBirth(all),
     address: pickLatestNonEmpty(all, (r) => r.address),
   };
@@ -156,6 +161,7 @@ const EMPTY: FeeRecordData = {
   courseCode: "",
   center: "",
   school: "",
+  standard: "",
   dateOfBirth: "",
   address: "",
   paymentMode: "Online Lumpsum Amount",
@@ -236,6 +242,7 @@ const FeeRecordDialog = ({
         motherName: global.motherName || first.motherName?.trim() || prev.motherName,
         center: global.center || first.center?.trim() || prev.center,
         school: global.school || first.school?.trim() || prev.school,
+        standard: global.standard || first.standard?.trim() || prev.standard,
         dateOfBirth:
           global.dateOfBirth ||
           (first.dateOfBirth ? feeDobToInput(first.dateOfBirth) : prev.dateOfBirth),
@@ -257,6 +264,7 @@ const FeeRecordDialog = ({
         motherName: global.motherName || prev.motherName,
         center: global.center || prev.center,
         school: global.school || prev.school,
+        standard: global.standard || prev.standard,
         dateOfBirth: global.dateOfBirth || prev.dateOfBirth,
         address: global.address || prev.address,
         streamName: pickLatestNonEmpty(all, (r) => r.streamName) || prev.streamName,
@@ -306,6 +314,7 @@ const FeeRecordDialog = ({
         courseCode: record.courseCode ?? "",
         center: record.center ?? "",
         school: record.school ?? "",
+        standard: record.standard ?? "",
         dateOfBirth: feeDobToInput(record.dateOfBirth),
         address: record.address ?? "",
         paymentMode: record.paymentMode ?? "Online Lumpsum Amount",
@@ -338,6 +347,7 @@ const FeeRecordDialog = ({
         courseCode: studentDefaults?.courseCode ?? "",
         center: studentDefaults?.center ?? "",
         school: "",
+        standard: "",
         dateOfBirth: "",
         address: "",
         academicSession: currentSession,
@@ -428,8 +438,12 @@ const FeeRecordDialog = ({
     }
     setLoading(true);
     try {
+      const std = form.standard?.trim();
+      const standardOk =
+        std && (STANDARD_OPTIONS as readonly string[]).includes(std) ? std : undefined;
       const payload: FeeRecordData = {
         ...form,
+        standard: standardOk,
         tuitionFees: Number(form.tuitionFees),
         amountReceived: Number(form.amountReceived) || 0,
         igstPercent: Number(form.igstPercent),
@@ -598,6 +612,27 @@ const FeeRecordDialog = ({
                 value={form.school}
                 onChange={(e) => set("school", e.target.value)}
               />
+            </div>
+            <div className="space-y-1">
+              <Label>Standard (class)</Label>
+              <Select
+                value={form.standard?.trim() ? form.standard : STANDARD_SELECT_NONE}
+                onValueChange={(v) =>
+                  set("standard", v === STANDARD_SELECT_NONE ? "" : v)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select class (6–12)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={STANDARD_SELECT_NONE}>Not specified</SelectItem>
+                  {STANDARD_OPTIONS.map((n) => (
+                    <SelectItem key={n} value={n}>
+                      Class {n}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1">
               <Label>Date of Birth</Label>

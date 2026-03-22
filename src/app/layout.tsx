@@ -5,6 +5,7 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import { Toaster } from "sonner";
 
 import { cn } from "@/lib/utils";
+import { BetterStackWebVitals } from "@logtail/next/webVitals";
 
 import "./globals.css";
 
@@ -31,6 +32,7 @@ export default async function RootLayout({
         <GoogleOAuthProvider
           clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}
         >
+          <BetterStackWebVitals />
           {children}
           <Toaster richColors position="top-center" />
         </GoogleOAuthProvider>
