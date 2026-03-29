@@ -12,6 +12,7 @@ import { getCookie } from "./cookie_actions";
 
 type InstituteCreateData = z.infer<typeof CreateInstituteFormSchema> & {
   logo?: { name: string; type: string };
+  docLogo?: { name: string; type: string };
 };
 
 type InstituteUpdateData = Partial<z.infer<typeof CreateInstituteFormSchema>> & {
@@ -40,6 +41,7 @@ export const createInstitute = async (data: InstituteCreateData) => {
       success: boolean;
       data: IInstitute;
       logoUploadUrl?: string;
+      docLogoUploadUrl?: string;
       error?: string;
     } = await res.json();
 
@@ -49,7 +51,13 @@ export const createInstitute = async (data: InstituteCreateData) => {
   } catch (error) {
     logger.error("Error creating institute", { error });
 
-    return { success: false, data: null, logoUploadUrl: undefined, error: (error as Error).message };
+    return {
+      success: false,
+      data: null,
+      logoUploadUrl: undefined,
+      docLogoUploadUrl: undefined,
+      error: (error as Error).message,
+    };
   }
 };
 

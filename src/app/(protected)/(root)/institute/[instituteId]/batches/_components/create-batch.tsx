@@ -5,7 +5,7 @@ import { Controller, useForm } from "react-hook-form";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
-import { IndianRupee, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -32,7 +32,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useAppSelector } from "@/redux/hooks";
 import { logger } from "@/lib/logger";
@@ -96,7 +95,6 @@ export default function CreateBatch({
     },
   });
 
-  const isPaid = form.watch("payment.subscriptionType") === "Paid";
   const standards = instituteData?.standards?.length
     ? instituteData.standards
     : FALLBACK_STANDARDS;
@@ -284,6 +282,7 @@ export default function CreateBatch({
               )}
             />
 
+            {/* Paid batch UI — temporarily hidden (restore Switch + IndianRupee imports and isPaid watch when uncommenting)
             <div className="rounded-xl border border-border p-4 grid gap-4 mt-2">
               <Controller
                 control={form.control}
@@ -346,6 +345,7 @@ export default function CreateBatch({
                 </p>
               )}
             </div>
+            */}
           </FieldGroup>
 
           <div className="flex justify-end gap-3 pt-4">

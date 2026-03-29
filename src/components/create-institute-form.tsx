@@ -6,7 +6,7 @@ import { Controller, useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Camera, Loader2, Plus, X } from "lucide-react";
+import { Camera, FileImage, Loader2, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -61,6 +61,10 @@ const CreateInstituteForm = ({
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
+  const [docLogoFile, setDocLogoFile] = useState<File | null>(null);
+  const [docLogoPreview, setDocLogoPreview] = useState<string | null>(null);
+  const docLogoInputRef = useRef<HTMLInputElement>(null);
+
   const router = useRouter();
   const dispatch = useAppDispatch();
   const anchor = useComboboxAnchor();
@@ -108,6 +112,30 @@ const CreateInstituteForm = ({
     if (logoInputRef.current) logoInputRef.current.value = "";
   };
 
+  const handleDocLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please upload an image file");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Document logo must be less than 2MB");
+      return;
+    }
+    setDocLogoFile(file);
+    const reader = new FileReader();
+    reader.onload = () => setDocLogoPreview(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveDocLogo = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDocLogoFile(null);
+    setDocLogoPreview(null);
+    if (docLogoInputRef.current) docLogoInputRef.current.value = "";
+  };
+
   const handleSubmit = async (
     data: z.input<typeof CreateInstituteFormSchema>
   ) => {
@@ -119,17 +147,32 @@ const CreateInstituteForm = ({
         subjects: data.subjects ?? [],
         standards: data.standards ?? [],
         logo: logoFile ? { name: logoFile.name, type: logoFile.type } : undefined,
+        docLogo: docLogoFile
+          ? { name: docLogoFile.name, type: docLogoFile.type }
+          : undefined,
       });
 
       if (res.success) {
-        // Upload logo directly to S3 using the presigned URL
+        const uploads: Promise<Response>[] = [];
         if (logoFile && res.logoUploadUrl) {
-          await fetch(res.logoUploadUrl, {
-            method: "PUT",
-            body: logoFile,
-            headers: { "Content-Type": logoFile.type },
-          });
+          uploads.push(
+            fetch(res.logoUploadUrl, {
+              method: "PUT",
+              body: logoFile,
+              headers: { "Content-Type": logoFile.type },
+            })
+          );
         }
+        if (docLogoFile && res.docLogoUploadUrl) {
+          uploads.push(
+            fetch(res.docLogoUploadUrl, {
+              method: "PUT",
+              body: docLogoFile,
+              headers: { "Content-Type": docLogoFile.type },
+            })
+          );
+        }
+        if (uploads.length > 0) await Promise.all(uploads);
 
         toast.success("Institute created successfully!");
         dispatch(instituteData(res.data));
@@ -530,6 +573,71 @@ const CreateInstituteForm = ({
             </FieldGroup>
           )}
         />
+
+        {/* Document Logo Section — matches edit institute form */}
+        <div className="rounded-xl border border-dashed border-primary/30 bg-primary/5 p-4 space-y-3">
+          <div className="flex items-start gap-3">
+            <div className="bg-primary/10 p-2 rounded-lg mt-0.5">
+              <FileImage className="h-4 w-4 text-primary" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-foreground">
+                Document Logo
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                This logo will appear on all your documents like fee receipts,
+                reports, etc. If not set, the default Leadlly logo will be used.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => docLogoInputRef.current?.click()}
+                className="w-20 h-20 rounded-lg border-2 border-dashed border-muted-foreground/40 bg-white hover:bg-muted/30 hover:border-primary/50 transition-all flex items-center justify-center overflow-hidden group"
+                title="Upload document logo"
+              >
+                {docLogoPreview ? (
+                  <img
+                    src={docLogoPreview}
+                    alt="Document logo preview"
+                    className="w-full h-full object-contain rounded-lg p-1"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center gap-1 text-muted-foreground group-hover:text-primary transition-colors">
+                    <Camera className="h-5 w-5" />
+                    <span className="text-[9px] font-medium text-center leading-tight">
+                      Doc Logo
+                    </span>
+                  </div>
+                )}
+              </button>
+              {docLogoPreview && (
+                <button
+                  type="button"
+                  onClick={handleRemoveDocLogo}
+                  className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center shadow"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+            <div className="text-xs text-muted-foreground space-y-1">
+              <p>Recommended: PNG with transparent background</p>
+              <p>Max size: 2MB</p>
+            </div>
+          </div>
+
+          <input
+            ref={docLogoInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleDocLogoChange}
+          />
+        </div>
       </FieldGroup>
 
       <div className="mt-8 flex justify-end gap-4">

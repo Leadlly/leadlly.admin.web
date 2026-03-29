@@ -5,7 +5,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { GraduationCap, LucideIcon, IndianRupee } from "lucide-react";
+import { GraduationCap, Hash, IndianRupee, LucideIcon } from "lucide-react";
 import { BookOpen, LayoutDashboard, Users } from "lucide-react";
 
 import {
@@ -45,6 +45,12 @@ const navItems = [
     label: "Fee Management",
     icon: IndianRupee,
     href: (id: string) => `/institute/${id}/fees`,
+    exact: false,
+  },
+  {
+    label: "Student UIDs",
+    icon: Hash,
+    href: (id: string) => `/institute/${id}/uins`,
     exact: false,
   },
 ];
