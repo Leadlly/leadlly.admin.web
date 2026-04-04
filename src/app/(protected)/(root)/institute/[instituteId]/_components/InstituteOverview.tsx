@@ -1,12 +1,14 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { Eye, EyeOff } from "lucide-react";
 
 import { getActiveInstitute } from "@/actions/institute_actions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import EditInstituteForm from "@/components/edit-institute-form";
+import { toast } from "sonner";
 
 interface InstituteOverviewProps {
   instituteId: string;
@@ -14,6 +16,7 @@ interface InstituteOverviewProps {
 
 const InstituteOverview = ({ instituteId }: InstituteOverviewProps) => {
   const queryClient = useQueryClient();
+  const [instituteCodeVisible, setInstituteCodeVisible] = useState(false);
 
   const { data: activeInstitute } = useSuspenseQuery({
     queryKey: ["active_institute", instituteId],
@@ -22,6 +25,22 @@ const InstituteOverview = ({ instituteId }: InstituteOverviewProps) => {
 
   const handleEditSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ["active_institute", instituteId] });
+  };
+
+  const instituteCode = activeInstitute?.institute?.instituteCode ?? "";
+  const maskedCode =
+    instituteCode.length > 0
+      ? "•".repeat(instituteCode.length)
+      : "—";
+
+  const copyInstituteCode = async () => {
+    if (!instituteCode) return;
+    try {
+      await navigator.clipboard.writeText(instituteCode);
+      toast.success("Institute code copied");
+    } catch {
+      toast.error("Could not copy to clipboard");
+    }
   };
 
   return (
@@ -44,14 +63,15 @@ const InstituteOverview = ({ instituteId }: InstituteOverviewProps) => {
           <h1 className="text-2xl md:text-3xl font-bold text-foreground">
             {activeInstitute?.institute?.name}
           </h1>
-          <p className="text-muted-foreground mt-1 flex items-center">
+          <div className="text-muted-foreground mt-1 flex items-center gap-2 flex-wrap w-fit max-w-full">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
               strokeWidth={1.5}
               stroke="currentColor"
-              className="w-4 h-4 mr-2"
+              className="w-4 h-4 shrink-0"
+              aria-hidden
             >
               <path
                 strokeLinecap="round"
@@ -59,8 +79,36 @@ const InstituteOverview = ({ instituteId }: InstituteOverviewProps) => {
                 d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5zm6-10.125a1.875 1.875 0 11-3.75 0 1.875 1.875 0 013.75 0zm1.294 6.336a6.721 6.721 0 01-3.17.789 6.721 6.721 0 01-3.168-.789 3.376 3.376 0 016.338 0z"
               />
             </svg>
-            Institute Code: {activeInstitute?.institute?.instituteCode}
-          </p>
+            <span className="shrink-0">Institute Code:</span>
+            <button
+              type="button"
+              onClick={() => void copyInstituteCode()}
+              disabled={!instituteCode}
+              className="font-mono tracking-wide tabular-nums rounded-md px-1.5 py-0.5 -mx-1.5 -my-0.5 hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-colors disabled:opacity-50 disabled:pointer-events-none cursor-pointer text-left"
+              title="Copy to clipboard"
+              aria-label="Copy institute code to clipboard"
+            >
+              {instituteCodeVisible ? instituteCode : maskedCode}
+            </button>
+            {instituteCode.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => setInstituteCodeVisible((v) => !v)}
+                className="rounded-md p-0.5 hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-colors opacity-70 hover:opacity-100"
+                aria-label={
+                  instituteCodeVisible
+                    ? "Hide institute code"
+                    : "Show institute code"
+                }
+              >
+                {instituteCodeVisible ? (
+                  <EyeOff className="w-4 h-4" aria-hidden />
+                ) : (
+                  <Eye className="w-4 h-4" aria-hidden />
+                )}
+              </button>
+            ) : null}
+          </div>
           {activeInstitute?.institute && (
             <div className="mt-3">
               <EditInstituteForm

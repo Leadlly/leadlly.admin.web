@@ -13,6 +13,8 @@ import {
   IndianRupee,
   FileText,
   ChevronRight,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -56,14 +58,50 @@ import { logger } from "@/lib/logger";
 import FeeRecordDialog from "./_components/FeeRecordDialog";
 import { generateFeePdf, printFeePdf, PdfMeta, InstallmentContext } from "./_components/FeePdfGenerator";
 
+function formatRupee(value: number): string {
+  return `₹${value.toLocaleString("en-IN")}`;
+}
+
+function displayRupee(value: number, amountsVisible: boolean): string {
+  if (amountsVisible) return formatRupee(value);
+  return formatRupee(value).replace(/\d/g, "•");
+}
+
+function FeeAmountsToggle({
+  visible,
+  onToggle,
+}: {
+  visible: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      onClick={onToggle}
+      className="gap-2 shrink-0"
+    >
+      {visible ? (
+        <EyeOff className="size-4" aria-hidden />
+      ) : (
+        <Eye className="size-4" aria-hidden />
+      )}
+      {visible ? "Hide fee amounts" : "Show fee amounts"}
+    </Button>
+  );
+}
+
 // ─── UID Block Card ──────────────────────────────────────────────────────────
 
 function UidCard({
   group,
   onClick,
+  amountsVisible,
 }: {
   group: FeeUidGroup;
   onClick: () => void;
+  amountsVisible: boolean;
 }) {
   return (
     <button
@@ -84,15 +122,15 @@ function UidCard({
           )}
         </div>
       </div>
-      <div className="flex flex-col items-end gap-1 shrink-0">
+      <div className="flex flex-col items-end gap-1 shrink-0 tabular-nums">
         <span className="text-sm font-bold text-primary">
-          ₹{(group.totalPaid ?? 0).toLocaleString("en-IN")}
+          {displayRupee(group.totalPaid ?? 0, amountsVisible)}
         </span>
         <span className="text-xs text-green-600 font-medium">
-          Paid: ₹{(group.totalAmountReceived ?? 0).toLocaleString("en-IN")}
+          Paid: {displayRupee(group.totalAmountReceived ?? 0, amountsVisible)}
         </span>
         <span className="text-xs text-red-500 font-medium">
-          Balance: ₹{(group.totalBalance ?? 0).toLocaleString("en-IN")}
+          Balance: {displayRupee(group.totalBalance ?? 0, amountsVisible)}
         </span>
         <Badge variant="secondary" className="text-xs">
           {group.recordCount} installment{group.recordCount !== 1 ? "s" : ""}
@@ -111,12 +149,14 @@ function FeeReceiptViewDialog({
   record,
   pdfMeta,
   installmentContext,
+  amountsVisible,
 }: {
   open: boolean;
   onClose: () => void;
   record: IFeeRecord | null;
   pdfMeta: PdfMeta;
   installmentContext?: InstallmentContext;
+  amountsVisible: boolean;
 }) {
   if (!record) return null;
 
@@ -200,14 +240,14 @@ function FeeReceiptViewDialog({
             <div className="divide-y">
               <div className="flex justify-between px-3 py-2">
                 <span>Tuition Fees</span>
-                <span className="font-medium">
-                  ₹{(record.tuitionFees ?? 0).toLocaleString("en-IN")}
+                <span className="font-medium tabular-nums">
+                  {displayRupee(record.tuitionFees ?? 0, amountsVisible)}
                 </span>
               </div>
               <div className="flex justify-between px-3 py-2">
                 <span>IGST @ {record.igstPercent ?? 18}%</span>
-                <span className="font-medium">
-                  ₹{igstAmt.toLocaleString("en-IN")}
+                <span className="font-medium tabular-nums">
+                  {displayRupee(igstAmt, amountsVisible)}
                 </span>
               </div>
               {addFees.map((f, i) => (
@@ -220,45 +260,49 @@ function FeeReceiptViewDialog({
                         : "font-medium"
                     }
                   >
-                    {f.type === "deduction" ? "−" : "+"}₹
-                    {(f.amount ?? 0).toLocaleString("en-IN")}
+                    {f.type === "deduction" ? "−" : "+"}
+                    {displayRupee(f.amount ?? 0, amountsVisible)}
                   </span>
                 </div>
               ))}
               {(record.discount ?? 0) > 0 && (
                 <div className="flex justify-between px-3 py-2">
                   <span>Discount</span>
-                  <span className="text-red-500 font-medium">
-                    −₹{(record.discount ?? 0).toLocaleString("en-IN")}
+                  <span className="text-red-500 font-medium tabular-nums">
+                    −{displayRupee(record.discount ?? 0, amountsVisible)}
                   </span>
                 </div>
               )}
               <div className="flex justify-between px-3 py-2.5 bg-primary/5 font-bold text-primary">
                 <span>Session Net Fee</span>
-                <span>₹{sessionNetFee.toLocaleString("en-IN")}</span>
+                <span className="tabular-nums">{displayRupee(sessionNetFee, amountsVisible)}</span>
               </div>
               {(installmentContext?.previousInstallments ?? []).map((inst) => (
                 <div key={inst.no} className="flex justify-between px-3 py-2 text-muted-foreground">
                   <span>Installment {inst.no}</span>
-                  <span className="font-medium text-green-600">
-                    ₹{inst.amount.toLocaleString("en-IN")}
+                  <span className="font-medium text-green-600 tabular-nums">
+                    {displayRupee(inst.amount, amountsVisible)}
                   </span>
                 </div>
               ))}
               <div className="flex justify-between px-3 py-2">
                 <span>Installment {record.installmentNo ?? 1}</span>
-                <span className="font-medium text-green-600">₹{amountReceived.toLocaleString("en-IN")}</span>
+                <span className="font-medium text-green-600 tabular-nums">
+                  {displayRupee(amountReceived, amountsVisible)}
+                </span>
               </div>
               <div className="flex justify-between px-3 py-2.5 bg-red-50 font-semibold text-red-600">
                 <span>Balance Due</span>
-                <span>₹{balance.toLocaleString("en-IN")}</span>
+                <span className="tabular-nums">{displayRupee(balance, amountsVisible)}</span>
               </div>
             </div>
           </div>
 
           {record.amountInWords && (
             <p className="text-xs text-muted-foreground italic">
-              {record.amountInWords}
+              {amountsVisible
+                ? record.amountInWords
+                : "•".repeat(Math.min(record.amountInWords.length, 24))}
             </p>
           )}
         </div>
@@ -286,12 +330,16 @@ function UidDetailView({
   instituteId,
   pdfMeta,
   onBack,
+  amountsVisible,
+  onToggleAmounts,
 }: {
   uid: string;
   group: FeeUidGroup;
   instituteId: string;
   pdfMeta: PdfMeta;
   onBack: () => void;
+  amountsVisible: boolean;
+  onToggleAmounts: () => void;
 }) {
   const [records, setRecords] = useState<IFeeRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -416,16 +464,17 @@ function UidDetailView({
 
   return (
     <div>
-      <div className="mb-4">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Button
           variant="ghost"
           size="sm"
           onClick={onBack}
-          className="gap-1.5 -ml-2"
+          className="gap-1.5 -ml-2 w-fit"
         >
           <ArrowLeft className="size-4" />
           Back
         </Button>
+        <FeeAmountsToggle visible={amountsVisible} onToggle={onToggleAmounts} />
       </div>
 
       {/* Header */}
@@ -456,20 +505,20 @@ function UidDetailView({
         </div>
         <div className="bg-white rounded-xl border p-4">
           <p className="text-xs text-muted-foreground">Total Net Fee</p>
-          <p className="text-2xl font-bold mt-1 text-primary">
-            ₹{totalNetFee.toLocaleString("en-IN")}
+          <p className="text-2xl font-bold mt-1 text-primary tabular-nums">
+            {displayRupee(totalNetFee, amountsVisible)}
           </p>
         </div>
         <div className="bg-white rounded-xl border p-4">
           <p className="text-xs text-muted-foreground">Total Paid</p>
-          <p className="text-2xl font-bold mt-1 text-green-600">
-            ₹{totalPaidAmount.toLocaleString("en-IN")}
+          <p className="text-2xl font-bold mt-1 text-green-600 tabular-nums">
+            {displayRupee(totalPaidAmount, amountsVisible)}
           </p>
         </div>
         <div className="bg-white rounded-xl border p-4">
           <p className="text-xs text-muted-foreground">Total Balance</p>
-          <p className="text-2xl font-bold mt-1 text-red-600">
-            ₹{totalBalanceAmount.toLocaleString("en-IN")}
+          <p className="text-2xl font-bold mt-1 text-red-600 tabular-nums">
+            {displayRupee(totalBalanceAmount, amountsVisible)}
           </p>
         </div>
       </div>
@@ -568,10 +617,10 @@ function UidDetailView({
                       {rec.paymentMode ?? "—"}
                     </TableCell>
                     <TableCell className="text-right font-semibold tabular-nums text-green-600">
-                      ₹{getPaidAmount(rec).toLocaleString("en-IN")}
+                      {displayRupee(getPaidAmount(rec), amountsVisible)}
                     </TableCell>
                     <TableCell className="text-right font-semibold tabular-nums text-red-600">
-                      ₹{getBalanceAmount(rec).toLocaleString("en-IN")}
+                      {displayRupee(getBalanceAmount(rec), amountsVisible)}
                     </TableCell>
                     <TableCell className="text-sm whitespace-nowrap">
                       {formatDate(rec.paymentDate as unknown as string)}
@@ -655,19 +704,19 @@ function UidDetailView({
                     </p>
                   </div>
                 </div>
-                <p className="font-semibold text-green-600 text-sm">
-                  ₹{getPaidAmount(rec).toLocaleString("en-IN")}
+                <p className="font-semibold text-green-600 text-sm tabular-nums">
+                  {displayRupee(getPaidAmount(rec), amountsVisible)}
                 </p>
               </div>
               <div className="mt-2 text-sm">
                 <p className="font-medium">{rec.courseName ?? "—"}</p>
                 <p className="text-muted-foreground text-xs mt-0.5">{rec.paymentMode ?? "—"}</p>
                 <div className="mt-1 flex items-center gap-3 text-xs">
-                  <p className="text-green-600 font-medium">
-                    Paid: ₹{getPaidAmount(rec).toLocaleString("en-IN")}
+                  <p className="text-green-600 font-medium tabular-nums">
+                    Paid: {displayRupee(getPaidAmount(rec), amountsVisible)}
                   </p>
-                  <p className="text-red-600 font-medium">
-                    Balance: ₹{getBalanceAmount(rec).toLocaleString("en-IN")}
+                  <p className="text-red-600 font-medium tabular-nums">
+                    Balance: {displayRupee(getBalanceAmount(rec), amountsVisible)}
                   </p>
                 </div>
               </div>
@@ -725,6 +774,7 @@ function UidDetailView({
         record={receiptRecord}
         pdfMeta={pdfMeta}
         installmentContext={receiptContext}
+        amountsVisible={amountsVisible}
       />
 
       {/* Delete confirm */}
@@ -769,6 +819,7 @@ export default function FeesPage() {
 
   const [selectedGroup, setSelectedGroup] = useState<FeeUidGroup | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [feeAmountsVisible, setFeeAmountsVisible] = useState(false);
 
   const [pdfMeta, setPdfMeta] = useState<PdfMeta>({ instituteName: "" });
 
@@ -828,6 +879,8 @@ export default function FeesPage() {
           group={selectedGroup}
           instituteId={instituteId}
           pdfMeta={pdfMeta}
+          amountsVisible={feeAmountsVisible}
+          onToggleAmounts={() => setFeeAmountsVisible((v) => !v)}
           onBack={() => {
             setSelectedGroup(null);
             fetchGroups();
@@ -854,6 +907,13 @@ export default function FeesPage() {
         </Button>
       </div>
 
+      <div className="mb-4">
+        <FeeAmountsToggle
+          visible={feeAmountsVisible}
+          onToggle={() => setFeeAmountsVisible((v) => !v)}
+        />
+      </div>
+
       {/* Stats bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         <div className="bg-white rounded-xl border p-4 flex items-center gap-3">
@@ -871,8 +931,11 @@ export default function FeesPage() {
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Total Net</p>
-            <p className="text-xl font-bold text-blue-600">
-              ₹{groups.reduce((s, g) => s + (g.totalPaid ?? 0), 0).toLocaleString("en-IN")}
+            <p className="text-xl font-bold text-blue-600 tabular-nums">
+              {displayRupee(
+                groups.reduce((s, g) => s + (g.totalPaid ?? 0), 0),
+                feeAmountsVisible
+              )}
             </p>
           </div>
         </div>
@@ -882,8 +945,11 @@ export default function FeesPage() {
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Total Paid</p>
-            <p className="text-xl font-bold text-green-600">
-              ₹{groups.reduce((s, g) => s + (g.totalAmountReceived ?? 0), 0).toLocaleString("en-IN")}
+            <p className="text-xl font-bold text-green-600 tabular-nums">
+              {displayRupee(
+                groups.reduce((s, g) => s + (g.totalAmountReceived ?? 0), 0),
+                feeAmountsVisible
+              )}
             </p>
           </div>
         </div>
@@ -893,8 +959,11 @@ export default function FeesPage() {
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Total Balance</p>
-            <p className="text-xl font-bold text-red-500">
-              ₹{groups.reduce((s, g) => s + (g.totalBalance ?? 0), 0).toLocaleString("en-IN")}
+            <p className="text-xl font-bold text-red-500 tabular-nums">
+              {displayRupee(
+                groups.reduce((s, g) => s + (g.totalBalance ?? 0), 0),
+                feeAmountsVisible
+              )}
             </p>
           </div>
         </div>
@@ -938,6 +1007,7 @@ export default function FeesPage() {
             <UidCard
               key={g._id}
               group={g}
+              amountsVisible={feeAmountsVisible}
               onClick={() => setSelectedGroup(g)}
             />
           ))}
