@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import { ImagePlus, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -42,6 +42,7 @@ const createBatchSchema = z
   .object({
     name: z.string().trim().min(1, "Please enter a batch name"),
     standard: z.string().min(1, "Please select a standard"),
+    subjects: z.string().optional(),
     description: z.string().optional(),
     about: z.string().optional(),
     payment: z.object({
@@ -77,6 +78,10 @@ export default function CreateBatch({
   trigger?: React.ReactNode; 
 }) {
   const [open, setOpen] = useState(false);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+
   const queryClient = useQueryClient();
   const instituteData = useAppSelector((state) => state.institute.institute);
 
@@ -85,6 +90,7 @@ export default function CreateBatch({
     defaultValues: {
       name: "",
       standard: standard || "",
+      subjects: "",
       description: "",
       about: "",
       payment: {
@@ -99,11 +105,40 @@ export default function CreateBatch({
     ? instituteData.standards
     : FALLBACK_STANDARDS;
 
+  const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please upload an image file");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Cover image must be less than 5MB");
+      return;
+    }
+    setCoverFile(file);
+    const reader = new FileReader();
+    reader.onload = () => setCoverPreview(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveCover = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCoverFile(null);
+    setCoverPreview(null);
+    if (coverInputRef.current) coverInputRef.current.value = "";
+  };
+
   const onSubmit = async (values: z.infer<typeof createBatchSchema>) => {
     try {
+      const subjectsArray = values.subjects
+        ? values.subjects.split(",").map((s) => s.trim()).filter(Boolean)
+        : undefined;
+
       const response = await createBatch({
         name: values.name,
         standard: values.standard,
+        subjects: subjectsArray,
         description: values.description || undefined,
         about: values.about || undefined,
         institute: instituteId,
@@ -115,14 +150,27 @@ export default function CreateBatch({
               : 0,
           currency: "INR",
         },
+        coverImage: coverFile
+          ? { name: coverFile.name, type: coverFile.type }
+          : undefined,
       });
 
       if (response?.success) {
+        // Upload cover image to S3 if a presigned URL was returned
+        if (coverFile && response.coverImageUploadUrl) {
+          await fetch(response.coverImageUploadUrl, {
+            method: "PUT",
+            body: coverFile,
+            headers: { "Content-Type": coverFile.type },
+          });
+        }
+
         toast.success("Batch created successfully!");
         setOpen(false);
         form.reset();
+        setCoverFile(null);
+        setCoverPreview(null);
 
-        // Invalidate the query to trigger a refetch
         queryClient.invalidateQueries({
           queryKey: ["institute_batches", instituteId],
         });
@@ -139,6 +187,8 @@ export default function CreateBatch({
     setOpen(v);
     if (!v) {
       form.reset();
+      setCoverFile(null);
+      setCoverPreview(null);
     }
   };
 
@@ -162,6 +212,49 @@ export default function CreateBatch({
           className="grid gap-5 py-2"
         >
           <FieldGroup>
+            {/* Cover image upload */}
+            <Field className="gap-1.5">
+              <FieldLabel>
+                Cover Image{" "}
+                <span className="text-muted-foreground font-normal">(Optional)</span>
+              </FieldLabel>
+              <div
+                className="relative w-full h-36 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-100 transition-colors overflow-hidden"
+                onClick={() => coverInputRef.current?.click()}
+              >
+                {coverPreview ? (
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={coverPreview}
+                      alt="Cover preview"
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRemoveCover}
+                      className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 transition-colors"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <ImagePlus className="h-8 w-8 text-gray-400 mb-2" />
+                    <p className="text-xs text-gray-400 font-medium">Click to upload cover image</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">PNG, JPG up to 5MB</p>
+                  </>
+                )}
+              </div>
+              <input
+                ref={coverInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleCoverChange}
+              />
+            </Field>
+
             <Controller
               control={form.control}
               name="name"
@@ -220,6 +313,32 @@ export default function CreateBatch({
 
             <Controller
               control={form.control}
+              name="subjects"
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid} className="gap-1.5">
+                  <FieldLabel htmlFor="batch-subjects">
+                    Subjects{" "}
+                    <span className="text-muted-foreground font-normal">(Optional)</span>
+                  </FieldLabel>
+                  <Input
+                    id="batch-subjects"
+                    placeholder="e.g. Physics, Chemistry, Mathematics"
+                    className="shadow-none"
+                    aria-invalid={fieldState.invalid}
+                    {...field}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Separate multiple subjects with commas
+                  </p>
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              )}
+            />
+
+            <Controller
+              control={form.control}
               name="description"
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid} className="gap-1.5">
@@ -259,7 +378,7 @@ export default function CreateBatch({
                   <textarea
                     id="batch-about"
                     {...field}
-                    value={field.value || ""} // textarea can't handle undefined value
+                    value={field.value || ""}
                     placeholder={`Write detailed info about this batch...\n\nYou can use:\n- Bullet points\n- Multiple lines\n- Any spacing you need`}
                     rows={6}
                     spellCheck={false}
@@ -281,71 +400,6 @@ export default function CreateBatch({
                 </Field>
               )}
             />
-
-            {/* Paid batch UI — temporarily hidden (restore Switch + IndianRupee imports and isPaid watch when uncommenting)
-            <div className="rounded-xl border border-border p-4 grid gap-4 mt-2">
-              <Controller
-                control={form.control}
-                name="payment.subscriptionType"
-                render={({ field }) => (
-                  <div className="flex flex-row items-center justify-between space-y-0 rounded-lg">
-                    <div className="space-y-0.5">
-                      <p className="text-base font-medium">Paid Batch</p>
-                      <p className="text-xs text-muted-foreground">
-                        Toggle to charge students for this batch
-                      </p>
-                    </div>
-                    <Switch
-                      checked={field.value === "Paid"}
-                      onCheckedChange={(checked) => {
-                        field.onChange(checked ? "Paid" : "Free");
-                      }}
-                    />
-                  </div>
-                )}
-              />
-
-              {isPaid ? (
-                <Controller
-                  control={form.control}
-                  name="payment.amount"
-                  render={({ field, fieldState }) => (
-                    <Field
-                      data-invalid={fieldState.invalid}
-                      className="gap-1.5"
-                    >
-                      <FieldLabel htmlFor="batch-price">Price (INR)</FieldLabel>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                          <IndianRupee className="h-4 w-4" />
-                        </span>
-                        <Input
-                          id="batch-price"
-                          type="number"
-                          min={0}
-                          placeholder="0"
-                          className="pl-9 shadow-none"
-                          aria-invalid={fieldState.invalid}
-                          {...field}
-                          value={field.value ?? ""}
-                        />
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Currency is always stored in INR
-                      </p>
-                      {fieldState.invalid && (
-                        <FieldError errors={[fieldState.error]} />
-                      )}
-                    </Field>
-                  )}
-                />
-              ) : (
-                <p className="text-sm text-green-600 font-medium">
-                  ✓ This batch is free for all students
-                </p>
-              )}
-            </div>
-            */}
           </FieldGroup>
 
           <div className="flex justify-end gap-3 pt-4">
@@ -370,3 +424,4 @@ export default function CreateBatch({
     </Dialog>
   );
 }
+

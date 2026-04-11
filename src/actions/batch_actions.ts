@@ -5,10 +5,12 @@ import { logger } from "@/lib/logger";
 interface BatchCreateData {
   name: string;
   standard: string;
+  subjects?: string[];
   mentors?: string[];
   institute?: string;
   description?: string;
   about?: string;
+  coverImage?: { name: string; type: string };
   payment?: {
     subscriptionType: "Free" | "Paid";
     amount: number;
@@ -147,6 +149,49 @@ export const getBatchStudents = async (batchId: string) => {
   } catch (error) {
     logger.error("Error fetching batch students", { error });
     return { students: [] };
+  }
+};
+
+export const updateBatch = async (
+  batchId: string,
+  data: Partial<Omit<BatchCreateData, "institute">>
+) => {
+  const token = await getCookie();
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL}/api/batch/${batchId}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(data),
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: `token=${token}`,
+        },
+        credentials: "include",
+      }
+    );
+    return await res.json();
+  } catch (error) {
+    logger.error("Error updating batch", { error });
+    return { success: false, message: "Failed to update batch" };
+  }
+};
+
+export const deleteBatch = async (batchId: string) => {
+  const token = await getCookie();
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL}/api/batch/${batchId}`,
+      {
+        method: "DELETE",
+        headers: { Cookie: `token=${token}` },
+        credentials: "include",
+      }
+    );
+    return await res.json();
+  } catch (error) {
+    logger.error("Error deleting batch", { error });
+    return { success: false, message: "Failed to delete batch" };
   }
 };
 

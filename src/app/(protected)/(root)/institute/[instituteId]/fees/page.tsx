@@ -12,9 +12,11 @@ import {
   Users,
   IndianRupee,
   FileText,
+  ChevronDown,
   ChevronRight,
   Eye,
   EyeOff,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -44,6 +46,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 
 import {
@@ -821,6 +829,11 @@ export default function FeesPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [feeAmountsVisible, setFeeAmountsVisible] = useState(false);
 
+  // ── Filters ─────────────────────────────────────────────────────────────────
+  const [filterSession, setFilterSession] = useState<string>("All");
+  const [filterStream, setFilterStream] = useState<string>("All");
+  const [filterPending, setFilterPending] = useState(false);
+
   const [pdfMeta, setPdfMeta] = useState<PdfMeta>({ instituteName: "" });
 
   // Debounce search
@@ -870,6 +883,35 @@ export default function FeesPage() {
     fetchGroups();
   }, [fetchGroups]);
 
+  // ── Derived filter options ──────────────────────────────────────────────────
+  const allSessions = useMemo(() => {
+    const s = new Set<string>();
+    groups.forEach((g) => { if (g.academicSession) s.add(g.academicSession); });
+    return Array.from(s).sort((a, b) => b.localeCompare(a));
+  }, [groups]);
+
+  const allStreams = useMemo(() => {
+    const s = new Set<string>();
+    groups.forEach((g) => { if (g.streamName) s.add(g.streamName); });
+    return Array.from(s).sort((a, b) => a.localeCompare(b));
+  }, [groups]);
+
+  const filteredGroups = useMemo(() => {
+    return groups.filter((g) => {
+      if (filterSession !== "All" && g.academicSession !== filterSession) return false;
+      if (filterStream !== "All" && g.streamName !== filterStream) return false;
+      if (filterPending && (g.totalBalance ?? 0) <= 0) return false;
+      return true;
+    });
+  }, [groups, filterSession, filterStream, filterPending]);
+
+  const hasActiveFilters = filterSession !== "All" || filterStream !== "All" || filterPending;
+
+  // ── Stats for currently filtered set ───────────────────────────────────────
+  const filteredNetTotal    = filteredGroups.reduce((s, g) => s + (g.totalPaid ?? 0), 0);
+  const filteredPaidTotal   = filteredGroups.reduce((s, g) => s + (g.totalAmountReceived ?? 0), 0);
+  const filteredBalanceTotal = filteredGroups.reduce((s, g) => s + (g.totalBalance ?? 0), 0);
+
   // If a UID is selected, show the detail view
   if (selectedGroup) {
     return (
@@ -897,8 +939,9 @@ export default function FeesPage() {
         <div>
           <h1 className="text-2xl md:text-3xl font-bold">Fee Management</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {groups.length} student{groups.length !== 1 ? "s" : ""} with fee
-            records
+            {hasActiveFilters
+              ? `${filteredGroups.length} of ${groups.length} student${groups.length !== 1 ? "s" : ""}`
+              : `${groups.length} student${groups.length !== 1 ? "s" : ""} with fee records`}
           </p>
         </div>
         <Button onClick={() => setDialogOpen(true)} className="gap-2">
@@ -922,7 +965,7 @@ export default function FeesPage() {
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Students</p>
-            <p className="text-xl font-bold">{groups.length}</p>
+            <p className="text-xl font-bold">{filteredGroups.length}</p>
           </div>
         </div>
         <div className="bg-white rounded-xl border p-4 flex items-center gap-3">
@@ -932,10 +975,7 @@ export default function FeesPage() {
           <div>
             <p className="text-xs text-muted-foreground">Total Net</p>
             <p className="text-xl font-bold text-blue-600 tabular-nums">
-              {displayRupee(
-                groups.reduce((s, g) => s + (g.totalPaid ?? 0), 0),
-                feeAmountsVisible
-              )}
+              {displayRupee(filteredNetTotal, feeAmountsVisible)}
             </p>
           </div>
         </div>
@@ -946,10 +986,7 @@ export default function FeesPage() {
           <div>
             <p className="text-xs text-muted-foreground">Total Paid</p>
             <p className="text-xl font-bold text-green-600 tabular-nums">
-              {displayRupee(
-                groups.reduce((s, g) => s + (g.totalAmountReceived ?? 0), 0),
-                feeAmountsVisible
-              )}
+              {displayRupee(filteredPaidTotal, feeAmountsVisible)}
             </p>
           </div>
         </div>
@@ -960,24 +997,116 @@ export default function FeesPage() {
           <div>
             <p className="text-xs text-muted-foreground">Total Balance</p>
             <p className="text-xl font-bold text-red-500 tabular-nums">
-              {displayRupee(
-                groups.reduce((s, g) => s + (g.totalBalance ?? 0), 0),
-                feeAmountsVisible
-              )}
+              {displayRupee(filteredBalanceTotal, feeAmountsVisible)}
             </p>
           </div>
         </div>
       </div>
 
-      {/* Search */}
-      <div className="relative mb-5 max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-        <Input
-          className="pl-9"
-          placeholder="Search by name or UID…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      {/* Search + Filters */}
+      <div className="flex flex-col gap-3 mb-5">
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <Input
+            className="pl-9"
+            placeholder="Search by name or UID…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+
+        {/* Filter chips row */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Academic Session filter */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className={`gap-1.5 h-8 text-xs ${filterSession !== "All" ? "border-primary text-primary bg-primary/5" : ""}`}
+              >
+                {filterSession === "All" ? "Academic Session" : filterSession}
+                <ChevronDown className="size-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuItem
+                className={filterSession === "All" ? "font-semibold text-primary" : ""}
+                onClick={() => setFilterSession("All")}
+              >
+                All Sessions
+              </DropdownMenuItem>
+              {allSessions.map((s) => (
+                <DropdownMenuItem
+                  key={s}
+                  className={filterSession === s ? "font-semibold text-primary" : ""}
+                  onClick={() => setFilterSession(s)}
+                >
+                  {s}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Stream / Class filter */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className={`gap-1.5 h-8 text-xs ${filterStream !== "All" ? "border-primary text-primary bg-primary/5" : ""}`}
+              >
+                {filterStream === "All" ? "Class / Stream" : filterStream}
+                <ChevronDown className="size-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuItem
+                className={filterStream === "All" ? "font-semibold text-primary" : ""}
+                onClick={() => setFilterStream("All")}
+              >
+                All Classes
+              </DropdownMenuItem>
+              {allStreams.map((s) => (
+                <DropdownMenuItem
+                  key={s}
+                  className={filterStream === s ? "font-semibold text-primary" : ""}
+                  onClick={() => setFilterStream(s)}
+                >
+                  {s}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Pending fees toggle */}
+          <Button
+            variant="outline"
+            size="sm"
+            className={`gap-1.5 h-8 text-xs ${filterPending ? "border-red-500 text-red-600 bg-red-50" : ""}`}
+            onClick={() => setFilterPending((v) => !v)}
+          >
+            <IndianRupee className="size-3" />
+            Pending Fees
+          </Button>
+
+          {/* Clear all */}
+          {hasActiveFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1 h-8 text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => {
+                setFilterSession("All");
+                setFilterStream("All");
+                setFilterPending(false);
+              }}
+            >
+              <X className="size-3" />
+              Clear filters
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* UID Block Grid */}
@@ -990,20 +1119,34 @@ export default function FeesPage() {
             />
           ))}
         </div>
-      ) : groups.length === 0 ? (
+      ) : filteredGroups.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
           <IndianRupee className="size-12 mx-auto mb-3 opacity-20" />
-          <p className="text-base font-medium">No fee records yet.</p>
-          <button
-            onClick={() => setDialogOpen(true)}
-            className="mt-2 text-primary underline underline-offset-2 text-sm"
-          >
-            Add the first record
-          </button>
+          {hasActiveFilters ? (
+            <>
+              <p className="text-base font-medium">No students match the selected filters.</p>
+              <button
+                onClick={() => { setFilterSession("All"); setFilterStream("All"); setFilterPending(false); }}
+                className="mt-2 text-primary underline underline-offset-2 text-sm"
+              >
+                Clear filters
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="text-base font-medium">No fee records yet.</p>
+              <button
+                onClick={() => setDialogOpen(true)}
+                className="mt-2 text-primary underline underline-offset-2 text-sm"
+              >
+                Add the first record
+              </button>
+            </>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {groups.map((g) => (
+          {filteredGroups.map((g) => (
             <UidCard
               key={g._id}
               group={g}

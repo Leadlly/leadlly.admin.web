@@ -6,12 +6,14 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 
 import { toast } from "sonner";
-import { Check, ChevronDown, Loader2, Search, X } from "lucide-react";
+import { Check, ChevronDown, Loader2, MoreHorizontal, Search, ShieldOff, X } from "lucide-react";
 
 import { getInstituteBatch, getTeacherAssignedBatches } from "@/actions/batch_actions";
 import {
   assignBatchesToTeacher,
+  blockTeacher,
   getInstituteTeachers,
+  unassignBatchFromTeacher,
 } from "@/actions/teacher_actions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +29,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { logger } from "@/lib/logger";
 
 type ApiBatch = {
@@ -53,6 +65,7 @@ interface Teacher {
   subject: string;
   email: string;
   contact: string;
+  assignedBatchIds: string[];
 }
 
 function batchLabel(b: ApiBatch) {
@@ -70,8 +83,9 @@ export default function TeachersPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSubject, setSelectedSubject] = useState<string>("All");
+  const [selectedBatchFilter, setSelectedBatchFilter] = useState<string>("All");
 
-  // All institute batches (loaded once)
+  // All institute batches (loaded eagerly on mount)
   const [allBatches, setAllBatches] = useState<ApiBatch[]>([]);
   const [batchesLoading, setBatchesLoading] = useState(false);
 
@@ -84,7 +98,22 @@ export default function TeachersPage() {
   const [assignSubmitting, setAssignSubmitting] = useState(false);
   const [batchSearch, setBatchSearch] = useState("");
 
-  // ── Load teachers ────────────────────────────────────────────────────────────
+  // ── Load all institute batches eagerly ────────────────────────────────────
+  useEffect(() => {
+    if (!instituteId) return;
+    let cancelled = false;
+    setBatchesLoading(true);
+    getInstituteBatch(instituteId)
+      .then((res) => {
+        if (cancelled) return;
+        if (res?.success) setAllBatches((res?.data ?? []) as ApiBatch[]);
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setBatchesLoading(false); });
+    return () => { cancelled = true; };
+  }, [instituteId]);
+
+  // ── Load teachers + their assigned batch IDs ──────────────────────────────
   useEffect(() => {
     if (!instituteId) return;
     let cancelled = false;
@@ -99,15 +128,32 @@ export default function TeachersPage() {
           setError(res.message ?? "Error loading teachers");
           return;
         }
-        setTeachers(
-          (res.teachers ?? []).map((t: ApiTeacher) => ({
-            id: String(t._id),
-            name: `${t.firstname ?? ""} ${t.lastname ?? ""}`.trim() || "Teacher",
-            subject: (t.academic?.degree ?? t.academic?.schoolOrCollegeName ?? "—").toString(),
-            email: t.email ?? "",
-            contact: String(t.phone?.personal ?? t.phone?.other ?? "—"),
-          }))
-        );
+
+        const baseTeachers = (res.teachers ?? []).map((t: ApiTeacher) => ({
+          id: String(t._id),
+          name: `${t.firstname ?? ""} ${t.lastname ?? ""}`.trim() || "Teacher",
+          subject: (t.academic?.degree ?? t.academic?.schoolOrCollegeName ?? "—").toString(),
+          email: t.email ?? "",
+          contact: String(t.phone?.personal ?? t.phone?.other ?? "—"),
+          assignedBatchIds: [] as string[],
+        }));
+
+        // Set teachers immediately (with empty batch IDs) so the list appears fast
+        if (!cancelled) setTeachers(baseTeachers);
+
+        // Then fetch assigned batch IDs for each teacher in parallel
+        Promise.all(
+          baseTeachers.map(async (teacher) => {
+            try {
+              const batchRes = await getTeacherAssignedBatches(teacher.id);
+              return { ...teacher, assignedBatchIds: batchRes.success ? (batchRes.batchIds ?? []) : [] };
+            } catch {
+              return teacher;
+            }
+          })
+        ).then((updatedTeachers) => {
+          if (!cancelled) setTeachers(updatedTeachers);
+        });
       })
       .catch((err) => {
         if (!cancelled) {
@@ -119,9 +165,6 @@ export default function TeachersPage() {
 
     return () => { cancelled = true; };
   }, [instituteId]);
-
-  // Reset batches when institute changes
-  useEffect(() => { setAllBatches([]); }, [instituteId]);
 
   const ensureBatchesLoaded = async () => {
     if (batchesLoading) return;
@@ -189,6 +232,14 @@ export default function TeachersPage() {
         toast.success("Batches assigned successfully");
         setAssignOpen(false);
         setSelectedBatchIds([]);
+        // Refresh assigned batch IDs on the card
+        setTeachers((prev) =>
+          prev.map((t) =>
+            t.id === activeTeacherId
+              ? { ...t, assignedBatchIds: [...t.assignedBatchIds, ...selectedBatchIds] }
+              : t
+          )
+        );
       } else {
         toast.error(res.message ?? "Failed to assign batches");
       }
@@ -196,6 +247,55 @@ export default function TeachersPage() {
       toast.error("Failed to assign batches");
     } finally {
       setAssignSubmitting(false);
+    }
+  };
+
+  const [unassignLoading, setUnassignLoading] = useState<string | null>(null);
+  const [blockConfirm, setBlockConfirm] = useState<{ id: string; name: string } | null>(null);
+  const [blockSubmitting, setBlockSubmitting] = useState(false);
+
+  const handleUnassign = async (batchId: string) => {
+    if (!activeTeacherId) return;
+    setUnassignLoading(batchId);
+    try {
+      const res = await unassignBatchFromTeacher(instituteId, activeTeacherId, batchId);
+      if (res.success) {
+        toast.success("Batch unassigned successfully");
+        setAssignedBatchIds((prev) => { const next = new Set(prev); next.delete(batchId); return next; });
+        // Also update card badges
+        setTeachers((prev) =>
+          prev.map((t) =>
+            t.id === activeTeacherId
+              ? { ...t, assignedBatchIds: t.assignedBatchIds.filter((id) => id !== batchId) }
+              : t
+          )
+        );
+      } else {
+        toast.error(res.message ?? "Failed to unassign batch");
+      }
+    } catch {
+      toast.error("Failed to unassign batch");
+    } finally {
+      setUnassignLoading(null);
+    }
+  };
+
+  const handleBlockTeacher = async () => {
+    if (!blockConfirm) return;
+    setBlockSubmitting(true);
+    try {
+      const res = await blockTeacher(instituteId, blockConfirm.id);
+      if (res.success) {
+        toast.success(`${blockConfirm.name} has been removed from the institute`);
+        setTeachers((prev) => prev.filter((t) => t.id !== blockConfirm.id));
+        setBlockConfirm(null);
+      } else {
+        toast.error(res.message ?? "Failed to remove teacher");
+      }
+    } catch {
+      toast.error("Failed to remove teacher");
+    } finally {
+      setBlockSubmitting(false);
     }
   };
 
@@ -212,6 +312,15 @@ export default function TeachersPage() {
       const matchesSub =
         selectedSubject === "All" || t.subject === selectedSubject;
       if (!matchesSub) return false;
+
+      const matchesBatch =
+        selectedBatchFilter === "All"
+          ? true
+          : selectedBatchFilter === "none"
+          ? t.assignedBatchIds.length === 0
+          : t.assignedBatchIds.includes(selectedBatchFilter);
+      if (!matchesBatch) return false;
+
       if (!q) return true;
       const name = (t.name ?? "").toLowerCase().replace(/\s+/g, " ");
       const subject = (t.subject ?? "").toLowerCase();
@@ -226,7 +335,7 @@ export default function TeachersPage() {
         contact.includes(q.replace(/\s+/g, ""))
       );
     });
-  }, [teachers, searchTerm, selectedSubject]);
+  }, [teachers, searchTerm, selectedSubject, selectedBatchFilter]);
 
   // ── Render ────────────────────────────────────────────────────────────────
   if (loading) {
@@ -251,12 +360,30 @@ export default function TeachersPage() {
   const subjectFilterLabel =
     selectedSubject === "All" ? "All subjects" : selectedSubject;
 
+  const batchFilterLabel =
+    selectedBatchFilter === "All"
+      ? "All batches"
+      : selectedBatchFilter === "none"
+      ? "No batch"
+      : (allBatches.find((b) => b._id === selectedBatchFilter)
+          ? batchLabel(allBatches.find((b) => b._id === selectedBatchFilter)!)
+          : "All batches");
+
+  const hasActiveFilters = selectedSubject !== "All" || selectedBatchFilter !== "All" || searchTerm.trim() !== "";
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
         <h1 className="text-2xl md:text-4xl font-bold text-center md:text-left">
           Teachers of Institute
         </h1>
+        <Link
+          href={`/institute/${instituteId}/blocked-teachers`}
+          className="flex items-center gap-1.5 text-sm text-red-500 hover:text-red-700 border border-red-200 hover:border-red-300 rounded-lg px-3 py-1.5 transition-colors"
+        >
+          <ShieldOff className="h-3.5 w-3.5" />
+          Blocked Teachers
+        </Link>
       </div>
 
       {/* Toolbar — aligned with batch list */}
@@ -275,29 +402,58 @@ export default function TeachersPage() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
           <span className="text-sm font-medium text-gray-500">Filter by:</span>
+
+          {/* Subject filter */}
           <DropdownMenu>
-            <DropdownMenuTrigger className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-left min-w-[160px] hover:bg-gray-50 transition-colors">
+            <DropdownMenuTrigger className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-left min-w-[140px] hover:bg-gray-50 transition-colors">
               <span className="flex-1 truncate">{subjectFilterLabel}</span>
               <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56 max-h-72 overflow-y-auto">
-              <DropdownMenuItem
-                onClick={() => setSelectedSubject("All")}
-              >
+              <DropdownMenuItem onClick={() => setSelectedSubject("All")}>
                 All subjects
               </DropdownMenuItem>
               {subjects.map((sub) => (
-                <DropdownMenuItem
-                  key={sub}
-                  onClick={() => setSelectedSubject(sub)}
-                >
+                <DropdownMenuItem key={sub} onClick={() => setSelectedSubject(sub)}>
                   {sub}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {/* Batch filter */}
+          <DropdownMenu>
+            <DropdownMenuTrigger className={`flex items-center gap-2 border rounded-lg px-3 py-2 text-sm text-left min-w-[140px] transition-colors ${selectedBatchFilter !== "All" ? "bg-purple-50 border-purple-300 text-purple-700" : "bg-white border-gray-200 hover:bg-gray-50"}`}>
+              <span className="flex-1 truncate">{batchFilterLabel}</span>
+              <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56 max-h-72 overflow-y-auto">
+              <DropdownMenuItem onClick={() => setSelectedBatchFilter("All")}>
+                All batches
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSelectedBatchFilter("none")}>
+                No batch assigned
+              </DropdownMenuItem>
+              {allBatches.map((b) => (
+                <DropdownMenuItem key={b._id} onClick={() => setSelectedBatchFilter(b._id)}>
+                  {batchLabel(b)}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Clear filters */}
+          {hasActiveFilters && (
+            <button
+              onClick={() => { setSearchTerm(""); setSelectedSubject("All"); setSelectedBatchFilter("All"); }}
+              className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              <X className="h-3.5 w-3.5" />
+              Clear
+            </button>
+          )}
         </div>
       </div>
 
@@ -321,13 +477,44 @@ export default function TeachersPage() {
                     {teacher.subject !== "—" ? teacher.subject : "Teacher"}
                   </p>
                 </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="p-1 rounded-md hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors shrink-0">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem
+                      onClick={() => setBlockConfirm({ id: teacher.id, name: teacher.name })}
+                      className="gap-2 cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50"
+                    >
+                      <ShieldOff className="h-3.5 w-3.5" />
+                      Remove from Institute
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
 
               <div className="text-[12px] mb-3 text-gray-500">
-                Email:{" "}
-                <span className="font-semibold text-gray-800 break-all">
-                  {teacher.email || "—"}
-                </span>
+                <p className="mb-1.5">Assigned Batches:</p>
+                {(() => {
+                  const batches = allBatches.filter((b) => teacher.assignedBatchIds.includes(b._id));
+                  return batches.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {batches.map((batch) => (
+                        <Badge
+                          key={batch._id}
+                          variant="secondary"
+                          className="bg-purple-50 text-purple-700 border border-purple-200 rounded-full text-[10px] px-2 py-0.5"
+                        >
+                          {batchLabel(batch)}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-gray-400 text-[11px]">No batches assigned</span>
+                  );
+                })()}
               </div>
 
               <div className="flex gap-2 mt-auto">
@@ -353,7 +540,7 @@ export default function TeachersPage() {
       ) : (
         <div className="py-16 text-center">
           <p className="text-gray-400 text-sm">
-            No teachers found. Try adjusting your search or subject filter.
+            No teachers found. Try adjusting your search or filters.
           </p>
         </div>
       )}
@@ -390,13 +577,23 @@ export default function TeachersPage() {
               ) : (
                 <div className="flex flex-wrap gap-1.5">
                   {alreadyAssignedBatches.map((b) => (
-                    <Badge
+                    <span
                       key={b._id}
-                      variant="secondary"
-                      className="bg-green-50 text-green-700 border border-green-200 rounded-full text-xs"
+                      className="inline-flex items-center gap-1 bg-green-50 text-green-700 border border-green-200 rounded-full text-xs pl-2 pr-1 py-0.5"
                     >
                       {batchLabel(b)}
-                    </Badge>
+                      <button
+                        type="button"
+                        disabled={unassignLoading === b._id}
+                        onClick={() => handleUnassign(b._id)}
+                        className="ml-0.5 rounded-full p-0.5 hover:bg-green-200 disabled:opacity-50 transition-colors"
+                        title="Unassign this batch"
+                      >
+                        {unassignLoading === b._id
+                          ? <Loader2 className="size-3 animate-spin" />
+                          : <X className="size-3" />}
+                      </button>
+                    </span>
                   ))}
                 </div>
               )}
@@ -514,6 +711,30 @@ export default function TeachersPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* ── Remove from Institute confirmation ────────────────────────────── */}
+      <AlertDialog open={!!blockConfirm} onOpenChange={(v) => { if (!v) setBlockConfirm(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove &quot;{blockConfirm?.name}&quot; from Institute?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This teacher will be blocked and will no longer be able to access the mentor portal.
+              They will see a message saying they cannot access this institute.
+              You can unblock them from the Blocked Teachers page.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={blockSubmitting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBlockTeacher}
+              disabled={blockSubmitting}
+              className="bg-red-600 hover:bg-red-700 text-white focus:ring-red-600"
+            >
+              {blockSubmitting ? "Removing..." : "Remove from Institute"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

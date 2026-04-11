@@ -225,6 +225,35 @@ export async function assignTeachersToBatch(
   };
 }
 
+export async function unassignBatchFromTeacher(
+  instituteId: string,
+  teacherId: string,
+  batchId: string
+): Promise<{ success: boolean; message?: string }> {
+  try {
+    if (!instituteId || !teacherId || !batchId) {
+      return { success: false, message: "instituteId, teacherId and batchId are required" };
+    }
+    const token = await getCookie();
+    const baseUrl = process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL;
+    if (!baseUrl) return { success: false, message: "API base URL not configured" };
+
+    const res = await fetch(`${baseUrl}/api/admin/unassign-batch`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: `token=${token}` },
+      body: JSON.stringify({ teacherId, batchId, instituteId }),
+      cache: "no-store",
+      credentials: "include",
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return { success: false, message: data?.message ?? "Failed to unassign batch" };
+    return { success: true, message: data?.message };
+  } catch (error) {
+    return { success: false, message: error instanceof Error ? error.message : "Failed to unassign" };
+  }
+}
+
 export async function getTeacherDashboardById(
   teacherId: string
 ): Promise<{ success: boolean; data?: any; message?: string }> {
@@ -262,6 +291,79 @@ export async function getTeacherDashboardById(
       success: false,
       message: error instanceof Error ? error.message : "Failed to fetch teacher dashboard",
     };
+  }
+}
+
+export async function blockTeacher(
+  instituteId: string,
+  teacherId: string
+): Promise<{ success: boolean; message?: string }> {
+  try {
+    const token = await getCookie();
+    const baseUrl = process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL;
+    if (!baseUrl) return { success: false, message: "API base URL not configured" };
+
+    const res = await fetch(`${baseUrl}/api/admin/block-teacher`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: `token=${token}` },
+      body: JSON.stringify({ teacherId, instituteId }),
+      cache: "no-store",
+      credentials: "include",
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return { success: false, message: data?.message ?? "Failed to block teacher" };
+    return { success: true, message: data?.message };
+  } catch (error) {
+    return { success: false, message: error instanceof Error ? error.message : "Failed to block teacher" };
+  }
+}
+
+export async function unblockTeacher(
+  instituteId: string,
+  teacherId: string
+): Promise<{ success: boolean; message?: string }> {
+  try {
+    const token = await getCookie();
+    const baseUrl = process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL;
+    if (!baseUrl) return { success: false, message: "API base URL not configured" };
+
+    const res = await fetch(`${baseUrl}/api/admin/unblock-teacher`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Cookie: `token=${token}` },
+      body: JSON.stringify({ teacherId, instituteId }),
+      cache: "no-store",
+      credentials: "include",
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return { success: false, message: data?.message ?? "Failed to unblock teacher" };
+    return { success: true, message: data?.message };
+  } catch (error) {
+    return { success: false, message: error instanceof Error ? error.message : "Failed to unblock teacher" };
+  }
+}
+
+export async function getBlockedTeachers(
+  instituteId: string
+): Promise<{ success: boolean; teachers: any[]; message?: string }> {
+  try {
+    const token = await getCookie();
+    const baseUrl = process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL;
+    if (!baseUrl) return { success: false, teachers: [], message: "API base URL not configured" };
+
+    const res = await fetch(`${baseUrl}/api/admin/institute/${instituteId}/blocked-teachers`, {
+      method: "GET",
+      headers: { "Content-Type": "application/json", Cookie: `token=${token}` },
+      cache: "no-store",
+      credentials: "include",
+    });
+
+    const data = await res.json();
+    if (!res.ok) return { success: false, teachers: [], message: data?.message ?? "Failed to fetch blocked teachers" };
+    return { success: true, teachers: data?.teachers ?? [] };
+  } catch (error) {
+    return { success: false, teachers: [], message: error instanceof Error ? error.message : "Failed to fetch" };
   }
 }
 
