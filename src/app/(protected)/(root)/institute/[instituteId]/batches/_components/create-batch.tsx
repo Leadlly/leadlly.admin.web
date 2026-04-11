@@ -38,11 +38,13 @@ import { logger } from "@/lib/logger";
 
 const FALLBACK_STANDARDS = ["9", "10", "11", "12"];
 
+const SUBJECT_OPTIONS = ["Physics", "Chemistry", "Maths"] as const;
+
 const createBatchSchema = z
   .object({
     name: z.string().trim().min(1, "Please enter a batch name"),
     standard: z.string().min(1, "Please select a standard"),
-    subjects: z.string().optional(),
+    subjects: z.array(z.string()).optional(),
     description: z.string().optional(),
     about: z.string().optional(),
     payment: z.object({
@@ -90,7 +92,7 @@ export default function CreateBatch({
     defaultValues: {
       name: "",
       standard: standard || "",
-      subjects: "",
+      subjects: [],
       description: "",
       about: "",
       payment: {
@@ -131,9 +133,7 @@ export default function CreateBatch({
 
   const onSubmit = async (values: z.infer<typeof createBatchSchema>) => {
     try {
-      const subjectsArray = values.subjects
-        ? values.subjects.split(",").map((s) => s.trim()).filter(Boolean)
-        : undefined;
+      const subjectsArray = values.subjects && values.subjects.length > 0 ? values.subjects : undefined;
 
       const response = await createBatch({
         name: values.name,
@@ -316,20 +316,36 @@ export default function CreateBatch({
               name="subjects"
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid} className="gap-1.5">
-                  <FieldLabel htmlFor="batch-subjects">
+                  <FieldLabel>
                     Subjects{" "}
                     <span className="text-muted-foreground font-normal">(Optional)</span>
                   </FieldLabel>
-                  <Input
-                    id="batch-subjects"
-                    placeholder="e.g. Physics, Chemistry, Mathematics"
-                    className="shadow-none"
-                    aria-invalid={fieldState.invalid}
-                    {...field}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Separate multiple subjects with commas
-                  </p>
+                  <div className="flex gap-3 flex-wrap">
+                    {SUBJECT_OPTIONS.map((subject) => {
+                      const checked = (field.value ?? []).includes(subject);
+                      return (
+                        <button
+                          key={subject}
+                          type="button"
+                          onClick={() => {
+                            const current = field.value ?? [];
+                            if (checked) {
+                              field.onChange(current.filter((s) => s !== subject));
+                            } else {
+                              field.onChange([...current, subject]);
+                            }
+                          }}
+                          className={`px-4 py-2 rounded-lg text-sm font-semibold border transition-all ${
+                            checked
+                              ? "bg-purple-600 text-white border-purple-600"
+                              : "bg-white text-gray-700 border-gray-200 hover:border-purple-300"
+                          }`}
+                        >
+                          {subject}
+                        </button>
+                      );
+                    })}
+                  </div>
                   {fieldState.invalid && (
                     <FieldError errors={[fieldState.error]} />
                   )}

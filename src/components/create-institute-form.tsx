@@ -6,26 +6,13 @@ import { Controller, useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Camera, FileImage, Loader2, Plus, X } from "lucide-react";
+import { Camera, FileImage, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 
 import { createInstitute } from "@/actions/institute_actions";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Combobox,
-  ComboboxChip,
-  ComboboxChips,
-  ComboboxChipsInput,
-  ComboboxCollection,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxItem,
-  ComboboxList,
-  ComboboxValue,
-  useComboboxAnchor,
-} from "@/components/ui/combobox";
 import {
   Field,
   FieldError,
@@ -47,15 +34,13 @@ import { logger } from "@/lib/logger";
 import { useAppDispatch } from "@/redux/hooks";
 import { instituteData } from "@/redux/slices/instituteSlice";
 
-const defaultSubjects = ["physics", "chemistry", "mathematics"];
-const standardOptions = ["9", "10", "11", "12", "13"];
+const standardOptions = ["6", "7", "8", "9", "10", "11", "12"];
 
 const CreateInstituteForm = ({
   setDialogOpen,
 }: {
   setDialogOpen?: (dialogOpen: boolean) => void;
 }) => {
-  const [customSubject, setCustomSubject] = useState("");
   const [loading, setLoading] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -67,13 +52,11 @@ const CreateInstituteForm = ({
 
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const anchor = useComboboxAnchor();
 
   const form = useForm<z.input<typeof CreateInstituteFormSchema>>({
     resolver: zodResolver(CreateInstituteFormSchema),
     defaultValues: {
       name: "",
-      subjects: [],
       standards: [],
       address1: "",
       city: "",
@@ -144,7 +127,7 @@ const CreateInstituteForm = ({
 
       const res = await createInstitute({
         ...data,
-        subjects: data.subjects ?? [],
+        subjects: [],
         standards: data.standards ?? [],
         logo: logoFile ? { name: logoFile.name, type: logoFile.type } : undefined,
         docLogo: docLogoFile
@@ -440,88 +423,6 @@ const CreateInstituteForm = ({
             )}
           />
         </div>
-
-        <Controller
-          control={form.control}
-          name="subjects"
-          render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid} className="gap-1.5">
-              <FieldLabel>
-                Subjects{" "}
-                <span className="text-muted-foreground">(Optional)</span>
-              </FieldLabel>
-
-              <Combobox
-                multiple
-                autoHighlight
-                items={[...new Set([...defaultSubjects, ...(field.value ?? [])])]}
-                value={field.value ?? []}
-                onValueChange={(value) => {
-                  field.onChange(value);
-                  setCustomSubject("");
-                }}
-                onInputValueChange={setCustomSubject}
-              >
-                <ComboboxChips ref={anchor}>
-                  <ComboboxValue>
-                    {(values) => (
-                      <React.Fragment>
-                        {values.map((value: string) => (
-                          <ComboboxChip key={value} className="capitalize">
-                            {value}
-                          </ComboboxChip>
-                        ))}
-                        <ComboboxChipsInput placeholder="Select subjects" />
-                      </React.Fragment>
-                    )}
-                  </ComboboxValue>
-                </ComboboxChips>
-
-                <ComboboxContent anchor={anchor}>
-                  <ComboboxEmpty>No subjects found.</ComboboxEmpty>
-                  <ComboboxList>
-                    <ComboboxCollection>
-                      {(item) => (
-                        <ComboboxItem
-                          key={item}
-                          value={item}
-                          className="capitalize"
-                        >
-                          {item}
-                        </ComboboxItem>
-                      )}
-                    </ComboboxCollection>
-
-                    {customSubject &&
-                      !defaultSubjects.some(
-                        (s) => s.toLowerCase() === customSubject.toLowerCase()
-                      ) &&
-                      !(field.value ?? []).some(
-                        (s: string) =>
-                          s.toLowerCase() === customSubject.toLowerCase()
-                      ) && (
-                        <Button
-                          type="button"
-                          variant={"ghost"}
-                          className="w-full justify-start text-primary font-medium px-1.5 h-9"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            field.onChange([...(field.value ?? []), customSubject]);
-                            setCustomSubject("");
-                          }}
-                        >
-                          <Plus className="mr-2 size-4" />
-                          <span>Add &quot;{customSubject}&quot;</span>
-                        </Button>
-                      )}
-                  </ComboboxList>
-                </ComboboxContent>
-              </Combobox>
-
-              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-            </Field>
-          )}
-        />
 
         <Controller
           name="standards"

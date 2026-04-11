@@ -88,10 +88,11 @@ function EditBatchDialog({
   const queryClient = useQueryClient();
   const coverInputRef = useRef<HTMLInputElement>(null);
 
+  const SUBJECT_OPTIONS = ["Physics", "Chemistry", "Maths"] as const;
   const [name, setName] = useState(batch?.name ?? "");
   const [standard, setStandard] = useState(batch?.standard ?? "");
   const [description, setDescription] = useState(batch?.description ?? "");
-  const [subjects, setSubjects] = useState(batch?.subjects?.join(", ") ?? "");
+  const [subjects, setSubjects] = useState<string[]>(batch?.subjects ?? []);
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -102,7 +103,7 @@ function EditBatchDialog({
       setName(batch.name);
       setStandard(batch.standard);
       setDescription(batch.description ?? "");
-      setSubjects(batch.subjects?.join(", ") ?? "");
+      setSubjects(batch.subjects ?? []);
       setCoverFile(null);
       setCoverPreview(null);
     }
@@ -124,9 +125,7 @@ function EditBatchDialog({
     if (!batch) return;
     setSubmitting(true);
     try {
-      const subjectsArray = subjects
-        ? subjects.split(",").map((s) => s.trim()).filter(Boolean)
-        : undefined;
+      const subjectsArray = subjects.length > 0 ? subjects : undefined;
 
       const res = await updateBatch(batch._id, {
         name,
@@ -227,17 +226,34 @@ function EditBatchDialog({
 
           {/* Subjects */}
           <div className="grid gap-1.5">
-            <label className="text-sm font-medium" htmlFor="edit-subjects">
+            <label className="text-sm font-medium">
               Subjects <span className="text-muted-foreground font-normal">(Optional)</span>
             </label>
-            <input
-              id="edit-subjects"
-              value={subjects}
-              onChange={(e) => setSubjects(e.target.value)}
-              placeholder="e.g. Physics, Chemistry"
-              className="w-full px-3 py-2 text-sm border border-input rounded-md bg-transparent focus:outline-none focus:ring-2 focus:ring-purple-300"
-            />
-            <p className="text-xs text-muted-foreground">Separate multiple subjects with commas</p>
+            <div className="flex gap-3 flex-wrap">
+              {SUBJECT_OPTIONS.map((subject) => {
+                const checked = subjects.includes(subject);
+                return (
+                  <button
+                    key={subject}
+                    type="button"
+                    onClick={() => {
+                      if (checked) {
+                        setSubjects(subjects.filter((s) => s !== subject));
+                      } else {
+                        setSubjects([...subjects, subject]);
+                      }
+                    }}
+                    className={`px-4 py-2 rounded-lg text-sm font-semibold border transition-all ${
+                      checked
+                        ? "bg-purple-600 text-white border-purple-600"
+                        : "bg-white text-gray-700 border-gray-200 hover:border-purple-300"
+                    }`}
+                  >
+                    {subject}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Description */}
