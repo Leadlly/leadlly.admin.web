@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 
 import {
@@ -65,7 +65,19 @@ export default function UINsPage() {
   const [page, setPage] = useState(1);
   const [assignedFilter, setAssignedFilter] = useState<AssignedFilter>("all");
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /* ── Debounce search input ── */
+  const onSearchChange = (val: string) => {
+    setSearch(val);
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      setDebouncedSearch(val);
+      setPage(1);
+    }, 400);
+  };
 
   /* ── Fetch ── */
   const fetchUINs = useCallback(async () => {
@@ -74,13 +86,14 @@ export default function UINsPage() {
       page,
       limit: PAGE_LIMIT,
       assigned: assignedFilter === "all" ? undefined : assignedFilter,
+      search: debouncedSearch || undefined,
     });
     if (res.success) {
       setUins(res.uins);
       setTotal(res.total);
     }
     setLoading(false);
-  }, [instituteId, page, assignedFilter]);
+  }, [instituteId, page, assignedFilter, debouncedSearch]);
 
   useEffect(() => {
     fetchUINs();
@@ -123,12 +136,8 @@ export default function UINsPage() {
     }
   };
 
-  /* ── Client-side search filter (over current page) ── */
-  const displayed = search.trim()
-    ? uins.filter((u) =>
-        u.uin.toLowerCase().includes(search.trim().toLowerCase())
-      )
-    : uins;
+  /* ── Server-side search — display all returned results ── */
+  const displayed = uins;
 
   const totalPages = Math.ceil(total / PAGE_LIMIT);
   const assignedCount = uins.filter((u) => u.isAssigned).length;
@@ -233,18 +242,18 @@ export default function UINsPage() {
               </button>
             ))}
 
-            {/* Search */}
+            {/* Search — server-side, searches across all pages */}
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => onSearchChange(e.target.value)}
                 placeholder="Search UID…"
                 className="pl-8 h-8 w-40 shadow-none text-sm"
               />
               {search && (
                 <button
-                  onClick={() => setSearch("")}
+                  onClick={() => { setSearch(""); setDebouncedSearch(""); setPage(1); }}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   <X className="h-3 w-3" />
@@ -263,7 +272,9 @@ export default function UINsPage() {
           <div className="flex flex-col items-center gap-3 py-14 text-muted-foreground">
             <Hash className="h-10 w-10 opacity-20" />
             <p className="text-sm">
-              {total === 0
+              {debouncedSearch
+                ? `No UIDs found matching "${debouncedSearch}".`
+                : total === 0
                 ? "No UIDs added yet. Use the form above to add some."
                 : "No UIDs match the current filter."}
             </p>

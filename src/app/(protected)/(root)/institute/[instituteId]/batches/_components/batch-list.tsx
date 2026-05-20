@@ -1,15 +1,16 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 import Link from "next/link";
 
-import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { ChevronDown, ImagePlus, MoreHorizontal, Pencil, Trash2, X } from "lucide-react";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ChevronDown, ImagePlus, MoreHorizontal, Pencil, PowerOff, Search, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { deleteBatch, getInstituteBatch, updateBatch } from "@/actions/batch_actions";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -285,11 +286,17 @@ function EditBatchDialog({
   );
 }
 
+type StatusFilter = "All" | "Active" | "Inactive" | "Completed";
+
 // ── Main BatchList ─────────────────────────────────────────────────────────
 export default function BatchList({ instituteId }: { instituteId: string }) {
   const queryClient = useQueryClient();
   const [filterStandard, setFilterStandard] = useState("");
   const [filterLabel, setFilterLabel] = useState("All Standards");
+  const [filterStatus, setFilterStatus] = useState<StatusFilter>("All");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [assignDialog, setAssignDialog] = useState<{ open: boolean; batchId: string; batchName: string }>(
     { open: false, batchId: "", batchName: "" }
@@ -297,20 +304,39 @@ export default function BatchList({ instituteId }: { instituteId: string }) {
   const [editBatch, setEditBatch] = useState<ApiBatch | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<ApiBatch | null>(null);
+  const [deactivateConfirm, setDeactivateConfirm] = useState<ApiBatch | null>(null);
 
-  const { data } = useSuspenseQuery({
-    queryKey: ["institute_batches", instituteId],
-    queryFn: () => getInstituteBatch(instituteId),
+  // Debounce search input so we don't fire a request on every keystroke
+  useEffect(() => {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => setDebouncedSearch(searchQuery), 400);
+    return () => { if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current); };
+  }, [searchQuery]);
+
+  // All filters go into the query key so React Query refetches when any changes
+  const { data, isFetching } = useQuery({
+    queryKey: ["institute_batches", instituteId, filterStatus, filterStandard, debouncedSearch],
+    queryFn: () =>
+      getInstituteBatch(instituteId, {
+        status: filterStatus === "All" ? undefined : filterStatus,
+        standard: filterStandard || undefined,
+        search: debouncedSearch || undefined,
+      }),
+    placeholderData: keepPreviousData,
   });
 
   const batches: ApiBatch[] = data?.data ?? [];
+
+  // Invalidate all variations of institute_batches for this institute
+  const invalidateBatches = () =>
+    queryClient.invalidateQueries({ queryKey: ["institute_batches", instituteId] });
 
   const deleteMutation = useMutation({
     mutationFn: (batchId: string) => deleteBatch(batchId),
     onSuccess: (res) => {
       if (res?.success) {
         toast.success("Batch deleted successfully");
-        queryClient.invalidateQueries({ queryKey: ["institute_batches", instituteId] });
+        invalidateBatches();
       } else {
         toast.error(res?.message ?? "Failed to delete batch");
       }
@@ -322,20 +348,41 @@ export default function BatchList({ instituteId }: { instituteId: string }) {
     },
   });
 
+  const deactivateMutation = useMutation({
+    mutationFn: (batch: ApiBatch) =>
+      updateBatch(batch._id, { status: batch.status === "Inactive" ? "Active" : "Inactive" }),
+    onSuccess: (res, batch) => {
+      if (res?.success) {
+        const action = batch.status === "Inactive" ? "activated" : "deactivated";
+        toast.success(`Batch ${action} successfully`);
+        invalidateBatches();
+      } else {
+        toast.error(res?.message ?? "Failed to update batch status");
+      }
+      setDeactivateConfirm(null);
+    },
+    onError: () => {
+      toast.error("Failed to update batch status");
+      setDeactivateConfirm(null);
+    },
+  });
+
+  // Unique standards derived from currently returned batches (for dropdown options when no filter active)
   const uniqueStandards = Array.from(new Set(batches.map((b) => b.standard))).sort(
     (a, b) => Number(a) - Number(b)
   );
 
-  const filteredBatches = batches
-    .filter((batch) => (filterStandard ? batch.standard === filterStandard : true))
-    .sort((a, b) => Number(a.standard) - Number(b.standard));
+  // Batches are already filtered by the API — just sort client-side
+  const filteredBatches = [...batches].sort((a, b) => Number(a.standard) - Number(b.standard));
 
   return (
     <>
       {/* Toolbar */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <span className="text-sm font-medium text-gray-500">Filter by:</span>
+
+          {/* Standard dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger className="flex items-center gap-2 bg-white border rounded-lg px-3 py-2 text-sm text-left min-w-[150px] hover:bg-gray-50 transition-colors">
               <span className="flex-1">{filterLabel}</span>
@@ -355,6 +402,46 @@ export default function BatchList({ instituteId }: { instituteId: string }) {
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {/* Status filter pills */}
+          {(["All", "Active", "Inactive", "Completed"] as StatusFilter[]).map((s) => (
+            <button
+              key={s}
+              onClick={() => setFilterStatus(s)}
+              className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                filterStatus === s
+                  ? s === "Active"
+                    ? "bg-green-500 text-white border-green-500"
+                    : s === "Inactive"
+                    ? "bg-gray-400 text-white border-gray-400"
+                    : s === "Completed"
+                    ? "bg-blue-500 text-white border-blue-500"
+                    : "bg-purple-500 text-white border-purple-500"
+                  : "bg-white text-gray-500 border-gray-200 hover:bg-gray-50"
+              }`}
+            >
+              {s}
+            </button>
+          ))}
+
+          {/* Search bar */}
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search batches…"
+              className="pl-8 h-9 w-44 shadow-none text-sm border-gray-200 rounded-lg"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            )}
+          </div>
         </div>
 
         <CreateBatch
@@ -369,7 +456,12 @@ export default function BatchList({ instituteId }: { instituteId: string }) {
       </div>
 
       {/* Batch grid */}
-      {filteredBatches.length > 0 ? (
+      {isFetching && (
+        <div className="flex justify-center items-center py-6">
+          <div className="animate-spin rounded-full h-7 w-7 border-t-2 border-b-2 border-purple-500" />
+        </div>
+      )}
+      {!isFetching && filteredBatches.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
           {filteredBatches.map((batch) => {
             const totalStudents = batch.totalStudents ?? 0;
@@ -407,13 +499,20 @@ export default function BatchList({ instituteId }: { instituteId: string }) {
                           <MoreHorizontal className="h-4 w-4" />
                         </button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-40">
+                      <DropdownMenuContent align="end" className="w-44">
                         <DropdownMenuItem
                           onClick={() => { setEditBatch(batch); setEditOpen(true); }}
                           className="gap-2 cursor-pointer"
                         >
                           <Pencil className="h-3.5 w-3.5" />
                           Edit Batch
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => setDeactivateConfirm(batch)}
+                          className="gap-2 cursor-pointer text-orange-600 focus:text-orange-600 focus:bg-orange-50"
+                        >
+                          <PowerOff className="h-3.5 w-3.5" />
+                          {batch.status === "Inactive" ? "Activate Batch" : "Deactivate Batch"}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
@@ -448,11 +547,15 @@ export default function BatchList({ instituteId }: { instituteId: string }) {
             );
           })}
         </div>
-      ) : (
+      ) : !isFetching ? (
         <div className="py-16 text-center">
-          <p className="text-gray-400 text-sm">No batches found. Try adjusting your filters or add a new batch.</p>
+          <p className="text-gray-400 text-sm">
+            {filterStatus !== "All" || filterStandard || debouncedSearch
+              ? "No batches match the current filters."
+              : "No batches found. Add a new batch to get started."}
+          </p>
         </div>
-      )}
+      ) : null}
 
       {/* Assign Teacher dialog */}
       <AssignTeacherDialog
@@ -488,6 +591,34 @@ export default function BatchList({ instituteId }: { instituteId: string }) {
               className="bg-red-600 hover:bg-red-700 text-white focus:ring-red-600"
             >
               {deleteMutation.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Deactivate / Activate confirmation */}
+      <AlertDialog open={!!deactivateConfirm} onOpenChange={(v) => { if (!v) setDeactivateConfirm(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {deactivateConfirm?.status === "Inactive" ? "Activate" : "Deactivate"} &quot;{deactivateConfirm?.name}&quot;?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {deactivateConfirm?.status === "Inactive"
+                ? "This will mark the batch as Active, making it visible and accessible to students."
+                : "This will mark the batch as Inactive. Students will no longer be able to access this batch."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deactivateMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deactivateConfirm && deactivateMutation.mutate(deactivateConfirm)}
+              disabled={deactivateMutation.isPending}
+              className="bg-orange-500 hover:bg-orange-600 text-white focus:ring-orange-500"
+            >
+              {deactivateMutation.isPending
+                ? "Updating..."
+                : deactivateConfirm?.status === "Inactive" ? "Activate" : "Deactivate"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

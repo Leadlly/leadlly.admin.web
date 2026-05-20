@@ -61,7 +61,8 @@ export async function getInstituteUINs(
     page = 1,
     limit = 50,
     assigned,
-  }: { page?: number; limit?: number; assigned?: "true" | "false" } = {}
+    search,
+  }: { page?: number; limit?: number; assigned?: "true" | "false"; search?: string } = {}
 ) {
   try {
     const token = await getCookie();
@@ -69,6 +70,7 @@ export async function getInstituteUINs(
       page: String(page),
       limit: String(limit),
       ...(assigned !== undefined ? { assigned } : {}),
+      ...(search?.trim() ? { search: search.trim() } : {}),
     });
 
     const res = await fetch(

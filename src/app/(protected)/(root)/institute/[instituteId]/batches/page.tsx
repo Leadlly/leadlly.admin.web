@@ -20,9 +20,9 @@ export default async function BatchesPage({
 
   const queryClient = new QueryClient();
 
-  // Prefetch the batches route.
+  // Prefetch with the same key shape used in BatchList (All status, no standard/search)
   await queryClient.prefetchQuery({
-    queryKey: ["institute_batches", instituteId],
+    queryKey: ["institute_batches", instituteId, "All", "", ""],
     queryFn: () => getInstituteBatch(instituteId),
   });
 

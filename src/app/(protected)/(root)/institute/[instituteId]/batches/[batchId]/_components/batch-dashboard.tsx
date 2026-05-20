@@ -13,6 +13,7 @@ import {
   getBatchDetails,
   getBatchStudents,
 } from "@/actions/batch_actions";
+import CreateClassDialog from "./create-class-dialog";
 
 interface BatchDashboardProps {
   batchId: string;
@@ -282,6 +283,14 @@ export default function BatchDashboard({
       {/* Classes Tab */}
       {activeTab === "classes" && (
         <div className="space-y-3">
+          {/* Header row with Add Class button */}
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-gray-500">
+              {classes ? `${classes.length} class${classes.length !== 1 ? "es" : ""}` : ""}
+            </p>
+            <CreateClassDialog batchId={batchId} />
+          </div>
+
           {isClassesLoading ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
@@ -290,8 +299,9 @@ export default function BatchDashboard({
             </div>
           ) : classes && classes.length > 0 ? (
             classes.map((cls: any) => (
-              <div
+              <Link
                 key={cls._id}
+                href={`/institute/${instituteId}/batches/${batchId}/classes/${cls._id}`}
                 className="bg-white rounded-2xl p-4 flex items-center justify-between group hover:bg-purple-50/40 transition-colors border border-transparent hover:border-purple-100"
               >
                 <div className="flex items-center gap-4 min-w-0 flex-1">
@@ -300,7 +310,7 @@ export default function BatchDashboard({
                   </div>
                   <div className="space-y-1 min-w-0">
                     <h4 className="font-bold text-sm text-gray-900 group-hover:text-purple-600 transition-colors truncate">
-                      {cls.subject ?? "Subject"} — {cls.topic ?? "Topic"}
+                      {cls.subject ?? "Subject"}{cls.topic ? ` — ${cls.topic}` : ""}
                     </h4>
                     <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold text-gray-400">
                       {cls.date && (
@@ -319,7 +329,7 @@ export default function BatchDashboard({
                   </div>
                 </div>
                 <ChevronRight className="text-gray-300 group-hover:text-purple-400 transition-colors size-5 shrink-0 ml-2" />
-              </div>
+              </Link>
             ))
           ) : (
             <div className="py-16 text-center text-gray-400 text-sm font-medium">

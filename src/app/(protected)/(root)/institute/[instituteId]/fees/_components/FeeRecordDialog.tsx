@@ -448,7 +448,19 @@ const FeeRecordDialog = ({
       toast.error("Student name is required");
       return;
     }
-    if (!form.tuitionFees || Number(form.tuitionFees) < 0) {
+    if (!form.academicSession?.trim()) {
+      toast.error("Academic session is required");
+      return;
+    }
+    if (!form.paymentDate?.trim()) {
+      toast.error("Payment date is required");
+      return;
+    }
+    if (!form.paymentMode?.trim()) {
+      toast.error("Payment mode is required");
+      return;
+    }
+    if (!form.tuitionFees || Number(form.tuitionFees) <= 0) {
       toast.error("Please enter a valid tuition fee amount");
       return;
     }
@@ -556,10 +568,11 @@ const FeeRecordDialog = ({
           {/* Academic Session + Payment Date */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <Label>Academic Session</Label>
+              <Label>Academic Session <span className="text-destructive">*</span></Label>
               <Select
                 value={form.academicSession ?? ""}
                 onValueChange={onSessionChange}
+                required
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select session" />
@@ -574,11 +587,12 @@ const FeeRecordDialog = ({
               </Select>
             </div>
             <div className="space-y-1">
-              <Label>Payment Date</Label>
+              <Label>Payment Date <span className="text-destructive">*</span></Label>
               <Input
                 type="date"
                 value={form.paymentDate}
                 onChange={(e) => set("paymentDate", e.target.value)}
+                required
               />
             </div>
           </div>
@@ -593,6 +607,7 @@ const FeeRecordDialog = ({
                 placeholder="Full name"
                 value={form.studentName}
                 onChange={(e) => set("studentName", e.target.value)}
+                required
               />
             </div>
             <div className="space-y-1">
@@ -691,7 +706,7 @@ const FeeRecordDialog = ({
               />
             </div>
             <div className="space-y-1">
-              <Label>Payment Mode</Label>
+              <Label>Payment Mode <span className="text-destructive">*</span></Label>
               <Select
                 value={form.paymentMode}
                 onValueChange={(v) => set("paymentMode", v)}
@@ -730,6 +745,7 @@ const FeeRecordDialog = ({
                   value={form.tuitionFees === 0 ? "" : form.tuitionFees}
                   onChange={(e) => set("tuitionFees", e.target.value)}
                   disabled={isFeeLocked}
+                  required={!isFeeLocked}
                   className={isFeeLocked ? "bg-muted text-muted-foreground" : ""}
                 />
               </div>

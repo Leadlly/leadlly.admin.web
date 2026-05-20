@@ -48,15 +48,32 @@ export const createBatch = async (data: BatchCreateData) => {
   }
 };
 
-export const getInstituteBatch = async (instituteId: string) => {
+export const getInstituteBatch = async (
+  instituteId: string,
+  {
+    status,
+    standard,
+    search,
+  }: {
+    status?: "Active" | "Inactive" | "Completed";
+    standard?: string;
+    search?: string;
+  } = {}
+) => {
   if (!instituteId) {
     throw new Error("Institute ID is required to fetch batches");
   }
   const token = await getCookie();
 
   try {
+    const params = new URLSearchParams();
+    if (status) params.set("status", status);
+    if (standard?.trim()) params.set("standard", standard.trim());
+    if (search?.trim()) params.set("search", search.trim());
+    const query = params.toString() ? `?${params}` : "";
+
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL}/api/institute/${instituteId}/batches`,
+      `${process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL}/api/institute/${instituteId}/batches${query}`,
       {
         method: "GET",
         headers: {
@@ -107,7 +124,7 @@ export const getBatchClasses = async (batchId: string) => {
 
   try {
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL}/api/class/batch/${batchId}`,
+      `${process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL}/api/institute/class/batch/${batchId}`,
       {
         method: "GET",
         headers: {
@@ -154,7 +171,7 @@ export const getBatchStudents = async (batchId: string) => {
 
 export const updateBatch = async (
   batchId: string,
-  data: Partial<Omit<BatchCreateData, "institute">>
+  data: Partial<Omit<BatchCreateData, "institute"> & { status: "Active" | "Inactive" | "Completed" }>
 ) => {
   const token = await getCookie();
   try {
@@ -192,6 +209,56 @@ export const deleteBatch = async (batchId: string) => {
   } catch (error) {
     logger.error("Error deleting batch", { error });
     return { success: false, message: "Failed to delete batch" };
+  }
+};
+
+export const createClass = async (data: {
+  batchId: string;
+  subjectName: string;
+  className?: string;
+  topic?: string;
+  date?: string;
+  startTime?: string;
+  endTime?: string;
+}) => {
+  const token = await getCookie();
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL}/api/institute/class/create`,
+      {
+        method: "POST",
+        body: JSON.stringify(data),
+        headers: { "Content-Type": "application/json", Cookie: `token=${token}` },
+        credentials: "include",
+      }
+    );
+    const json = await res.json();
+    if (!res.ok) return { success: false, message: json.message ?? "Failed to create class" };
+    return { success: true, data: json };
+  } catch (error) {
+    logger.error("Error creating class", { error });
+    return { success: false, message: "Failed to create class" };
+  }
+};
+
+export const getClassDetails = async (classId: string) => {
+  const token = await getCookie();
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL}/api/institute/class/${classId}`,
+      {
+        method: "GET",
+        headers: { Cookie: `token=${token}` },
+        credentials: "include",
+        cache: "no-store",
+      }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.class ?? null;
+  } catch (error) {
+    logger.error("Error fetching class details", { error });
+    return null;
   }
 };
 
