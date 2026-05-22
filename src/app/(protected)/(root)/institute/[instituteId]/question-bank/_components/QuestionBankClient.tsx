@@ -23,6 +23,7 @@ import type {
   QBQuestion,
   QBPagination,
 } from "@/actions/question_bank_actions";
+import { getActiveInstitute } from "@/actions/institute_actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,22 +37,78 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { generateQuestionBankPdf } from "./QuestionPdfGenerator";
+import { useParams } from "next/navigation";
 
 const STANDARDS = ["11", "12"];
 const OPTION_LABELS = ["A", "B", "C", "D"];
 const PAGE_SIZE = 10;
 
+function decodeHtmlEntities(text: string): string {
+  return text
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) =>
+      String.fromCodePoint(parseInt(hex, 16))
+    )
+    .replace(/&#([0-9]+);/g, (_, dec) =>
+      String.fromCodePoint(parseInt(dec, 10))
+    );
+}
+
 function sanitize(text: string): string {
-  return (text ?? "")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&nbsp;/g, " ")
-    .replace(/<[^>]+>/g, "")
-    .trim();
+  return decodeHtmlEntities(
+    (text ?? "")
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&nbsp;/g, " ")
+      .replace(/&minus;/g, "−")
+      .replace(/&times;/g, "×")
+      .replace(/&divide;/g, "÷")
+      .replace(/&plusmn;/g, "±")
+      .replace(/&alpha;/g, "α")
+      .replace(/&beta;/g, "β")
+      .replace(/&gamma;/g, "γ")
+      .replace(/&theta;/g, "θ")
+      .replace(/&pi;/g, "π")
+      .replace(/&omega;/g, "ω")
+      .replace(/&mu;/g, "μ")
+      .replace(/&sigma;/g, "σ")
+      .replace(/&lambda;/g, "λ")
+      .replace(/&Delta;/g, "Δ")
+      .replace(/&radic;/g, "√")
+      .replace(/&infin;/g, "∞")
+      .replace(/&ge;/g, "≥")
+      .replace(/&le;/g, "≤")
+      .replace(/&ne;/g, "≠")
+      .replace(/&deg;/g, "°")
+      .replace(/&ndash;/g, "–")
+      .replace(/&mdash;/g, "—")
+      .replace(/&bull;/g, "•")
+      .replace(/&hellip;/g, "…")
+      .replace(/&([a-zA-Z]+);/g, " ")
+      .replace(/<[^>]+>/g, "")
+      .trim()
+  );
 }
 
 export default function QuestionBankClient() {
+  const params = useParams<{ instituteId: string }>();
+  const instituteId = params?.instituteId ?? "";
+
+  const [instituteLogo, setInstituteLogo] = useState<string | undefined>();
+  const [instituteName, setInstituteName] = useState<string | undefined>();
+
+  useEffect(() => {
+    if (!instituteId) return;
+    getActiveInstitute({ instituteId }).then((res) => {
+      if (res.success && res.institute) {
+        setInstituteLogo(
+          res.institute.docLogo?.url || res.institute.logo?.url || undefined
+        );
+        setInstituteName(res.institute.name);
+      }
+    });
+  }, [instituteId]);
+
   // ── Standard → subjects (fetched from API) ──────────────────────────────────
   const [standard, setStandard] = useState("");
   const [subjects, setSubjects] = useState<string[]>([]);
@@ -93,6 +150,9 @@ export default function QuestionBankClient() {
     subtopicIds: string[];
     noOfQuestions: number;
   } | null>(null);
+
+  // Stores all questions fetched for PDF (avoids re-fetching a different random set)
+  const allFetchedQuestionsRef = useRef<QBQuestion[]>([]);
 
   // ── Fetch subjects when standard changes ───────────────────────────────────
   useEffect(() => {
@@ -251,19 +311,24 @@ export default function QuestionBankClient() {
         noOfQuestions: num,
       };
 
-      const res = await getQBQuestions(params);
+      // Fetch all questions in one shot so PDF uses the exact same set as screen
+      const res = await getQBQuestions({ ...params, page: 1, limit: num });
       setLoadingQuestions(false);
 
       if (!res.success || !res.questions) {
         setFetchError(res.message ?? "Failed to fetch questions.");
         setQuestions([]);
+        allFetchedQuestionsRef.current = [];
         setPagination(null);
         return;
       }
 
-      setQuestions(res.questions);
+      // Cache the full list for PDF, show only the first page on screen
+      allFetchedQuestionsRef.current = res.questions;
+      const pageSlice = res.questions.slice(0, PAGE_SIZE);
+      setQuestions(pageSlice);
       setPagination(res.pagination ?? null);
-      setCurrentPage(page);
+      setCurrentPage(1);
       setHasFetched(true);
     },
     [
@@ -281,36 +346,48 @@ export default function QuestionBankClient() {
   };
 
   const handlePageChange = (page: number) => {
-    if (!lastParamsRef.current) return;
-    const p = lastParamsRef.current;
-    setLoadingQuestions(true);
-    setFetchError("");
-    getQBQuestions({ ...p, page, limit: PAGE_SIZE }).then((res) => {
-      setLoadingQuestions(false);
-      if (!res.success || !res.questions) {
-        setFetchError(res.message ?? "Failed to fetch questions.");
-        return;
-      }
-      setQuestions(res.questions);
-      setPagination(res.pagination ?? null);
-      setCurrentPage(page);
-    });
+    const all = allFetchedQuestionsRef.current;
+    if (!all.length) return;
+    const start = (page - 1) * PAGE_SIZE;
+    setQuestions(all.slice(start, start + PAGE_SIZE));
+    setCurrentPage(page);
   };
 
-  // ── Generate PDF: re-fetches all pages with a high limit ────────────────────
+  // ── Generate PDF: uses the same questions already shown on screen ──────────
   const handleGeneratePdf = async () => {
-    if (!lastParamsRef.current || !pagination) return;
+    const allQs = allFetchedQuestionsRef.current;
+    if (!allQs.length) return;
     setGeneratingPdf(true);
 
-    const p = lastParamsRef.current;
-    // Fetch all questions in one shot (up to the requested total)
-    const res = await getQBQuestions({ ...p, page: 1, limit: p.noOfQuestions });
-    const allQs: QBQuestion[] = res.questions ?? [];
+    // Build finest-grained filter label: subtopic > topic > chapter > subject
+    let filterLabel: string | undefined;
+    if (selectedSubtopicIds.length > 0) {
+      const names = allSubtopics
+        .filter((s) => selectedSubtopicIds.includes(s._id))
+        .map((s) => s.name);
+      filterLabel = names.join(", ");
+    } else if (selectedTopicIds.length > 0) {
+      const allTopicsFlat = Object.values(topicsMap).flat();
+      const names = allTopicsFlat
+        .filter((t) => selectedTopicIds.includes(t._id))
+        .map((t) => t.name);
+      filterLabel = names.join(", ");
+    } else if (selectedChapterIds.length > 0) {
+      const names = chapters
+        .filter((c) => selectedChapterIds.includes(c._id))
+        .map((c) => c.name);
+      filterLabel = names.join(", ");
+    } else {
+      filterLabel = subject;
+    }
 
     await generateQuestionBankPdf(allQs, {
       subject,
-      standard: `Class ${standard}`,
+      standard,
       title: `${subject} — Question Bank`,
+      filterLabel,
+      logoUrl: instituteLogo,
+      instituteName,
     });
 
     setGeneratingPdf(false);
@@ -567,6 +644,20 @@ export default function QuestionBankClient() {
                       </span>
                       {sanitize(q.question)}
                     </p>
+
+                    {q.images && q.images.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {q.images.map((img) => (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            key={img._id}
+                            src={img.url}
+                            alt="question image"
+                            className="max-h-40 rounded border object-contain"
+                          />
+                        ))}
+                      </div>
+                    )}
 
                     {q.options && q.options.length > 0 && (
                       <div className="mt-3 grid grid-cols-1 gap-1 sm:grid-cols-2">
