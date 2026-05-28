@@ -43,51 +43,61 @@ const STANDARDS = ["11", "12"];
 const OPTION_LABELS = ["A", "B", "C", "D"];
 const PAGE_SIZE = 10;
 
-function decodeHtmlEntities(text: string): string {
-  return text
+const ALLOWED_HTML_TAGS = new Set(["sup", "sub", "b", "i", "em", "strong", "br"]);
+
+function sanitizeHtml(raw: string): string {
+  if (!raw) return "";
+  // Decode &amp; first (loop handles double-encoded &amp;amp;)
+  let t = raw;
+  while (t.includes("&amp;")) t = t.replace(/&amp;/g, "&");
+  // Decode &lt; &gt; before other entity replacements
+  t = t.replace(/&lt;/g, "<").replace(/&gt;/g, ">");
+  t = t
+    .replace(/&nbsp;/g, " ")
+    .replace(/&minus;/g, "−")
+    .replace(/&times;/g, "×")
+    .replace(/&divide;/g, "÷")
+    .replace(/&plusmn;/g, "±")
+    .replace(/&alpha;/g, "α")
+    .replace(/&beta;/g, "β")
+    .replace(/&gamma;/g, "γ")
+    .replace(/&theta;/g, "θ")
+    .replace(/&pi;/g, "π")
+    .replace(/&omega;/g, "ω")
+    .replace(/&mu;/g, "μ")
+    .replace(/&sigma;/g, "σ")
+    .replace(/&lambda;/g, "λ")
+    .replace(/&Delta;/g, "Δ")
+    .replace(/&radic;/g, "√")
+    .replace(/&infin;/g, "∞")
+    .replace(/&ge;/g, "≥")
+    .replace(/&le;/g, "≤")
+    .replace(/&ne;/g, "≠")
+    .replace(/&deg;/g, "°")
+    .replace(/&ndash;/g, "–")
+    .replace(/&mdash;/g, "—")
+    .replace(/&lsquo;/g, "‘")
+    .replace(/&rsquo;/g, "’")
+    .replace(/&ldquo;/g, "“")
+    .replace(/&rdquo;/g, "”")
+    .replace(/&bull;/g, "•")
+    .replace(/&hellip;/g, "…")
+    .replace(/&([a-zA-Z]+);/g, " ")
+    // Numeric entities → characters
     .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) =>
       String.fromCodePoint(parseInt(hex, 16))
     )
     .replace(/&#([0-9]+);/g, (_, dec) =>
       String.fromCodePoint(parseInt(dec, 10))
     );
-}
 
-function sanitize(text: string): string {
-  return decodeHtmlEntities(
-    (text ?? "")
-      .replace(/&amp;/g, "&")
-      .replace(/&lt;/g, "<")
-      .replace(/&gt;/g, ">")
-      .replace(/&nbsp;/g, " ")
-      .replace(/&minus;/g, "−")
-      .replace(/&times;/g, "×")
-      .replace(/&divide;/g, "÷")
-      .replace(/&plusmn;/g, "±")
-      .replace(/&alpha;/g, "α")
-      .replace(/&beta;/g, "β")
-      .replace(/&gamma;/g, "γ")
-      .replace(/&theta;/g, "θ")
-      .replace(/&pi;/g, "π")
-      .replace(/&omega;/g, "ω")
-      .replace(/&mu;/g, "μ")
-      .replace(/&sigma;/g, "σ")
-      .replace(/&lambda;/g, "λ")
-      .replace(/&Delta;/g, "Δ")
-      .replace(/&radic;/g, "√")
-      .replace(/&infin;/g, "∞")
-      .replace(/&ge;/g, "≥")
-      .replace(/&le;/g, "≤")
-      .replace(/&ne;/g, "≠")
-      .replace(/&deg;/g, "°")
-      .replace(/&ndash;/g, "–")
-      .replace(/&mdash;/g, "—")
-      .replace(/&bull;/g, "•")
-      .replace(/&hellip;/g, "…")
-      .replace(/&([a-zA-Z]+);/g, " ")
-      .replace(/<[^>]+>/g, "")
-      .trim()
-  );
+  // Keep allowed tags (strip attributes for safety), remove all others
+  t = t.replace(/<(\/?)([a-zA-Z][a-zA-Z0-9]*)\b[^>]*\/?>/g, (_, slash, tagName) => {
+    const tag = tagName.toLowerCase();
+    return ALLOWED_HTML_TAGS.has(tag) ? `<${slash}${tag}>` : "";
+  });
+
+  return t;
 }
 
 export default function QuestionBankClient() {
@@ -325,9 +335,10 @@ export default function QuestionBankClient() {
 
       // Cache the full list for PDF, show only the first page on screen
       allFetchedQuestionsRef.current = res.questions;
-      const pageSlice = res.questions.slice(0, PAGE_SIZE);
-      setQuestions(pageSlice);
-      setPagination(res.pagination ?? null);
+      const total = res.questions.length;
+      const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+      setQuestions(res.questions.slice(0, PAGE_SIZE));
+      setPagination({ total, totalPages, totalAvailable: total, page: 1, limit: PAGE_SIZE });
       setCurrentPage(1);
       setHasFetched(true);
     },
@@ -607,12 +618,6 @@ export default function QuestionBankClient() {
                   {pagination.total}
                 </span>{" "}
                 questions
-                {pagination.totalAvailable > pagination.total && (
-                  <span className="ml-1 text-xs text-muted-foreground">
-                    ({pagination.totalAvailable} in DB, showing requested{" "}
-                    {pagination.total})
-                  </span>
-                )}
               </p>
               <Badge variant="secondary">
                 Page {currentPage} / {pagination.totalPages}
@@ -642,7 +647,11 @@ export default function QuestionBankClient() {
                       <span className="mr-2 text-muted-foreground">
                         {globalIdx}.
                       </span>
-                      {sanitize(q.question)}
+                      <span
+                        dangerouslySetInnerHTML={{
+                          __html: sanitizeHtml(q.question),
+                        }}
+                      />
                     </p>
 
                     {q.images && q.images.length > 0 && (
@@ -669,7 +678,11 @@ export default function QuestionBankClient() {
                             <span className="shrink-0 font-medium text-foreground">
                               ({OPTION_LABELS[oi] ?? oi + 1})
                             </span>
-                            <span>{sanitize(opt.name)}</span>
+                            <span
+                              dangerouslySetInnerHTML={{
+                                __html: sanitizeHtml(opt.name),
+                              }}
+                            />
                           </div>
                         ))}
                       </div>
@@ -694,7 +707,7 @@ export default function QuestionBankClient() {
           )}
 
           {/* Pagination */}
-          {pagination && pagination.totalPages > 1 && (
+          {pagination && pagination.totalPages >= 1 && (
             <div className="flex items-center justify-center gap-2 pt-2">
               <Button
                 variant="outline"
