@@ -57,24 +57,6 @@ export default async function Dashboard({
     ? ((batchesRes as { data: unknown[] }).data ?? [])
     : [];
 
-  const activeCourses = new Set(
-    students
-      .map((s) => s?.academic?.competitiveExam)
-      .filter(Boolean),
-  ).size;
-  const avgLevel =
-    students.length > 0
-      ? students.reduce((sum, s) => {
-          return sum + Number(s?.details?.level?.number ?? 0);
-        }, 0) / students.length
-      : 0;
-  const departments = new Set(
-    teachers
-      .map((t) => {
-        return t?.academic?.degree ?? t?.academic?.schoolOrCollegeName;
-      })
-      .filter(Boolean),
-  ).size;
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
@@ -97,9 +79,7 @@ export default async function Dashboard({
           </div>
           <StudentsOverview
             totalStudents={students.length}
-            activeCourses={activeCourses}
             averageAttendance={0}
-            performanceIndex={Number(avgLevel.toFixed(1))}
             instituteId={instituteId}
           />
         </div>
@@ -110,9 +90,7 @@ export default async function Dashboard({
           </div>
           <TeachersOverview
             totalTeachers={teachers.length}
-            departments={departments}
             activeClasses={batches.length}
-            satisfactionRate={0}
             instituteId={instituteId}
           />
         </div>
