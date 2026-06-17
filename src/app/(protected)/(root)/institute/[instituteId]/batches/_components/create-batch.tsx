@@ -34,11 +34,12 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useAppSelector } from "@/redux/hooks";
+import {
+  FALLBACK_STANDARDS,
+  formatGradeLabel,
+  SUBJECT_OPTIONS,
+} from "@/helpers/constants/academic";
 import { logger } from "@/lib/logger";
-
-const FALLBACK_STANDARDS = ["9", "10", "11", "12"];
-
-const SUBJECT_OPTIONS = ["Physics", "Chemistry", "Maths"] as const;
 
 const createBatchSchema = z
   .object({
@@ -299,7 +300,7 @@ export default function CreateBatch({
                     <SelectContent>
                       {standards.map((s) => (
                         <SelectItem key={s} value={s}>
-                          Grade {s}
+                          {formatGradeLabel(s)}
                         </SelectItem>
                       ))}
                     </SelectContent>

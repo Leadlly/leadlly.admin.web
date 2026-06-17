@@ -28,6 +28,7 @@ import {
   IFeeRecord,
   AdditionalFeeItem,
 } from "@/actions/fee_actions";
+import { formatClassLabel, INSTITUTE_STANDARD_OPTIONS } from "@/helpers/constants/academic";
 
 const PAYMENT_MODES = [
   "Online Lumpsum Amount",
@@ -53,19 +54,20 @@ function generateSessionOptions(): string[] {
 
 const SESSION_OPTIONS = generateSessionOptions();
 
-const STANDARD_OPTIONS = ["6", "7", "8", "9", "10", "11", "12"] as const;
+/** Radix Select cannot use "" as a value; this sentinel drives "Not specified" in the UI. */
 const STANDARD_SELECT_NONE = "__none__";
 
-/** Map API / legacy values to a Select value "6"…"12" or "". */
+/** Map API / legacy values to a Select value "6"…"13" or "". */
 function normalizeStandardFromApi(raw: unknown): string {
   if (raw == null || raw === "") return "";
   const s = String(raw).trim();
-  if ((STANDARD_OPTIONS as readonly string[]).includes(s)) return s;
+  if (s.toLowerCase() === "dropper") return "13";
+  if ((INSTITUTE_STANDARD_OPTIONS as readonly string[]).includes(s)) return s;
   const asNum = Number(raw);
-  if (Number.isInteger(asNum) && asNum >= 6 && asNum <= 12) return String(asNum);
+  if (Number.isInteger(asNum) && asNum >= 6 && asNum <= 13) return String(asNum);
   const compact = s.toLowerCase().replace(/\s+/g, "");
   const m = compact.match(/^(\d{1,2})(?:th|st|nd|rd)?(?:class)?$/);
-  if (m && (STANDARD_OPTIONS as readonly string[]).includes(m[1])) return m[1];
+  if (m && (INSTITUTE_STANDARD_OPTIONS as readonly string[]).includes(m[1])) return m[1];
   return "";
 }
 
@@ -651,13 +653,13 @@ const FeeRecordDialog = ({
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select class (6–12)" />
+                  <SelectValue placeholder="Select class (6–Dropper)" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={STANDARD_SELECT_NONE}>Not specified</SelectItem>
-                  {STANDARD_OPTIONS.map((n) => (
+                  {INSTITUTE_STANDARD_OPTIONS.map((n) => (
                     <SelectItem key={n} value={n}>
-                      Class {n}
+                      {formatClassLabel(n)}
                     </SelectItem>
                   ))}
                 </SelectContent>

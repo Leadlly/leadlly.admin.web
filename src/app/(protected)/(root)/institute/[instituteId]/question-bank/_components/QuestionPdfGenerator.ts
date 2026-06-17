@@ -1,6 +1,7 @@
 "use client";
 
 import type { QBQuestion } from "@/actions/question_bank_actions";
+import { formatClassLabel } from "@/helpers/constants/academic";
 
 export interface QuestionPdfMeta {
   subject?: string;
@@ -73,7 +74,7 @@ export async function generateQuestionBankPdf(
 ): Promise<void> {
   const title = meta.title || "Question Bank";
   const headerLine = meta.filterLabel || meta.subject || title;
-  const subLine = [meta.subject, meta.standard ? `Class ${meta.standard}` : ""]
+  const subLine = [meta.subject, meta.standard ? formatClassLabel(meta.standard) : ""]
     .filter(Boolean)
     .join(" | ");
 

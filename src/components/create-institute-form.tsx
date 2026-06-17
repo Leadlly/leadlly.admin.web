@@ -30,11 +30,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CreateInstituteFormSchema } from "@/helpers/schema/createInstituteSchema";
+import {
+  formatGradeLabel,
+  INSTITUTE_STANDARD_OPTIONS,
+} from "@/helpers/constants/academic";
 import { logger } from "@/lib/logger";
 import { useAppDispatch } from "@/redux/hooks";
 import { instituteData } from "@/redux/slices/instituteSlice";
-
-const standardOptions = ["6", "7", "8", "9", "10", "11", "12"];
 
 const CreateInstituteForm = ({
   setDialogOpen,
@@ -440,7 +442,7 @@ const CreateInstituteForm = ({
                   data-slot="checkbox-group"
                   className="grid grid-cols-2 md:grid-cols-3 gap-3 w-full"
                 >
-                  {standardOptions.map((standard) => (
+                  {INSTITUTE_STANDARD_OPTIONS.map((standard) => (
                     <Field
                       key={standard}
                       orientation={"horizontal"}
@@ -463,7 +465,7 @@ const CreateInstituteForm = ({
                         htmlFor={`standard-${standard}`}
                         className="cursor-pointer"
                       >
-                        Grade {standard}
+                        {formatGradeLabel(standard)}
                       </FieldLabel>
                     </Field>
                   ))}

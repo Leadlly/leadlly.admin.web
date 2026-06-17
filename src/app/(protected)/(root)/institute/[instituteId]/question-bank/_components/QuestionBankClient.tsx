@@ -2,6 +2,8 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
+import { useParams } from "next/navigation";
+
 import {
   ChevronLeft,
   ChevronRight,
@@ -36,10 +38,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  formatClassLabel,
+  QUESTION_BANK_STANDARDS,
+} from "@/helpers/constants/academic";
 import { generateQuestionBankPdf } from "./QuestionPdfGenerator";
-import { useParams } from "next/navigation";
 
-const STANDARDS = ["11", "12"];
 const OPTION_LABELS = ["A", "B", "C", "D"];
 const PAGE_SIZE = 10;
 
@@ -438,9 +442,9 @@ export default function QuestionBankClient() {
                 <SelectValue placeholder="Select class" />
               </SelectTrigger>
               <SelectContent>
-                {STANDARDS.map((s) => (
+                {QUESTION_BANK_STANDARDS.map((s) => (
                   <SelectItem key={s} value={s}>
-                    Class {s}
+                    {formatClassLabel(s)}
                   </SelectItem>
                 ))}
               </SelectContent>

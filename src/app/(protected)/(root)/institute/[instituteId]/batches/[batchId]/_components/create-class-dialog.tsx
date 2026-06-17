@@ -24,7 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const SUBJECT_OPTIONS = ["Physics", "Chemistry", "Maths"] as const;
+import { SUBJECT_OPTIONS } from "@/helpers/constants/academic";
 
 const EMPTY = {
   subjectName: "",

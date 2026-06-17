@@ -9,6 +9,11 @@ import { ChevronDown, ImagePlus, MoreHorizontal, Pencil, PowerOff, Search, Trash
 import { toast } from "sonner";
 
 import { deleteBatch, getInstituteBatch, updateBatch } from "@/actions/batch_actions";
+import {
+  formatStandardBadgeLabel,
+  formatStandardFilterLabel,
+  SUBJECT_OPTIONS,
+} from "@/helpers/constants/academic";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -89,7 +94,6 @@ function EditBatchDialog({
   const queryClient = useQueryClient();
   const coverInputRef = useRef<HTMLInputElement>(null);
 
-  const SUBJECT_OPTIONS = ["Physics", "Chemistry", "Maths"] as const;
   const [name, setName] = useState(batch?.name ?? "");
   const [standard, setStandard] = useState(batch?.standard ?? "");
   const [description, setDescription] = useState(batch?.description ?? "");
@@ -395,9 +399,9 @@ export default function BatchList({ instituteId }: { instituteId: string }) {
               {uniqueStandards.map((standard) => (
                 <DropdownMenuItem
                   key={standard}
-                  onClick={() => { setFilterStandard(standard); setFilterLabel(`${standard}th Standard`); }}
+                  onClick={() => { setFilterStandard(standard); setFilterLabel(formatStandardFilterLabel(standard)); }}
                 >
-                  {standard}th Standard
+                  {formatStandardFilterLabel(standard)}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
@@ -486,7 +490,7 @@ export default function BatchList({ instituteId }: { instituteId: string }) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-bold text-sm text-gray-900 truncate">{batch.name}</h3>
-                    <p className="text-gray-400 text-[11px] font-medium mt-0.5">{batch.standard}th Class</p>
+                    <p className="text-gray-400 text-[11px] font-medium mt-0.5">{formatStandardBadgeLabel(batch.standard)}</p>
                   </div>
                   {/* Status + ⋯ menu */}
                   <div className="flex items-center gap-1.5 shrink-0">
