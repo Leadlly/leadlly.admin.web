@@ -5,6 +5,7 @@ import { logger } from "@/lib/logger";
 interface BatchCreateData {
   name: string;
   standard: string;
+  competitiveExam: "jee" | "neet" | "boards";
   subjects?: string[];
   mentors?: string[];
   institute?: string;

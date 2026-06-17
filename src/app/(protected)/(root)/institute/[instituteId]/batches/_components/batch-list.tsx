@@ -10,7 +10,9 @@ import { toast } from "sonner";
 
 import { deleteBatch, getInstituteBatch, updateBatch } from "@/actions/batch_actions";
 import {
-  formatStandardBadgeLabel,
+  COMPETITIVE_EXAM_OPTIONS,
+  type CompetitiveExamValue,
+  formatBatchMetaLabel,
   formatStandardFilterLabel,
   SUBJECT_OPTIONS,
 } from "@/helpers/constants/academic";
@@ -47,6 +49,7 @@ interface ApiBatch {
   _id: string;
   name: string;
   standard: string;
+  competitiveExam?: "jee" | "neet" | "boards";
   status: "Active" | "Inactive" | "Completed";
   description?: string;
   subjects?: string[];
@@ -97,6 +100,9 @@ function EditBatchDialog({
 
   const [name, setName] = useState(batch?.name ?? "");
   const [standard, setStandard] = useState(batch?.standard ?? "");
+  const [competitiveExam, setCompetitiveExam] = useState<CompetitiveExamValue | "">(
+    batch?.competitiveExam ?? "",
+  );
   const [description, setDescription] = useState(batch?.description ?? "");
   const [subjects, setSubjects] = useState<string[]>(batch?.subjects ?? []);
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -108,6 +114,7 @@ function EditBatchDialog({
     if (open && batch) {
       setName(batch.name);
       setStandard(batch.standard);
+      setCompetitiveExam(batch.competitiveExam ?? "");
       setDescription(batch.description ?? "");
       setSubjects(batch.subjects ?? []);
       setCoverFile(null);
@@ -136,6 +143,7 @@ function EditBatchDialog({
       const res = await updateBatch(batch._id, {
         name,
         standard,
+        competitiveExam: competitiveExam === "" ? undefined : competitiveExam,
         description: description || undefined,
         subjects: subjectsArray,
         ...(coverFile ? { images: [{ name: coverFile.name, type: coverFile.type }] } : {}),
@@ -228,6 +236,29 @@ function EditBatchDialog({
               placeholder="e.g. 11"
               className="w-full px-3 py-2 text-sm border border-input rounded-md bg-transparent focus:outline-none focus:ring-2 focus:ring-purple-300"
             />
+          </div>
+
+          {/* Competitive exam */}
+          <div className="grid gap-1.5">
+            <label className="text-sm font-medium" htmlFor="edit-competitive-exam">
+              Competitive Exam <span className="text-destructive">*</span>
+            </label>
+            <select
+              id="edit-competitive-exam"
+              value={competitiveExam}
+              onChange={(e) =>
+                setCompetitiveExam(e.target.value as CompetitiveExamValue | "")
+              }
+              required
+              className="w-full px-3 py-2 text-sm border border-input rounded-md bg-transparent focus:outline-none focus:ring-2 focus:ring-purple-300"
+            >
+              <option value="" disabled>Select exam category</option>
+              {COMPETITIVE_EXAM_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Subjects */}
@@ -494,7 +525,9 @@ export default function BatchList({ instituteId }: { instituteId: string }) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-bold text-sm text-gray-900 truncate">{batch.name}</h3>
-                    <p className="text-gray-400 text-[11px] font-medium mt-0.5">{formatStandardBadgeLabel(batch.standard)}</p>
+                    <p className="text-gray-400 text-[11px] font-medium mt-0.5">
+                      {formatBatchMetaLabel(batch.standard, batch.competitiveExam)}
+                    </p>
                   </div>
                   {/* Status + ⋯ menu */}
                   <div className="flex items-center gap-1.5 shrink-0">

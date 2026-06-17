@@ -14,6 +14,7 @@ import {
   getBatchStudents,
 } from "@/actions/batch_actions";
 import CreateClassDialog from "./create-class-dialog";
+import { formatBatchMetaLabel } from "@/helpers/constants/academic";
 
 interface BatchDashboardProps {
   batchId: string;
@@ -88,7 +89,7 @@ export default function BatchDashboard({
           {batch.name}
         </h1>
         <p className="text-sm text-gray-400 mt-1 font-medium">
-          {batch.standard}th Standard
+          {formatBatchMetaLabel(batch.standard, batch.competitiveExam)}
           {batch.subjects?.length ? ` · ${batch.subjects.join(", ")}` : ""}
         </p>
       </div>

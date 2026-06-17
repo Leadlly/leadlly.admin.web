@@ -35,6 +35,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useAppSelector } from "@/redux/hooks";
 import {
+  COMPETITIVE_EXAM_OPTIONS,
   FALLBACK_STANDARDS,
   formatGradeLabel,
   SUBJECT_OPTIONS,
@@ -45,6 +46,9 @@ const createBatchSchema = z
   .object({
     name: z.string().trim().min(1, "Please enter a batch name"),
     standard: z.string().min(1, "Please select a standard"),
+    competitiveExam: z.enum(["jee", "neet", "boards"], {
+      message: "Please select a competitive exam category",
+    }),
     subjects: z.array(z.string()).optional(),
     description: z.string().optional(),
     about: z.string().optional(),
@@ -93,6 +97,7 @@ export default function CreateBatch({
     defaultValues: {
       name: "",
       standard: standard || "",
+      competitiveExam: undefined,
       subjects: [],
       description: "",
       about: "",
@@ -139,6 +144,7 @@ export default function CreateBatch({
       const response = await createBatch({
         name: values.name,
         standard: values.standard,
+        competitiveExam: values.competitiveExam,
         subjects: subjectsArray,
         description: values.description || undefined,
         about: values.about || undefined,
@@ -301,6 +307,39 @@ export default function CreateBatch({
                       {standards.map((s) => (
                         <SelectItem key={s} value={s}>
                           {formatGradeLabel(s)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              )}
+            />
+
+            <Controller
+              control={form.control}
+              name="competitiveExam"
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid} className="gap-1.5">
+                  <FieldLabel>
+                    Competitive Exam <span className="text-destructive">*</span>
+                  </FieldLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value}
+                  >
+                    <SelectTrigger
+                      className="shadow-none"
+                      aria-invalid={fieldState.invalid}
+                    >
+                      <SelectValue placeholder="Select exam category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {COMPETITIVE_EXAM_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
