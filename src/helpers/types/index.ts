@@ -78,6 +78,15 @@ export type TMoodEmojisProps = {
   moodImg: string;
 };
 
+export interface EfficiencyOption {
+  min?: number;
+  max?: number;
+  label: string;
+  labelClassName: string;
+  cardBackgroundColor: string;
+  textColor: string;
+}
+
 export type TQuizQuestionOptionsProps = {
   name: string;
   tag: string;

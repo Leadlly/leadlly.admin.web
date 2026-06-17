@@ -303,7 +303,7 @@ export default function BatchDashboard({
             <p className="text-sm font-semibold text-gray-500">
               {classes ? `${classes.length} class${classes.length !== 1 ? "es" : ""}` : ""}
             </p>
-            <CreateClassDialog batchId={batchId} />
+            <CreateClassDialog batchId={batchId} instituteId={instituteId} />
           </div>
 
           {isClassesLoading ? (

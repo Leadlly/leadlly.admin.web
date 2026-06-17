@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -31,18 +32,18 @@ const EMPTY = {
   className: "",
   topic: "",
   date: "",
-  startTime: "",
-  endTime: "",
 };
 
 interface Props {
   batchId: string;
+  instituteId: string;
 }
 
-export default function CreateClassDialog({ batchId }: Props) {
+export default function CreateClassDialog({ batchId, instituteId }: Props) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(EMPTY);
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   const set = (key: keyof typeof EMPTY, value: string) =>
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -55,8 +56,6 @@ export default function CreateClassDialog({ batchId }: Props) {
         className: form.className || undefined,
         topic: form.topic || undefined,
         date: form.date || undefined,
-        startTime: form.startTime || undefined,
-        endTime: form.endTime || undefined,
       }),
     onSuccess: (res) => {
       if (res.success) {
@@ -64,6 +63,12 @@ export default function CreateClassDialog({ batchId }: Props) {
         queryClient.invalidateQueries({ queryKey: ["admin-batch-classes", batchId] });
         setOpen(false);
         setForm(EMPTY);
+        const classId = res.data?.class?._id;
+        if (classId) {
+          router.push(
+            `/institute/${instituteId}/batches/${batchId}/classes/${classId}/add-work`
+          );
+        }
       } else {
         toast.error(res.message ?? "Failed to create class");
       }
@@ -83,25 +88,29 @@ export default function CreateClassDialog({ batchId }: Props) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-purple-500 hover:bg-purple-600 text-white shadow-none h-9 px-4 text-sm rounded-lg font-medium gap-1.5">
-          <Plus className="h-4 w-4" />
+        <Button className="rounded-xl bg-purple-600 hover:bg-purple-700 text-white h-9 text-sm font-bold shadow-sm px-4 gap-1.5">
+          <Plus className="size-4" />
           Add Class
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-[480px]">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle className="text-lg font-bold">Create Class</DialogTitle>
+          <DialogTitle className="text-xl font-bold tracking-tight">
+            Create Class
+          </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 mt-2">
-          {/* Subject */}
-          <div className="space-y-1.5">
-            <Label>
+        <form onSubmit={handleSubmit} className="space-y-5 mt-4">
+          <div className="space-y-2">
+            <Label className="font-semibold text-gray-700">
               Subject <span className="text-destructive">*</span>
             </Label>
-            <Select value={form.subjectName} onValueChange={(v) => set("subjectName", v)}>
-              <SelectTrigger>
+            <Select
+              value={form.subjectName}
+              onValueChange={(v) => set("subjectName", v)}
+            >
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select a subject" />
               </SelectTrigger>
               <SelectContent>
@@ -114,9 +123,13 @@ export default function CreateClassDialog({ batchId }: Props) {
             </Select>
           </div>
 
-          {/* Class name */}
-          <div className="space-y-1.5">
-            <Label>Class Name <span className="text-xs text-muted-foreground font-normal">(Optional)</span></Label>
+          <div className="space-y-2">
+            <Label className="font-semibold text-gray-700">
+              Class Name{" "}
+              <span className="text-xs text-muted-foreground font-normal">
+                (Optional)
+              </span>
+            </Label>
             <Input
               placeholder="e.g. Morning Batch Physics"
               value={form.className}
@@ -124,9 +137,13 @@ export default function CreateClassDialog({ batchId }: Props) {
             />
           </div>
 
-          {/* Topic */}
-          <div className="space-y-1.5">
-            <Label>Topic <span className="text-xs text-muted-foreground font-normal">(Optional)</span></Label>
+          <div className="space-y-2">
+            <Label className="font-semibold text-gray-700">
+              Topic{" "}
+              <span className="text-xs text-muted-foreground font-normal">
+                (Optional)
+              </span>
+            </Label>
             <Input
               placeholder="e.g. Thermodynamics"
               value={form.topic}
@@ -134,9 +151,13 @@ export default function CreateClassDialog({ batchId }: Props) {
             />
           </div>
 
-          {/* Date */}
-          <div className="space-y-1.5">
-            <Label>Date <span className="text-xs text-muted-foreground font-normal">(Optional)</span></Label>
+          <div className="space-y-2">
+            <Label className="font-semibold text-gray-700">
+              Date{" "}
+              <span className="text-xs text-muted-foreground font-normal">
+                (Optional)
+              </span>
+            </Label>
             <Input
               type="date"
               value={form.date}
@@ -144,45 +165,16 @@ export default function CreateClassDialog({ batchId }: Props) {
             />
           </div>
 
-          {/* Start / End time */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label>Start Time <span className="text-xs text-muted-foreground font-normal">(Optional)</span></Label>
-              <Input
-                type="time"
-                value={form.startTime}
-                onChange={(e) => set("startTime", e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>End Time <span className="text-xs text-muted-foreground font-normal">(Optional)</span></Label>
-              <Input
-                type="time"
-                value={form.endTime}
-                onChange={(e) => set("endTime", e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
-              disabled={mutation.isPending}
-              className="rounded-lg shadow-none"
-            >
-              Cancel
-            </Button>
+          <div className="pt-4 flex justify-end">
             <Button
               type="submit"
               disabled={mutation.isPending}
-              className="bg-purple-500 hover:bg-purple-600 text-white rounded-lg shadow-none min-w-[120px]"
+              className="bg-purple-600 hover:bg-purple-700 shadow-md w-full sm:w-auto px-8"
             >
               {mutation.isPending ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Creating…
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
                 </>
               ) : (
                 "Create Class"
