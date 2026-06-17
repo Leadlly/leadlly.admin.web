@@ -14,7 +14,10 @@ import {
   getBatchStudents,
 } from "@/actions/batch_actions";
 import CreateClassDialog from "./create-class-dialog";
-import { formatBatchMetaLabel } from "@/helpers/constants/academic";
+import {
+  formatCompetitiveExamLabel,
+  formatStandardBadgeLabel,
+} from "@/helpers/constants/academic";
 
 interface BatchDashboardProps {
   batchId: string;
@@ -88,10 +91,21 @@ export default function BatchDashboard({
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
           {batch.name}
         </h1>
-        <p className="text-sm text-gray-400 mt-1 font-medium">
-          {formatBatchMetaLabel(batch.standard, batch.competitiveExam)}
-          {batch.subjects?.length ? ` · ${batch.subjects.join(", ")}` : ""}
-        </p>
+        <div className="flex flex-wrap items-center gap-2 mt-1">
+          <span className="text-sm text-gray-400 font-medium">
+            {formatStandardBadgeLabel(batch.standard)}
+          </span>
+          {batch.competitiveExam ? (
+            <span className="px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide bg-purple-100 text-purple-700">
+              {formatCompetitiveExamLabel(batch.competitiveExam)}
+            </span>
+          ) : null}
+          {batch.subjects?.length ? (
+            <span className="text-sm text-gray-400 font-medium">
+              · {batch.subjects.join(", ")}
+            </span>
+          ) : null}
+        </div>
       </div>
 
       {/* Tabs */}

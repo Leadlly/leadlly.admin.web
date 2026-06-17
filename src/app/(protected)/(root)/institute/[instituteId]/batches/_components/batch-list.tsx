@@ -12,12 +12,15 @@ import { deleteBatch, getInstituteBatch, updateBatch } from "@/actions/batch_act
 import {
   COMPETITIVE_EXAM_OPTIONS,
   type CompetitiveExamValue,
-  formatBatchMetaLabel,
+  formatCompetitiveExamLabel,
+  formatStandardBadgeLabel,
   formatStandardFilterLabel,
+  FALLBACK_STANDARDS,
   SUBJECT_OPTIONS,
 } from "@/helpers/constants/academic";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useAppSelector } from "@/redux/hooks";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -327,6 +330,7 @@ type StatusFilter = "All" | "Active" | "Inactive" | "Completed";
 // ── Main BatchList ─────────────────────────────────────────────────────────
 export default function BatchList({ instituteId }: { instituteId: string }) {
   const queryClient = useQueryClient();
+  const instituteData = useAppSelector((state) => state.institute.institute);
   const [filterStandard, setFilterStandard] = useState("");
   const [filterLabel, setFilterLabel] = useState("All Standards");
   const [filterStatus, setFilterStatus] = useState<StatusFilter>("All");
@@ -403,13 +407,27 @@ export default function BatchList({ instituteId }: { instituteId: string }) {
     },
   });
 
-  // Unique standards derived from currently returned batches (for dropdown options when no filter active)
-  const uniqueStandards = Array.from(new Set(batches.map((b) => b.standard))).sort(
-    (a, b) => Number(a) - Number(b)
-  );
+  // Always show all institute standards in the filter — not just ones on the current page
+  const standardFilterOptions = React.useMemo(() => {
+    const base = instituteData?.standards?.length
+      ? instituteData.standards
+      : [...FALLBACK_STANDARDS];
+    return [...new Set(base)].sort((a, b) => Number(a) - Number(b));
+  }, [instituteData?.standards]);
 
   // Batches are already filtered by the API — just sort client-side
   const filteredBatches = [...batches].sort((a, b) => Number(a.standard) - Number(b.standard));
+
+  const emptyMessage = React.useMemo(() => {
+    if (debouncedSearch) return "No batches match your search.";
+    if (filterStandard && filterStatus === "All") {
+      return `No batches for ${formatStandardFilterLabel(filterStandard).toLowerCase()}.`;
+    }
+    if (filterStandard || filterStatus !== "All") {
+      return "No batches match the current filters.";
+    }
+    return "No batches found. Add a new batch to get started.";
+  }, [debouncedSearch, filterStandard, filterStatus]);
 
   return (
     <>
@@ -428,7 +446,7 @@ export default function BatchList({ instituteId }: { instituteId: string }) {
               <DropdownMenuItem onClick={() => { setFilterStandard(""); setFilterLabel("All Standards"); }}>
                 All Standards
               </DropdownMenuItem>
-              {uniqueStandards.map((standard) => (
+              {standardFilterOptions.map((standard) => (
                 <DropdownMenuItem
                   key={standard}
                   onClick={() => { setFilterStandard(standard); setFilterLabel(formatStandardFilterLabel(standard)); }}
@@ -525,9 +543,16 @@ export default function BatchList({ instituteId }: { instituteId: string }) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-bold text-sm text-gray-900 truncate">{batch.name}</h3>
-                    <p className="text-gray-400 text-[11px] font-medium mt-0.5">
-                      {formatBatchMetaLabel(batch.standard, batch.competitiveExam)}
-                    </p>
+                    <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                      <span className="text-gray-400 text-[11px] font-medium">
+                        {formatStandardBadgeLabel(batch.standard)}
+                      </span>
+                      {batch.competitiveExam ? (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-purple-100 text-purple-700">
+                          {formatCompetitiveExamLabel(batch.competitiveExam)}
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
                   {/* Status + ⋯ menu */}
                   <div className="flex items-center gap-1.5 shrink-0">
@@ -590,11 +615,7 @@ export default function BatchList({ instituteId }: { instituteId: string }) {
         </div>
       ) : !isFetching ? (
         <div className="py-16 text-center">
-          <p className="text-gray-400 text-sm">
-            {filterStatus !== "All" || filterStandard || debouncedSearch
-              ? "No batches match the current filters."
-              : "No batches found. Add a new batch to get started."}
-          </p>
+          <p className="text-gray-400 text-sm">{emptyMessage}</p>
         </div>
       ) : null}
 
