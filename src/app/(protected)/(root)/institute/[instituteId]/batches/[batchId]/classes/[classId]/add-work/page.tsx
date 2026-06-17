@@ -231,15 +231,15 @@ const Page = ({ params }: { params: Promise<{ classId: string }> }) => {
       } else {
         subs.add(subtopicId);
       }
-      const topicSelected = entry?.topicSelected ?? false;
-      if (!topicSelected && subs.size === 0) {
+      if (subs.size === 0) {
         next.delete(topic._id);
       } else {
-        next.set(topic._id, { topic, topicSelected, selectedSubtopics: subs });
+        // If topic was fully selected and a subtopic is now unchecked,
+        // switch to "specific subtopics" mode (topicSelected = false).
+        next.set(topic._id, { topic, topicSelected: false, selectedSubtopics: subs });
       }
       return next;
     });
-    // auto-expand when a subtopic is selected
     setExpandedTopics((e) => new Set(e).add(topic._id));
   }, []);
 
@@ -270,24 +270,24 @@ const Page = ({ params }: { params: Promise<{ classId: string }> }) => {
       if (!selectedChapter) throw new Error("Please select a chapter");
       if (selectedTopics.size === 0 && !nothingDoneToday) throw new Error("Please select at least one topic or subtopic");
 
-      // Build topics payload: include a topic entry for every topic that is
-      // selected OR has subtopics selected (student API requires parent topic present)
-      const topicsPayload = Array.from(selectedTopics.values()).map(({ topic, selectedSubtopics }) => ({
+      // Build topics payload:
+      // - topicSelected=true  → whole topic goes to planner; subtopics: []
+      // - topicSelected=false → only the individually-selected subtopics go to planner
+      const topicsPayload = Array.from(selectedTopics.values()).map(({ topic, topicSelected, selectedSubtopics }) => ({
         _id: topic._id,
         name: topic.name,
-        subtopics: topic.subtopics
-          .filter((s) => selectedSubtopics.has(s._id))
-          .map((s) => ({ _id: s._id, name: s.name })),
+        subtopics: topicSelected
+          ? []
+          : topic.subtopics
+              .filter((s) => selectedSubtopics.has(s._id))
+              .map((s) => ({ _id: s._id, name: s.name })),
       }));
       const allSubtopics = topicsPayload.flatMap((t) =>
         t.subtopics.map((s) => ({ _id: s._id, name: s.name }))
       );
-      // For the stored topics list, only include topics whose row was explicitly checked
-      const topicsForLecture = topicsPayload.map(({ subtopics: _, ...rest }) => rest);
 
       const payload = {
         chapter: [{ _id: selectedChapter._id, name: selectedChapter.name }],
-        // topicsPayload has subtopics nested — student API reads topic.subtopics
         topics: topicsPayload,
         subtopics: allSubtopics,
         duration: getDurationMinutes(),
