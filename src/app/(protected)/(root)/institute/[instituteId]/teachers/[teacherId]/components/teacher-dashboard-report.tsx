@@ -98,13 +98,6 @@ const CLASSES_TAKEN_TEXT = [
   "text-cyan-600",
 ];
 
-const BATCH_DOTS = [
-  { border: "border-amber-300", bg: "bg-amber-100" },
-  { border: "border-blue-300", bg: "bg-blue-200" },
-  { border: "border-green-300", bg: "bg-green-100" },
-  { border: "border-purple-300", bg: "bg-purple-200" },
-];
-
 const ClassesTakenSection = ({
   totalLectures,
   totalTeachingHours,
@@ -153,23 +146,13 @@ const ClassesTakenSection = ({
         </button>
       </div>
 
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <p className="text-xs font-medium text-gray-500 mb-0.5">
-            Total {mode === "numbers" ? "Lectures" : "Hours"}
-          </p>
-          <p className="text-3xl md:text-4xl font-bold text-purple-600">
-            {mode === "numbers" ? totalLectures : totalTeachingHours}
-          </p>
-        </div>
-        <div className="flex items-center gap-1.5">
-          {batchPerformance.slice(0, 4).map((_, i) => (
-            <div
-              key={i}
-              className={`size-6 md:size-7 rounded-md border-2 ${BATCH_DOTS[i % BATCH_DOTS.length].border} ${BATCH_DOTS[i % BATCH_DOTS.length].bg}`}
-            />
-          ))}
-        </div>
+      <div className="mb-5">
+        <p className="text-xs font-medium text-gray-500 mb-0.5">
+          Total {mode === "numbers" ? "Lectures" : "Hours"}
+        </p>
+        <p className="text-3xl md:text-4xl font-bold text-purple-600">
+          {mode === "numbers" ? totalLectures : totalTeachingHours}
+        </p>
       </div>
 
       <div className="flex items-center justify-between mb-3">
@@ -297,9 +280,11 @@ export default function TeacherDashboardReport({ dashboard }: { dashboard: any }
                   <div key={day.date} className="flex flex-col items-center gap-1">
                     <div
                       className={`size-2.5 md:size-3 rounded-full ${
-                        day.taught
-                          ? "bg-gradient-to-b from-orange-400 to-fuchsia-500"
-                          : "bg-gray-200"
+                        day.isRestDay
+                          ? "bg-gray-100 border border-dashed border-gray-300"
+                          : day.taught
+                            ? "bg-gradient-to-b from-orange-400 to-fuchsia-500"
+                            : "bg-gray-200"
                       } ${day.isToday ? "ring-2 ring-fuchsia-300 ring-offset-1" : ""}`}
                     />
                     <span className="text-[9px] md:text-[10px] font-medium text-gray-400">
@@ -317,9 +302,11 @@ export default function TeacherDashboardReport({ dashboard }: { dashboard: any }
                 <div key={day.date} className="flex flex-col items-center gap-1 flex-1">
                   <div
                     className={`size-2.5 rounded-full ${
-                      day.taught
-                        ? "bg-gradient-to-b from-orange-400 to-fuchsia-500"
-                        : "bg-gray-200"
+                      day.isRestDay
+                        ? "bg-gray-100 border border-dashed border-gray-300"
+                        : day.taught
+                          ? "bg-gradient-to-b from-orange-400 to-fuchsia-500"
+                          : "bg-gray-200"
                     } ${day.isToday ? "ring-2 ring-fuchsia-300" : ""}`}
                   />
                   <span className="text-[8px] font-medium text-gray-400">{day.label?.[0]}</span>
