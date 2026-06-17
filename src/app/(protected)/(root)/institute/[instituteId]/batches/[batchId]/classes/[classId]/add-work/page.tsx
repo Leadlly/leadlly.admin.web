@@ -205,18 +205,15 @@ const Page = ({ params }: { params: Promise<{ classId: string }> }) => {
       const next = new Map(prev);
       const entry = next.get(topic._id);
       if (entry?.topicSelected) {
-        // deselect topic — keep entry only if subtopics still selected
-        const remaining = { ...entry, topicSelected: false };
-        if (remaining.selectedSubtopics.size > 0) {
-          next.set(topic._id, remaining);
-        } else {
-          next.delete(topic._id);
-        }
+        // Deselect topic and clear all its subtopics
+        next.delete(topic._id);
       } else {
+        // Select topic and auto-select all subtopics
+        const allSubtopics = new Set<string>(topic.subtopics.map((s) => s._id));
         next.set(topic._id, {
           topic,
           topicSelected: true,
-          selectedSubtopics: entry?.selectedSubtopics ?? new Set(),
+          selectedSubtopics: allSubtopics,
         });
         setExpandedTopics((e) => new Set(e).add(topic._id));
       }
