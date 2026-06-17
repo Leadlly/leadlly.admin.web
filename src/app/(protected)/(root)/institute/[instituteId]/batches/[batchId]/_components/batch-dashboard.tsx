@@ -20,6 +20,13 @@ import {
 } from "@/helpers/constants/academic";
 import { Button } from "@/components/ui/button";
 
+function getTeacherName(teachers: any): string | null {
+  const teacher = Array.isArray(teachers) ? teachers[0] : teachers;
+  if (!teacher || typeof teacher !== "object") return null;
+  const name = [teacher.firstname, teacher.lastname].filter(Boolean).join(" ").trim();
+  return name || null;
+}
+
 interface BatchDashboardProps {
   batchId: string;
   instituteId: string;
@@ -315,7 +322,10 @@ export default function BatchDashboard({
               ))}
             </div>
           ) : classes && classes.length > 0 ? (
-            classes.map((cls: any) => (
+            classes.map((cls: any) => {
+              const teacherName = getTeacherName(cls.teachers);
+
+              return (
               <div
                 key={cls._id}
                 className="bg-white rounded-2xl p-4 flex items-center justify-between gap-3 group hover:bg-purple-50/40 transition-colors border border-transparent hover:border-purple-100"
@@ -332,6 +342,11 @@ export default function BatchDashboard({
                       {cls.subject ?? "Subject"}
                       {cls.topic ? ` — ${cls.topic}` : ""}
                     </h4>
+                    {teacherName ? (
+                      <p className="text-xs font-medium text-gray-500 truncate">
+                        Teacher: {teacherName}
+                      </p>
+                    ) : null}
                     <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold text-gray-400">
                       {cls.date && (
                         <span className="flex items-center gap-1 bg-gray-50 px-2.5 py-0.5 rounded-full">
@@ -364,7 +379,8 @@ export default function BatchDashboard({
                   <ChevronRight className="text-gray-300 group-hover:text-purple-400 transition-colors size-5" />
                 </div>
               </div>
-            ))
+            );
+            })
           ) : (
             <div className="py-16 text-center text-gray-400 text-sm font-medium">
               No classes scheduled for this batch yet.
