@@ -24,7 +24,7 @@ const ClassTab = () => {
   return (
     <div className="flex border-b border-gray-100 mb-4 md:mb-8 gap-3 md:gap-8 bg-white overflow-x-auto scrollbar-hide">
       {tabs.map((tab) => {
-        const isActive = pathname === tab.href;
+        const isActive = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
         return (
           <Link
             key={tab.name}

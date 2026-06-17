@@ -76,15 +76,16 @@ export default function BatchDashboard({
   }
 
   const syllabusProgress = batch.batchReport?.syllabusProgress ?? 0;
+  const completedChapters = batch.batchReport?.completedChapters ?? 0;
+  const totalChapters = batch.batchReport?.totalChapters ?? 0;
+  const syllabusProgressValue = Math.max(0, Math.min(100, syllabusProgress));
+  const totalLectures = batch.batchReport?.totalLectures ?? 0;
   const totalClasses = batch.batchReport?.totalClasses ?? 0;
-  const completedClasses = batch.batchReport?.completedClasses ?? 0;
-  const classProgress =
-    totalClasses > 0 ? Math.round((completedClasses / totalClasses) * 100) : 0;
   const totalMinutes = batch.batchReport?.totalDuration ?? 0;
   const totalHours = Math.floor(totalMinutes / 60);
-  const pendingClasses = batch.batchReport?.pendingClasses ?? 0;
   const totalStudents =
     studentsData?.students?.length ?? batch.batchReport?.totalStudents ?? 0;
+  const syllabusReport = batch.syllabusReport || [];
 
   return (
     <div className="flex flex-col gap-6">
@@ -132,128 +133,128 @@ export default function BatchDashboard({
 
       {/* Report Tab */}
       {activeTab === "report" && (
-        <div className="flex flex-col gap-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Left: progress + metrics */}
-            <div className="flex flex-col gap-5">
-              {/* Progress bars */}
-              <div className="bg-white rounded-2xl p-5 border border-purple-50 space-y-4">
-                <h2 className="text-base font-bold text-gray-900">
-                  Progress Overview
+        <div className="flex flex-col space-y-4 md:space-y-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 lg:gap-8">
+            <div className="space-y-4 md:space-y-6 lg:space-y-8">
+              <div className="bg-white border border-[#F2E0FF] rounded-[28px] md:rounded-[32px] p-6 md:p-8 shadow-sm">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-900 tracking-tight mb-8">
+                  Syllabus Completed
                 </h2>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-[12px] font-bold text-gray-700">
-                    <span>Syllabus Completed</span>
-                    <span>{syllabusProgress}%</span>
+
+                <div className="flex items-center justify-between gap-5">
+                  <div className="min-w-0">
+                    <p className="text-5xl md:text-6xl font-extrabold text-[#A855F7] tracking-tight">
+                      {completedChapters}/{totalChapters}
+                    </p>
+                    <p className="text-base md:text-lg text-gray-500 font-medium mt-4 leading-snug">
+                      Chapters<br />completed so far
+                    </p>
                   </div>
-                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-purple-500 rounded-full transition-all duration-500"
-                      style={{ width: `${syllabusProgress}%` }}
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-[12px] font-bold text-gray-700">
-                    <span>Classes Completed</span>
-                    <span>{classProgress}%</span>
-                  </div>
-                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-teal-400 rounded-full transition-all duration-500"
-                      style={{ width: `${classProgress}%` }}
-                    />
+
+                  <div
+                    className="size-32 md:size-40 rounded-full p-3 md:p-4 shrink-0"
+                    style={{
+                      background: `conic-gradient(#A855F7 ${syllabusProgressValue * 3.6}deg, #F3E8FF 0deg)`,
+                    }}
+                    aria-label={`${syllabusProgressValue}% syllabus completed`}
+                  >
+                    <div className="size-full rounded-full bg-white flex flex-col items-center justify-center">
+                      <span className="text-2xl md:text-3xl font-extrabold text-gray-900">
+                        {syllabusProgressValue}%
+                      </span>
+                      <span className="text-sm md:text-base text-gray-500 font-medium mt-1">
+                        overall
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Metric cards */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-purple-50 rounded-2xl p-4 flex flex-col items-center justify-center gap-1">
-                  <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">
-                    Total Classes
-                  </span>
-                  <span className="text-3xl font-bold text-purple-500">
-                    {totalClasses}
-                  </span>
+              <div className="space-y-2 md:space-y-3">
+                <h2 className="text-base md:text-[18px] font-bold text-gray-900 tracking-tight">Lectures taken</h2>
+                <div className="grid grid-cols-2 gap-3 md:gap-4 lg:gap-5">
+                  <div className="bg-[#FAF5FF] rounded-2xl md:rounded-[20px] p-3 md:p-5 flex flex-col items-center justify-center gap-1 md:gap-1.5 lg:gap-2 transition-transform hover:scale-[1.02]">
+                    <div className="text-gray-600 font-bold text-[11px] md:text-[13px]">Total Lectures</div>
+                    <div className="text-[#A855F7] text-2xl md:text-3xl lg:text-4xl font-bold">{totalLectures}</div>
+                  </div>
+
+                  <div className="bg-[#FAF5FF] rounded-2xl md:rounded-[20px] p-3 md:p-5 flex flex-col items-center justify-center gap-1 md:gap-1.5 lg:gap-2 transition-transform hover:scale-[1.02]">
+                    <div className="text-gray-600 font-bold text-[11px] md:text-[13px]">Total Time</div>
+                    <div className="text-[#A855F7] text-2xl md:text-3xl lg:text-4xl font-bold flex items-baseline gap-1">
+                      {totalHours} <span className="text-base md:text-lg lg:text-xl font-bold">hr</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="bg-purple-50 rounded-2xl p-4 flex flex-col items-center justify-center gap-1">
-                  <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">
-                    Total Hours
-                  </span>
-                  <span className="text-3xl font-bold text-purple-500">
-                    {totalHours}
-                  </span>
-                </div>
-                <div className="bg-teal-50 rounded-2xl p-4 flex flex-col items-center justify-center gap-1">
-                  <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">
-                    Pending Classes
-                  </span>
-                  <span className="text-3xl font-bold text-teal-600">
-                    {pendingClasses}
-                  </span>
-                </div>
-                <div className="bg-amber-50 rounded-2xl p-4 flex flex-col items-center justify-center gap-1">
-                  <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">
-                    Students
-                  </span>
-                  <span className="text-3xl font-bold text-amber-600">
-                    {totalStudents}
-                  </span>
+              </div>
+
+              <div className="space-y-2 md:space-y-3">
+                <h2 className="text-base md:text-[18px] font-bold text-gray-900 tracking-tight">Batch Overview</h2>
+                <div className="grid grid-cols-2 gap-3 md:gap-4">
+                  <div className="bg-[#F0FDFA] rounded-2xl md:rounded-[20px] p-3 md:p-5 flex flex-col items-center justify-center gap-1">
+                    <div className="text-gray-600 font-bold text-[11px] md:text-[13px]">Total Classes</div>
+                    <div className="text-[#0D9488] text-2xl md:text-3xl font-bold">{totalClasses}</div>
+                  </div>
+                  <div className="bg-[#FFFBEB] rounded-2xl md:rounded-[20px] p-3 md:p-5 flex flex-col items-center justify-center gap-1">
+                    <div className="text-gray-600 font-bold text-[11px] md:text-[13px]">Students</div>
+                    <div className="text-[#D97706] text-2xl md:text-3xl font-bold">{totalStudents}</div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Right: Syllabus Report */}
-            <div className="bg-white rounded-2xl p-5 border border-purple-50 flex flex-col max-h-[380px]">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2.5">
-                  <div className="bg-purple-50 p-2 rounded-xl">
-                    <FileText className="size-5 text-purple-500" />
-                  </div>
-                  <h3 className="text-[15px] font-bold text-gray-900">
-                    Syllabus Report
-                  </h3>
-                </div>
-                <button
-                  onClick={() => setActiveTab("classes")}
-                  className="flex items-center text-purple-500 text-[12px] font-bold hover:underline underline-offset-4"
-                >
-                  View All <ChevronRight className="size-3.5 ml-0.5" strokeWidth={3} />
-                </button>
-              </div>
-
-              <div className="flex-1 overflow-y-auto pr-1 space-y-3">
-                {isClassesLoading ? (
-                  <div className="space-y-3">
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="h-10 bg-gray-50 rounded-xl animate-pulse" />
-                    ))}
-                  </div>
-                ) : classes && classes.length > 0 ? (
-                  classes.slice(0, 8).map((cls: any) => (
-                    <div
-                      key={cls._id}
-                      className="flex justify-between items-start border-b border-gray-50 pb-3 last:border-0"
-                    >
-                      <div>
-                        <p className="font-semibold text-gray-900 text-sm">
-                          {cls.subject}
-                        </p>
-                        <p className="text-[11px] text-gray-400 mt-0.5">
-                          {cls.topic || "Discussion"}
-                        </p>
-                      </div>
-                      <span className="text-[11px] font-semibold text-gray-400 bg-gray-50 px-2.5 py-1 rounded-full shrink-0 ml-2">
-                        {dayjs(cls.date).format("DD MMM")}
-                      </span>
+            <div className="space-y-2 md:space-y-3 lg:space-y-4">
+              <h2 className="text-[18px] font-bold text-transparent select-none hidden lg:block">Spacer</h2>
+              <div className="bg-white border border-[#F2E0FF] rounded-2xl md:rounded-[20px] p-4 md:p-5 lg:p-6 h-full shadow-sm max-h-[430px] overflow-hidden flex flex-col">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-[#FAF5FF] p-2 rounded-xl">
+                      <FileText className="size-5 text-[#A855F7]" />
                     </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-gray-400 italic py-4 text-center">
-                    No classes yet
-                  </p>
-                )}
+                    <h3 className="text-[16px] font-bold text-gray-900">Syllabus Report</h3>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab("classes")}
+                    className="flex items-center text-[#A855F7] text-[13px] font-bold hover:underline underline-offset-4"
+                  >
+                    View Classes <ChevronRight className="size-4 ml-0.5" strokeWidth={3} />
+                  </button>
+                </div>
+
+                <div className="mt-2 space-y-4 flex-1 overflow-y-auto pr-2">
+                  {syllabusReport.length > 0 ? (
+                    syllabusReport.map((day: any) => (
+                      <div key={day.date} className="space-y-2 border-b border-gray-50 pb-4 last:border-b-0">
+                        <div className="font-bold text-gray-900 text-[13px]">
+                          {dayjs(day.date).format("DD MMM, YYYY")}
+                        </div>
+                        <div className="space-y-2">
+                          {day.lectures.map((lecture: any) => (
+                            <div key={lecture._id} className="rounded-xl bg-gray-50 p-3">
+                              <p className="font-bold text-gray-800 text-sm capitalize">
+                                {lecture.subject || lecture.title || "Lecture"}
+                              </p>
+                              <p className="text-xs text-gray-500 mt-1 capitalize">
+                                Chapters: {(lecture.chapters || []).map((item: any) => item.name).join(", ") || "No chapter"}
+                              </p>
+                              <p className="text-xs text-gray-500 mt-1 capitalize">
+                                Topics: {(lecture.topics || []).map((item: any) => item.name).join(", ") || "No topic"}
+                              </p>
+                              {(lecture.subtopics || []).length > 0 && (
+                                <p className="text-xs text-purple-600 mt-1 capitalize">
+                                  Subtopics: {lecture.subtopics.map((item: any) => item.name).join(", ")}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-gray-400 text-[13px] italic font-medium px-2 py-4">
+                      No syllabus work added yet
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
