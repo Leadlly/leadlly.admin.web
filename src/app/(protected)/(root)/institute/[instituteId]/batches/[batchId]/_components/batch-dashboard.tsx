@@ -3,21 +3,22 @@
 import React, { useState } from "react";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { useQuery } from "@tanstack/react-query";
 import dayjs from "dayjs";
-import { Calendar, ChevronRight, Clock, FileText } from "lucide-react";
+import { Calendar, ChevronRight, Clock, FileText, Plus } from "lucide-react";
 
 import {
   getBatchClasses,
   getBatchDetails,
   getBatchStudents,
 } from "@/actions/batch_actions";
-import CreateClassDialog from "./create-class-dialog";
 import {
   formatCompetitiveExamLabel,
   formatStandardBadgeLabel,
 } from "@/helpers/constants/academic";
+import { Button } from "@/components/ui/button";
 
 interface BatchDashboardProps {
   batchId: string;
@@ -35,6 +36,7 @@ export default function BatchDashboard({
   instituteId,
 }: BatchDashboardProps) {
   const [activeTab, setActiveTab] = useState("report");
+  const router = useRouter();
 
   const { data: batch, isLoading: isBatchLoading } = useQuery({
     queryKey: ["admin-batch-details", batchId],
@@ -298,12 +300,11 @@ export default function BatchDashboard({
       {/* Classes Tab */}
       {activeTab === "classes" && (
         <div className="space-y-3">
-          {/* Header row with Add Class button */}
+          {/* Header row */}
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold text-gray-500">
               {classes ? `${classes.length} class${classes.length !== 1 ? "es" : ""}` : ""}
             </p>
-            <CreateClassDialog batchId={batchId} instituteId={instituteId} />
           </div>
 
           {isClassesLoading ? (
@@ -314,18 +315,21 @@ export default function BatchDashboard({
             </div>
           ) : classes && classes.length > 0 ? (
             classes.map((cls: any) => (
-              <Link
+              <div
                 key={cls._id}
-                href={`/institute/${instituteId}/batches/${batchId}/classes/${cls._id}`}
-                className="bg-white rounded-2xl p-4 flex items-center justify-between group hover:bg-purple-50/40 transition-colors border border-transparent hover:border-purple-100"
+                className="bg-white rounded-2xl p-4 flex items-center justify-between gap-3 group hover:bg-purple-50/40 transition-colors border border-transparent hover:border-purple-100"
               >
-                <div className="flex items-center gap-4 min-w-0 flex-1">
+                <Link
+                  href={`/institute/${instituteId}/batches/${batchId}/classes/${cls._id}`}
+                  className="flex items-center gap-4 min-w-0 flex-1"
+                >
                   <div className="bg-purple-50 p-3 rounded-xl group-hover:bg-purple-500 transition-colors shrink-0">
                     <Calendar className="text-purple-500 group-hover:text-white size-5 transition-colors" />
                   </div>
                   <div className="space-y-1 min-w-0">
                     <h4 className="font-bold text-sm text-gray-900 group-hover:text-purple-600 transition-colors truncate">
-                      {cls.subject ?? "Subject"}{cls.topic ? ` — ${cls.topic}` : ""}
+                      {cls.subject ?? "Subject"}
+                      {cls.topic ? ` — ${cls.topic}` : ""}
                     </h4>
                     <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold text-gray-400">
                       {cls.date && (
@@ -342,9 +346,23 @@ export default function BatchDashboard({
                       )}
                     </div>
                   </div>
+                </Link>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button
+                    className="rounded-xl bg-purple-600 hover:bg-purple-700 text-white h-9 text-xs font-bold px-3 gap-1.5 cursor-pointer transition-all duration-200 hover:shadow-md hover:shadow-purple-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
+                    onClick={() =>
+                      router.push(
+                        `/institute/${instituteId}/batches/${batchId}/classes/${cls._id}/add-work`
+                      )
+                    }
+                  >
+                    <Plus className="size-4" />
+                    Add Work
+                  </Button>
+                  <ChevronRight className="text-gray-300 group-hover:text-purple-400 transition-colors size-5" />
                 </div>
-                <ChevronRight className="text-gray-300 group-hover:text-purple-400 transition-colors size-5 shrink-0 ml-2" />
-              </Link>
+              </div>
             ))
           ) : (
             <div className="py-16 text-center text-gray-400 text-sm font-medium">
