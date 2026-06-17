@@ -235,7 +235,7 @@ export default function CreateBatch({
                     <img
                       src={coverPreview}
                       alt="Cover preview"
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain bg-white"
                     />
                     <button
                       type="button"
