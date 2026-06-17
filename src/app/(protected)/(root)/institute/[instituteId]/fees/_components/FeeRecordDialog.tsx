@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { CheckCircle2, Loader2, Plus, Trash2 } from "lucide-react";
+import { CheckCircle2, ChevronDown, Loader2, Plus, Search, Trash2, UserPlus, X } from "lucide-react";
 import {
   createFeeRecord,
   updateFeeRecord,
@@ -29,6 +29,14 @@ import {
   AdditionalFeeItem,
 } from "@/actions/fee_actions";
 import { formatClassLabel, INSTITUTE_STANDARD_OPTIONS } from "@/helpers/constants/academic";
+import { getInstituteStudents } from "@/actions/student_action";
+
+interface StudentOption {
+  _id: string;
+  firstname?: string;
+  lastname?: string;
+  email?: string;
+}
 
 const PAYMENT_MODES = [
   "Online Lumpsum Amount",
@@ -203,6 +211,15 @@ const FeeRecordDialog = ({
 }: Props) => {
   const [form, setForm] = useState<FeeRecordData>(EMPTY);
   const [loading, setLoading] = useState(false);
+
+  // ── Student picker state ───────────────────────────────────────────────────
+  const [students, setStudents] = useState<StudentOption[]>([]);
+  const [studentsLoading, setStudentsLoading] = useState(false);
+  const [studentSearch, setStudentSearch] = useState("");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<StudentOption | null>(null);
+  const [customUidMode, setCustomUidMode] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // ── UID + session lookup state ─────────────────────────────────────────────
   // Holds the records found for the current UID+session combination
@@ -385,6 +402,61 @@ const FeeRecordDialog = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [record, open]);
 
+  // Fetch institute students once when dialog opens
+  useEffect(() => {
+    if (!open || record) return;
+    setStudentsLoading(true);
+    getInstituteStudents(instituteId).then((res) => {
+      setStudents(res.students ?? []);
+      setStudentsLoading(false);
+    });
+  }, [open, instituteId, record]);
+
+  // Reset picker state when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setStudentSearch("");
+      setDropdownOpen(false);
+      setSelectedStudent(null);
+      setCustomUidMode(false);
+    }
+  }, [open]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const filteredStudents = students.filter((s) => {
+    const q = studentSearch.toLowerCase();
+    const name = `${s.firstname ?? ""} ${s.lastname ?? ""}`.toLowerCase();
+    return name.includes(q) || (s.email ?? "").toLowerCase().includes(q);
+  });
+
+  const handleSelectStudent = (s: StudentOption) => {
+    const fullName = `${s.firstname ?? ""} ${s.lastname ?? ""}`.trim();
+    setSelectedStudent(s);
+    setDropdownOpen(false);
+    setStudentSearch("");
+    // Use student _id as UID and pre-fill name
+    set("uniqueIdentificationNo", s._id);
+    set("studentName", fullName);
+    set("studentId", s._id);
+    // Trigger UID lookup
+    setUidRecords([]);
+    setUidLookupState("idle");
+    if (uidDebounceRef.current) clearTimeout(uidDebounceRef.current);
+    uidDebounceRef.current = setTimeout(() => {
+      lookupUid(s._id, form.academicSession ?? EMPTY.academicSession!);
+    }, 300);
+  };
+
   const set = (key: keyof FeeRecordData, value: string | number | AdditionalFeeItem[]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
@@ -521,51 +593,148 @@ const FeeRecordDialog = ({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
-          {/* Unique ID - mandatory */}
-          <div className="space-y-1">
-            <Label>
-              Unique Identification Number{" "}
-              <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              placeholder="e.g. UID-2024-001"
-              value={form.uniqueIdentificationNo}
-              onChange={(e) => onUidChange(e.target.value)}
-              disabled={lockUid}
-              className={lockUid ? "bg-muted text-muted-foreground" : ""}
-            />
-            {/* Lookup status indicator */}
-            {!lockUid && form.uniqueIdentificationNo.trim() && (
-              <div className="flex items-center gap-1.5 text-xs">
-                {uidLookupState === "loading" && (
-                  <>
-                    <Loader2 className="size-3 animate-spin text-muted-foreground" />
-                    <span className="text-muted-foreground">Looking up UID…</span>
-                  </>
-                )}
-                {uidLookupState === "found" && (
-                  <>
-                    <CheckCircle2 className="size-3 text-green-600" />
-                    <span className="text-green-700 font-medium">
-                      {uidRecords.length} existing record{uidRecords.length > 1 ? "s" : ""} found —
-                      student details &amp; session fees pre-filled.{" "}
-                      {hasUidRecords && `Next installment: #${nextInstallmentNo}`}
-                    </span>
-                  </>
-                )}
-                {uidLookupState === "notfound" && (
-                  <span className="text-muted-foreground">
-                    No records found for this UID — creating a new entry.
-                  </span>
-                )}
+          {/* Student selector / UID */}
+          {!record && !lockUid && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>
+                  Select Student <span className="text-destructive">*</span>
+                </Label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCustomUidMode((v) => !v);
+                    setSelectedStudent(null);
+                    set("uniqueIdentificationNo", "");
+                    set("studentName", "");
+                    setUidRecords([]);
+                    setUidLookupState("idle");
+                  }}
+                  className="flex items-center gap-1 text-xs text-purple-600 hover:text-purple-700 font-medium"
+                >
+                  <UserPlus className="size-3" />
+                  {customUidMode ? "Pick from list" : "Add New (custom UID)"}
+                </button>
               </div>
-            )}
-            {uidLookupState === "idle" && !lockUid && (
-              <p className="text-xs text-muted-foreground">
-                Used to group all fee records for the same student
-              </p>
-            )}
-          </div>
+
+              {customUidMode ? (
+                /* Manual UID input */
+                <div className="space-y-1">
+                  <Input
+                    placeholder="e.g. UID-2024-001"
+                    value={form.uniqueIdentificationNo}
+                    onChange={(e) => onUidChange(e.target.value)}
+                  />
+                  {form.uniqueIdentificationNo.trim() && (
+                    <div className="flex items-center gap-1.5 text-xs">
+                      {uidLookupState === "loading" && (
+                        <><Loader2 className="size-3 animate-spin text-muted-foreground" /><span className="text-muted-foreground">Looking up UID…</span></>
+                      )}
+                      {uidLookupState === "found" && (
+                        <><CheckCircle2 className="size-3 text-green-600" /><span className="text-green-700 font-medium">{uidRecords.length} existing record{uidRecords.length > 1 ? "s" : ""} found — details pre-filled. {hasUidRecords && `Next installment: #${nextInstallmentNo}`}</span></>
+                      )}
+                      {uidLookupState === "notfound" && (
+                        <span className="text-muted-foreground">No records found — creating a new entry.</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Searchable student dropdown */
+                <div className="relative" ref={dropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() => setDropdownOpen((v) => !v)}
+                    className="w-full flex items-center justify-between gap-2 px-3 py-2 text-sm border border-input rounded-md bg-background hover:bg-accent transition-colors"
+                  >
+                    <span className={selectedStudent ? "text-foreground" : "text-muted-foreground"}>
+                      {selectedStudent
+                        ? `${selectedStudent.firstname ?? ""} ${selectedStudent.lastname ?? ""}`.trim() || selectedStudent.email
+                        : studentsLoading ? "Loading students…" : "Select a student…"}
+                    </span>
+                    {selectedStudent ? (
+                      <X
+                        className="size-3.5 text-muted-foreground hover:text-foreground shrink-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedStudent(null);
+                          set("uniqueIdentificationNo", "");
+                          set("studentName", "");
+                          setUidRecords([]);
+                          setUidLookupState("idle");
+                        }}
+                      />
+                    ) : (
+                      <ChevronDown className="size-3.5 text-muted-foreground shrink-0" />
+                    )}
+                  </button>
+
+                  {dropdownOpen && (
+                    <div className="absolute z-50 mt-1 w-full bg-popover border border-border rounded-md shadow-lg">
+                      <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
+                        <Search className="size-3.5 text-muted-foreground shrink-0" />
+                        <input
+                          autoFocus
+                          placeholder="Search by name or email…"
+                          value={studentSearch}
+                          onChange={(e) => setStudentSearch(e.target.value)}
+                          className="flex-1 text-sm bg-transparent outline-none placeholder:text-muted-foreground"
+                        />
+                      </div>
+                      <ul className="max-h-52 overflow-y-auto py-1 custom__scrollbar">
+                        {filteredStudents.length === 0 ? (
+                          <li className="px-3 py-2 text-xs text-muted-foreground">
+                            {studentsLoading ? "Loading…" : "No students found"}
+                          </li>
+                        ) : (
+                          filteredStudents.map((s) => {
+                            const name = `${s.firstname ?? ""} ${s.lastname ?? ""}`.trim();
+                            return (
+                              <li
+                                key={s._id}
+                                onClick={() => handleSelectStudent(s)}
+                                className="px-3 py-2 text-sm cursor-pointer hover:bg-accent flex flex-col gap-0.5"
+                              >
+                                <span className="font-medium">{name || "—"}</span>
+                                {s.email && <span className="text-xs text-muted-foreground">{s.email}</span>}
+                              </li>
+                            );
+                          })
+                        )}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* UID lookup status after selection */}
+                  {selectedStudent && form.uniqueIdentificationNo.trim() && (
+                    <div className="flex items-center gap-1.5 text-xs mt-1">
+                      {uidLookupState === "loading" && (
+                        <><Loader2 className="size-3 animate-spin text-muted-foreground" /><span className="text-muted-foreground">Looking up records…</span></>
+                      )}
+                      {uidLookupState === "found" && (
+                        <><CheckCircle2 className="size-3 text-green-600" /><span className="text-green-700 font-medium">{uidRecords.length} existing record{uidRecords.length > 1 ? "s" : ""} found — details pre-filled. {hasUidRecords && `Next installment: #${nextInstallmentNo}`}</span></>
+                      )}
+                      {uidLookupState === "notfound" && (
+                        <span className="text-muted-foreground">No fee records yet — this will be a new entry.</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* UID display when editing or lockUid */}
+          {(record || lockUid) && (
+            <div className="space-y-1">
+              <Label>Unique Identification Number</Label>
+              <Input
+                value={form.uniqueIdentificationNo}
+                disabled
+                className="bg-muted text-muted-foreground"
+              />
+            </div>
+          )}
 
           {/* Academic Session + Payment Date */}
           <div className="grid grid-cols-2 gap-4">

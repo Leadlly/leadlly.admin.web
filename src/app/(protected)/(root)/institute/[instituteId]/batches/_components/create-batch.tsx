@@ -151,15 +151,15 @@ export default function CreateBatch({
               : 0,
           currency: "INR",
         },
-        coverImage: coverFile
-          ? { name: coverFile.name, type: coverFile.type }
+        images: coverFile
+          ? [{ name: coverFile.name, type: coverFile.type }]
           : undefined,
       });
 
       if (response?.success) {
         // Upload cover image to S3 if a presigned URL was returned
-        if (coverFile && response.coverImageUploadUrl) {
-          await fetch(response.coverImageUploadUrl, {
+        if (coverFile && response.data?.signedUrls?.[0]) {
+          await fetch(response.data.signedUrls[0], {
             method: "PUT",
             body: coverFile,
             headers: { "Content-Type": coverFile.type },

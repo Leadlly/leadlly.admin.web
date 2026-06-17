@@ -10,7 +10,7 @@ interface BatchCreateData {
   institute?: string;
   description?: string;
   about?: string;
-  coverImage?: { name: string; type: string };
+  images?: { name: string; type: string }[];
   payment?: {
     subscriptionType: "Free" | "Paid";
     amount: number;
