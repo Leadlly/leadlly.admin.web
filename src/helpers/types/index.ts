@@ -654,6 +654,11 @@ export interface IInstitute {
   email?: string;
   website?: string;
   admins: string[];
+  adminMembers?: {
+    admin: string;
+    role: "admin" | "manager";
+    addedAt: string;
+  }[];
   instituteCode: string;
   createdAt: string;
   updatedAt: string;
