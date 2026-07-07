@@ -114,7 +114,7 @@ export default function AdminsPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 space-y-8">
+    <div className="w-full space-y-6 py-4 md:space-y-8 md:py-8">
       <div>
         <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
           <Shield className="h-7 w-7 text-primary" />
@@ -126,7 +126,7 @@ export default function AdminsPage() {
         </p>
       </div>
 
-      <div className="bg-white rounded-3xl shadow-section p-5 md:p-7 space-y-4">
+      <div className="bg-white rounded-2xl md:rounded-3xl shadow-section p-4 md:p-7 space-y-4">
         <h2 className="font-semibold text-base">Add Admin</h2>
         <p className="text-xs text-muted-foreground -mt-2">
           Enter an email to instantly assign access. New users can sign in with
@@ -173,7 +173,7 @@ export default function AdminsPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-3xl shadow-section p-5 md:p-7 space-y-5">
+      <div className="bg-white rounded-2xl md:rounded-3xl shadow-section p-4 md:p-7 space-y-5">
         <div>
           <h2 className="font-semibold text-base">All Members</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
@@ -192,7 +192,102 @@ export default function AdminsPage() {
             <p className="text-sm">No admins added yet.</p>
           </div>
         ) : (
-          <div className="rounded-xl border border-border overflow-hidden">
+          <>
+            {/* Mobile: card list */}
+            <div className="space-y-3 md:hidden">
+              {members.map((member) => (
+                <div
+                  key={member._id}
+                  className="rounded-xl border border-border bg-muted/20 p-4 space-y-3"
+                >
+                  <div className="flex items-start gap-3 min-w-0">
+                    <Avatar className="h-10 w-10 shrink-0">
+                      <AvatarImage src={member.avatar?.url} />
+                      <AvatarFallback className="text-xs">
+                        {getInitials(member)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium break-words">
+                        {`${member.firstname} ${member.lastname ?? ""}`.trim()}
+                        {member.isCurrentUser && (
+                          <span className="text-muted-foreground font-normal">
+                            {" "}
+                            (you)
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-xs text-muted-foreground break-all mt-0.5">
+                        {member.email}
+                      </p>
+                    </div>
+                    {canRemoveMembers && !member.isCurrentUser && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <button className="inline-flex shrink-0 items-center justify-center w-8 h-8 rounded-lg hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors">
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent className="max-w-[calc(100vw-2rem)]">
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Remove member?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Remove{" "}
+                              <span className="font-semibold text-foreground">
+                                {member.email}
+                              </span>{" "}
+                              from this institute?
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter className="flex-col-reverse sm:flex-row gap-2">
+                            <AlertDialogCancel className="w-full sm:w-auto">
+                              Cancel
+                            </AlertDialogCancel>
+                            <AlertDialogAction
+                              className="w-full sm:w-auto bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              onClick={() => handleRemove(member)}
+                            >
+                              Remove
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    <Badge
+                      variant={member.role === "admin" ? "default" : "secondary"}
+                      className="capitalize"
+                    >
+                      {member.role}
+                    </Badge>
+                    <Badge
+                      variant="outline"
+                      className={
+                        member.status === "Active"
+                          ? "text-green-700 border-green-200"
+                          : ""
+                      }
+                    >
+                      {member.status}
+                    </Badge>
+                    <span className="text-muted-foreground">
+                      Last login:{" "}
+                      {member.lastLogin
+                        ? new Date(member.lastLogin).toLocaleDateString("en-IN", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })
+                        : "Never"}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop: table */}
+            <div className="hidden md:block rounded-xl border border-border overflow-hidden">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40">
@@ -307,7 +402,8 @@ export default function AdminsPage() {
                 ))}
               </TableBody>
             </Table>
-          </div>
+            </div>
+          </>
         )}
       </div>
     </div>

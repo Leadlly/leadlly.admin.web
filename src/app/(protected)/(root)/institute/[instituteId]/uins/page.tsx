@@ -144,7 +144,7 @@ export default function UINsPage() {
   const unassignedCount = uins.filter((u) => !u.isAssigned).length;
 
   return (
-    <div className="container mx-auto px-4 py-8 space-y-8">
+    <div className="w-full space-y-6 py-4 md:space-y-8 md:py-8">
       {/* ── Header ── */}
       <div>
         <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
@@ -158,7 +158,7 @@ export default function UINsPage() {
       </div>
 
       {/* ── Add UIDs card ── */}
-      <div className="bg-white rounded-3xl shadow-section p-5 md:p-7 space-y-4">
+      <div className="bg-white rounded-2xl md:rounded-3xl shadow-section p-4 md:p-7 space-y-4">
         <h2 className="font-semibold text-base">Add UIDs</h2>
         <p className="text-xs text-muted-foreground -mt-2">
           Enter one UID per line <em>or</em> separate them with commas.
@@ -211,7 +211,7 @@ export default function UINsPage() {
       </div>
 
       {/* ── Table card ── */}
-      <div className="bg-white rounded-3xl shadow-section p-5 md:p-7 space-y-5">
+      <div className="bg-white rounded-2xl md:rounded-3xl shadow-section p-4 md:p-7 space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h2 className="font-semibold text-base">All UIDs</h2>
@@ -280,7 +280,8 @@ export default function UINsPage() {
             </p>
           </div>
         ) : (
-          <div className="rounded-xl border border-border overflow-hidden">
+          <div className="overflow-x-auto -mx-1 px-1 md:mx-0 md:px-0">
+          <div className="rounded-xl border border-border overflow-hidden min-w-[640px] md:min-w-0">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40">
@@ -385,6 +386,7 @@ export default function UINsPage() {
                 ))}
               </TableBody>
             </Table>
+          </div>
           </div>
         )}
 

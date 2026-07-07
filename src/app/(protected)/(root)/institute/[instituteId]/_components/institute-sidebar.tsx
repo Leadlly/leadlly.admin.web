@@ -59,7 +59,7 @@ const InstituteSidebar = async ({
           <NavMain instituteId={instituteId} />
         </SidebarContent>
 
-        <SidebarFooter>
+        <SidebarFooter className="pb-[env(safe-area-inset-bottom)]">
           <ErrorBoundary fallback={<div>Unable to fetch user</div>}>
             <Suspense fallback={<div>Loading...</div>}>
               <NavUser />

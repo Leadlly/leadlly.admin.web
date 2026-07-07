@@ -22,8 +22,8 @@ export default async function InstituteStudentsPage({
   const students = res.success ? res.students : [];
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-2">
+    <div className="container mx-auto py-4 md:py-8">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 md:mb-6 gap-2">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold">Students</h1>
           <p className="text-sm text-muted-foreground mt-1">
@@ -32,7 +32,7 @@ export default async function InstituteStudentsPage({
         </div>
       </div>
 
-      <div className="bg-white p-4 md:p-6 rounded-3xl shadow-section">
+      <div className="bg-white p-3 sm:p-4 md:p-6 rounded-2xl md:rounded-3xl shadow-section">
         <StudentsList students={students} instituteId={instituteId} />
       </div>
     </div>

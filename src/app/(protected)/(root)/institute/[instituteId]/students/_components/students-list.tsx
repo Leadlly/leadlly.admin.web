@@ -238,11 +238,11 @@ export default function StudentsList({
           )}
         </div>
 
-        <div className="flex gap-2 shrink-0">
+        <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
             size="sm"
-            className="gap-1.5 h-10 px-3"
+            className="gap-1.5 h-10 px-3 flex-1 sm:flex-none min-w-0"
             onClick={() => setFiltersOpen((v) => !v)}
           >
             <SlidersHorizontal className="h-4 w-4" />
@@ -258,7 +258,7 @@ export default function StudentsList({
           </Button>
 
           <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="h-10 w-44 shadow-none text-sm">
+            <SelectTrigger className="h-10 w-full min-w-0 flex-1 sm:w-44 shadow-none text-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -270,7 +270,7 @@ export default function StudentsList({
             </SelectContent>
           </Select>
 
-          <div className="flex border rounded-md overflow-hidden">
+          <div className="flex shrink-0 border rounded-md overflow-hidden">
             <button
               onClick={() => setViewMode("grid")}
               className={`px-2.5 py-2 ${viewMode === "grid" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
