@@ -491,7 +491,7 @@ export default function TeachersPage() {
                   </p>
                   {teacher.contact ? (
                     <p className="text-gray-500 text-[11px] mt-0.5 truncate">
-                      {teacher.contact}
+                      Phone: {teacher.contact}
                     </p>
                   ) : null}
                 </div>

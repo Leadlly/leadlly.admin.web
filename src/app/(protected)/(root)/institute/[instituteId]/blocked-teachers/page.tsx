@@ -26,6 +26,8 @@ type BlockedTeacher = {
   firstname?: string | null;
   lastname?: string | null;
   email?: string | null;
+  subjects?: string[] | null;
+  phone?: { personal?: number | null; other?: number | null } | null;
   academic?: { degree?: string | null; schoolOrCollegeName?: string | null } | null;
   blockedAt?: string | null;
 };
@@ -112,7 +114,13 @@ export default function BlockedTeachersPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
           {teachers.map((teacher) => {
             const name = teacherName(teacher);
-            const subject = teacher.academic?.degree ?? teacher.academic?.schoolOrCollegeName ?? null;
+            const subject =
+              Array.isArray(teacher.subjects) && teacher.subjects.length
+                ? teacher.subjects.filter(Boolean).join(", ")
+                : teacher.academic?.degree ??
+                  teacher.academic?.schoolOrCollegeName ??
+                  null;
+            const phone = teacher.phone?.personal ?? teacher.phone?.other ?? "";
             const blockedDate = teacher.blockedAt
               ? new Date(teacher.blockedAt).toLocaleDateString("en-IN", {
                   day: "numeric",
@@ -147,6 +155,11 @@ export default function BlockedTeachersPage() {
                       <span className="text-gray-500">Email:</span> {teacher.email}
                     </p>
                   )}
+                  {phone ? (
+                    <p className="truncate mb-0.5">
+                      <span className="text-gray-500">Phone:</span> {phone}
+                    </p>
+                  ) : null}
                   {blockedDate && (
                     <p>
                       <span className="text-gray-500">Blocked on:</span> {blockedDate}

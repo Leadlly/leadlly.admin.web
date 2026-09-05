@@ -23,7 +23,21 @@ interface Teacher {
   firstname?: string | null;
   lastname?: string | null;
   email?: string | null;
+  subjects?: string[] | null;
+  phone?: { personal?: number | null; other?: number | null } | null;
   academic?: { degree?: string | null; schoolOrCollegeName?: string | null } | null;
+}
+
+function teacherSubjects(t: Teacher) {
+  if (Array.isArray(t.subjects) && t.subjects.length) {
+    return t.subjects.filter(Boolean).join(", ");
+  }
+  return t.academic?.degree ?? t.academic?.schoolOrCollegeName ?? "";
+}
+
+function teacherPhone(t: Teacher) {
+  const value = t.phone?.personal ?? t.phone?.other;
+  return value != null && String(value).trim() !== "" ? String(value) : "";
 }
 
 interface AssignTeacherDialogProps {
@@ -127,8 +141,16 @@ export default function AssignTeacherDialog({
   const filtered = allTeachers.filter((t) => {
     const name = teacherDisplayName(t).toLowerCase();
     const email = (t.email ?? "").toLowerCase();
+    const subjects = teacherSubjects(t).toLowerCase();
+    const phone = teacherPhone(t);
     const q = search.trim().toLowerCase();
-    return !q || name.includes(q) || email.includes(q);
+    return (
+      !q ||
+      name.includes(q) ||
+      email.includes(q) ||
+      subjects.includes(q) ||
+      phone.includes(q)
+    );
   });
 
   return (
@@ -151,8 +173,7 @@ export default function AssignTeacherDialog({
             <div className="flex flex-wrap gap-2">
               {assignedTeachers.map((t) => {
                 const name = teacherDisplayName(t);
-                const subject =
-                  t.academic?.degree ?? t.academic?.schoolOrCollegeName ?? "";
+                const subject = teacherSubjects(t);
                 return (
                   <div
                     key={t._id}
@@ -216,10 +237,8 @@ export default function AssignTeacherDialog({
             <div className="space-y-2">
               {filtered.map((teacher) => {
                 const name = teacherDisplayName(teacher);
-                const subject =
-                  teacher.academic?.degree ??
-                  teacher.academic?.schoolOrCollegeName ??
-                  "";
+                const subject = teacherSubjects(teacher);
+                const phone = teacherPhone(teacher);
                 const isSelected = selectedIds.includes(teacher._id);
 
                 return (
@@ -241,9 +260,11 @@ export default function AssignTeacherDialog({
                       >
                         {name}
                       </p>
-                      {(teacher.email || subject) && (
+                      {(subject || phone || teacher.email) && (
                         <p className="text-[11px] text-gray-400 truncate mt-0.5">
-                          {[subject, teacher.email].filter(Boolean).join(" · ")}
+                          {[subject, phone, teacher.email]
+                            .filter(Boolean)
+                            .join(" · ")}
                         </p>
                       )}
                     </div>
