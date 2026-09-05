@@ -67,6 +67,7 @@ interface Teacher {
   subjects: string[];
   email: string;
   contact: string;
+  teacherCode: string;
   assignedBatchIds: string[];
 }
 
@@ -144,6 +145,7 @@ export default function TeachersPage() {
             : [],
           email: t.email ?? "",
           contact: getTeacherPhone(t.phone),
+          teacherCode: (t.teacherCode ?? "").toString().trim(),
           assignedBatchIds: [] as string[],
         }));
 
@@ -339,11 +341,13 @@ export default function TeachersPage() {
       const contact = String(t.contact ?? "")
         .toLowerCase()
         .replace(/\s+/g, "");
+      const teacherCode = (t.teacherCode ?? "").toLowerCase();
       return (
         name.includes(q) ||
         subject.includes(q) ||
         email.includes(q) ||
-        contact.includes(q.replace(/\s+/g, ""))
+        contact.includes(q.replace(/\s+/g, "")) ||
+        teacherCode.includes(q)
       );
     });
   }, [teachers, searchTerm, selectedSubject, selectedBatchFilter]);
@@ -481,9 +485,16 @@ export default function TeachersPage() {
                   {teacher.name.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-sm text-gray-900 truncate">
-                    {teacher.name}
-                  </h3>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <h3 className="font-bold text-sm text-gray-900 truncate">
+                      {teacher.name}
+                    </h3>
+                    {teacher.teacherCode ? (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-purple-100 text-purple-700">
+                        {teacher.teacherCode}
+                      </span>
+                    ) : null}
+                  </div>
                   <p className="text-gray-400 text-[11px] font-medium mt-0.5 truncate">
                     {teacher.subjects.length
                       ? teacher.subjects.join(", ")

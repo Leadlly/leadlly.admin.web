@@ -76,6 +76,7 @@ export default function TeacherDetailPage() {
   const teacherSubjects: string[] = Array.isArray(teacher?.subjects)
     ? teacher.subjects.filter(Boolean)
     : [];
+  const teacherCode = (teacher?.teacherCode ?? "").toString().trim();
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-4 md:space-y-6">
@@ -88,7 +89,14 @@ export default function TeacherDetailPage() {
       </div>
 
       <div className="mb-2 space-y-2">
-        <h1 className="text-2xl md:text-3xl font-bold">{teacherName}</h1>
+        <div className="flex flex-wrap items-center gap-2">
+          <h1 className="text-2xl md:text-3xl font-bold">{teacherName}</h1>
+          {teacherCode ? (
+            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-purple-100 text-purple-700">
+              {teacherCode}
+            </span>
+          ) : null}
+        </div>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500">
           {teacher?.email ? (
             <span className="inline-flex items-center gap-1.5">
