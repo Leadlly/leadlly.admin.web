@@ -10,6 +10,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import EditInstituteForm from "@/components/edit-institute-form";
 import { toast } from "sonner";
 
+import ShareInstituteCode from "./ShareInstituteCode";
+
 interface InstituteOverviewProps {
   instituteId: string;
 }
@@ -107,6 +109,12 @@ const InstituteOverview = ({ instituteId }: InstituteOverviewProps) => {
                   <Eye className="w-4 h-4" aria-hidden />
                 )}
               </button>
+            ) : null}
+            {instituteCode.length > 0 ? (
+              <ShareInstituteCode
+                instituteName={activeInstitute?.institute?.name ?? ""}
+                instituteCode={instituteCode}
+              />
             ) : null}
           </div>
           {activeInstitute?.institute && (
