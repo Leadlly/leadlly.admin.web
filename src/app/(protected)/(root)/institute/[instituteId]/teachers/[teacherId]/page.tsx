@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, Mail, Phone, BookOpen } from "lucide-react";
 
 import { getTeacherDashboardById } from "@/actions/teacher_actions";
 import { Button } from "@/components/ui/button";
@@ -71,6 +71,11 @@ export default function TeacherDetailPage() {
   const teacher = dashboard.teacher;
   const teacherName =
     `${teacher?.firstname ?? ""} ${teacher?.lastname ?? ""}`.trim() || "Teacher";
+  const teacherPhone =
+    teacher?.phone?.personal ?? teacher?.phone?.other ?? "";
+  const teacherSubjects: string[] = Array.isArray(teacher?.subjects)
+    ? teacher.subjects.filter(Boolean)
+    : [];
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-4 md:space-y-6">
@@ -82,9 +87,35 @@ export default function TeacherDetailPage() {
         </Link>
       </div>
 
-      <div className="mb-2">
+      <div className="mb-2 space-y-2">
         <h1 className="text-2xl md:text-3xl font-bold">{teacherName}</h1>
-        {teacher?.email && <p className="text-gray-500 text-sm">{teacher.email}</p>}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500">
+          {teacher?.email ? (
+            <span className="inline-flex items-center gap-1.5">
+              <Mail className="size-3.5" />
+              {teacher.email}
+            </span>
+          ) : null}
+          {teacherPhone ? (
+            <span className="inline-flex items-center gap-1.5">
+              <Phone className="size-3.5" />
+              {teacherPhone}
+            </span>
+          ) : null}
+        </div>
+        {teacherSubjects.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <BookOpen className="size-3.5 text-gray-400" />
+            {teacherSubjects.map((subject) => (
+              <span
+                key={subject}
+                className="rounded-full bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 text-xs font-medium"
+              >
+                {subject}
+              </span>
+            ))}
+          </div>
+        ) : null}
       </div>
 
       <TeacherDashboardReport dashboard={dashboard} />

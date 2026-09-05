@@ -16,18 +16,23 @@ import {
 
 const MENTOR_APP_URL = "https://mentor.leadlly.in";
 
+const getInviteUrl = (instituteCode: string) =>
+  `${MENTOR_APP_URL}/signup?institutecode=${encodeURIComponent(instituteCode)}`;
+
 const getShareMessage = (instituteName: string, instituteCode: string) => {
   const name = instituteName.trim() || "our institute";
+  const inviteUrl = getInviteUrl(instituteCode);
 
   return `Dear Teacher,
 
 You have been invited to join ${name} on Leadlly as a faculty member.
 
-Please sign up or sign in at ${MENTOR_APP_URL} and enter the institute code below to join:
+Please open this link to sign up and join:
+${inviteUrl}
 
 Institute Code: ${instituteCode}
 
-If you already have a Leadlly teacher account, simply sign in and use the same code.
+If you already have a Leadlly teacher account, sign in from the same link and you will go straight to your dashboard.
 
 Kindly complete this at your earliest convenience so we can assign your classes.
 
@@ -47,12 +52,16 @@ const ShareInstituteCode = ({
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  const inviteUrl = useMemo(
+    () => (instituteCode ? getInviteUrl(instituteCode) : MENTOR_APP_URL),
+    [instituteCode]
+  );
   const message = useMemo(
     () => getShareMessage(instituteName, instituteCode),
     [instituteName, instituteCode]
   );
   const encodedMessage = encodeURIComponent(message);
-  const encodedUrl = encodeURIComponent(MENTOR_APP_URL);
+  const encodedUrl = encodeURIComponent(inviteUrl);
   const emailSubject = encodeURIComponent(
     `Invitation to join ${instituteName || "our institute"} on Leadlly`
   );
@@ -74,7 +83,7 @@ const ShareInstituteCode = ({
         await navigator.share({
           title: `${instituteName || "Institute"} — Teacher invitation`,
           text: message,
-          url: MENTOR_APP_URL,
+          url: inviteUrl,
         });
         return;
       } catch (error) {

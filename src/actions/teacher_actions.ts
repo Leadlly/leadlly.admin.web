@@ -17,6 +17,8 @@ type ApiTeacher = {
     schoolOrCollegeAddress?: string | null;
     degree?: string | null;
   } | null;
+  subjects?: string[] | null;
+  teacherCode?: string | null;
 };
 
 export async function getInstituteTeachers(

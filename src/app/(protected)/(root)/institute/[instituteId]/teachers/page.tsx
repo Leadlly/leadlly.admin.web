@@ -53,6 +53,8 @@ type ApiTeacher = {
   lastname?: string | null;
   email?: string | null;
   phone?: { personal?: number | null; other?: number | null } | null;
+  subjects?: string[] | null;
+  teacherCode?: string | null;
   academic?: {
     schoolOrCollegeName?: string | null;
     degree?: string | null;
@@ -62,11 +64,16 @@ type ApiTeacher = {
 interface Teacher {
   id: string;
   name: string;
-  subject: string;
+  subjects: string[];
   email: string;
   contact: string;
   assignedBatchIds: string[];
 }
+
+const getTeacherPhone = (phone?: ApiTeacher["phone"]) => {
+  const value = phone?.personal ?? phone?.other;
+  return value != null && String(value).trim() !== "" ? String(value) : "";
+};
 
 function batchLabel(b: ApiBatch) {
   const name = b.name ?? "Batch";
@@ -132,9 +139,11 @@ export default function TeachersPage() {
         const baseTeachers = (res.teachers ?? []).map((t: ApiTeacher) => ({
           id: String(t._id),
           name: `${t.firstname ?? ""} ${t.lastname ?? ""}`.trim() || "Teacher",
-          subject: (t.academic?.degree ?? t.academic?.schoolOrCollegeName ?? "—").toString(),
+          subjects: Array.isArray(t.subjects)
+            ? t.subjects.map((subject) => String(subject).trim()).filter(Boolean)
+            : [],
           email: t.email ?? "",
-          contact: String(t.phone?.personal ?? t.phone?.other ?? "—"),
+          contact: getTeacherPhone(t.phone),
           assignedBatchIds: [] as string[],
         }));
 
@@ -302,7 +311,9 @@ export default function TeachersPage() {
   // ── Teacher list filtering ────────────────────────────────────────────────
   const subjects = useMemo(() => {
     const set = new Set<string>();
-    for (const t of teachers) if (t.subject && t.subject !== "—") set.add(t.subject);
+    for (const t of teachers) {
+      t.subjects.forEach((subject) => set.add(subject));
+    }
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [teachers]);
 
@@ -310,7 +321,7 @@ export default function TeachersPage() {
     const q = searchTerm.trim().toLowerCase().replace(/\s+/g, " ");
     return teachers.filter((t) => {
       const matchesSub =
-        selectedSubject === "All" || t.subject === selectedSubject;
+        selectedSubject === "All" || t.subjects.includes(selectedSubject);
       if (!matchesSub) return false;
 
       const matchesBatch =
@@ -323,7 +334,7 @@ export default function TeachersPage() {
 
       if (!q) return true;
       const name = (t.name ?? "").toLowerCase().replace(/\s+/g, " ");
-      const subject = (t.subject ?? "").toLowerCase();
+      const subject = t.subjects.join(" ").toLowerCase();
       const email = (t.email ?? "").toLowerCase();
       const contact = String(t.contact ?? "")
         .toLowerCase()
@@ -474,8 +485,15 @@ export default function TeachersPage() {
                     {teacher.name}
                   </h3>
                   <p className="text-gray-400 text-[11px] font-medium mt-0.5 truncate">
-                    {teacher.subject !== "—" ? teacher.subject : "Teacher"}
+                    {teacher.subjects.length
+                      ? teacher.subjects.join(", ")
+                      : "No subjects"}
                   </p>
+                  {teacher.contact ? (
+                    <p className="text-gray-500 text-[11px] mt-0.5 truncate">
+                      {teacher.contact}
+                    </p>
+                  ) : null}
                 </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
