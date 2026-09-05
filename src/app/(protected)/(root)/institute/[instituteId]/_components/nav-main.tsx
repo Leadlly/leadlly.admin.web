@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { GraduationCap, Hash, IndianRupee, Library, LucideIcon } from "lucide-react";
-import { BookOpen, LayoutDashboard, Users } from "lucide-react";
+import { BookOpen, LayoutDashboard, Shield, Users } from "lucide-react";
 
 import {
   SidebarGroup,
@@ -51,6 +51,12 @@ const navItems = [
     label: "Student UIDs",
     icon: Hash,
     href: (id: string) => `/institute/${id}/uins`,
+    exact: false,
+  },
+  {
+    label: "Admins",
+    icon: Shield,
+    href: (id: string) => `/institute/${id}/admins`,
     exact: false,
   },
   {
