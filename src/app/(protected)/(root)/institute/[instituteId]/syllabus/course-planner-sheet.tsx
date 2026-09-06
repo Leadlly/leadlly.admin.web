@@ -12,12 +12,36 @@ import {
 } from "@/actions/chapter_plan_actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChapterPlanSheetRow } from "@/helpers/types/chapter-plan";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  ChapterPlanSheetRow,
+  ChapterSheetStatus,
+} from "@/helpers/types/chapter-plan";
 
-const statusStyles: Record<string, string> = {
-  DONE: "bg-emerald-50 text-emerald-700",
-  RUNNING: "bg-amber-50 text-amber-700",
+const STATUS_OPTIONS: Array<{ value: ChapterSheetStatus; label: string }> = [
+  { value: "not_started", label: "Not started" },
+  { value: "running", label: "Running" },
+  { value: "completed", label: "Completed" },
+];
+
+const statusStyles: Record<ChapterSheetStatus, string> = {
+  not_started: "text-gray-500",
+  running: "text-amber-700",
+  completed: "text-emerald-700",
 };
+
+function asChapterStatus(value: unknown): ChapterSheetStatus {
+  const raw = String(value || "").toLowerCase();
+  if (raw === "completed" || raw === "done" || raw === "finished") return "completed";
+  if (raw === "running") return "running";
+  return "not_started";
+}
 
 export function CoursePlannerSheet({
   batchId,
@@ -52,7 +76,12 @@ export function CoursePlannerSheet({
         ? dayjs(sheet.courseCompletionDate).format("YYYY-MM-DD")
         : ""
     );
-    setRows(sheet.rows || []);
+    setRows(
+      (sheet.rows || []).map((row) => ({
+        ...row,
+        chapterStatus: asChapterStatus(row.chapterStatus || row.sheetStatus),
+      }))
+    );
   }, [sheet]);
 
   const totalLectures = rows.reduce(
@@ -85,6 +114,7 @@ export function CoursePlannerSheet({
         expectedStartDate: row.expectedStartDate
           ? String(row.expectedStartDate).slice(0, 10)
           : null,
+        chapterStatus: row.chapterStatus || "not_started",
       })),
     });
     setSaving(false);
@@ -171,7 +201,7 @@ export function CoursePlannerSheet({
               <th className="p-3">Topic name / sequence</th>
               <th className="p-3 w-36">No of lectures</th>
               <th className="p-3 w-44">Topic start date</th>
-              <th className="p-3 w-28">Status</th>
+              <th className="p-3 w-44">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -213,15 +243,25 @@ export function CoursePlannerSheet({
                   />
                 </td>
                 <td className="p-3">
-                  {row.sheetStatus ? (
-                    <span
-                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyles[row.sheetStatus] || "bg-gray-100 text-gray-600"}`}
+                  <Select
+                    value={row.chapterStatus || "not_started"}
+                    onValueChange={(value: ChapterSheetStatus) =>
+                      updateRow(row.chapterId, { chapterStatus: value, sheetStatus: value })
+                    }
+                  >
+                    <SelectTrigger
+                      className={`h-9 ${statusStyles[row.chapterStatus || "not_started"]}`}
                     >
-                      {row.sheetStatus}
-                    </span>
-                  ) : (
-                    <span className="text-gray-300">—</span>
-                  )}
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STATUS_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </td>
               </tr>
             ))}

@@ -1,10 +1,13 @@
 export type ChapterPace = "on-track" | "behind" | "ahead";
 
+export type ChapterSheetStatus = "not_started" | "running" | "completed";
+
 export interface PlannedChapterInput {
   chapterId: string;
   sequenceOrder?: number;
   plannedLectureCount: number;
   expectedStartDate?: string | null;
+  chapterStatus?: ChapterSheetStatus;
 }
 
 export interface ComparedChapter {
@@ -39,6 +42,7 @@ export interface ChapterPlanRecord {
     sequenceOrder: number;
     plannedLectureCount: number;
     expectedStartDate: string | null;
+    chapterStatus?: ChapterSheetStatus;
   }>;
   createdAt: string;
   updatedAt: string;
@@ -52,7 +56,8 @@ export interface ChapterPlanSheetRow {
   expectedStartDate: string | null;
   actualLectureCount: number;
   actualStartDate: string | null;
-  sheetStatus: string;
+  chapterStatus: ChapterSheetStatus;
+  sheetStatus: ChapterSheetStatus | string;
   pace: ChapterPace;
 }
 
