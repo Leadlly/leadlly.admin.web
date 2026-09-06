@@ -76,6 +76,15 @@ const Page = ({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 lg:gap-8">
           <div className="space-y-4 md:space-y-6 lg:space-y-8">
             <div className="space-y-2 md:space-y-3">
+              <div className="flex items-center justify-between px-1">
+                <span className="text-sm text-gray-500">Chapter plan vs actual</span>
+                <Link
+                  href={`${base}/syllabus${query ? `?${query}` : ""}`}
+                  className="text-sm font-semibold text-[#A855F7] hover:underline"
+                >
+                  View comparison
+                </Link>
+              </div>
               <div className="bg-white border border-[#F2E0FF] rounded-[28px] md:rounded-[32px] p-6 md:p-8 shadow-sm">
                 <h2 className="text-xl md:text-2xl font-bold text-gray-900 tracking-tight mb-8">
                   Syllabus Completed

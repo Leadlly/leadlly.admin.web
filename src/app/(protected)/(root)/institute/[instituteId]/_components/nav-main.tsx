@@ -5,7 +5,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { GraduationCap, Hash, IndianRupee, Library, LucideIcon } from "lucide-react";
+import { GraduationCap, Hash, IndianRupee, Library, ListChecks, LucideIcon } from "lucide-react";
 import { BookOpen, LayoutDashboard, Shield, Users } from "lucide-react";
 
 import {
@@ -63,6 +63,12 @@ const navItems = [
     label: "Question Bank",
     icon: Library,
     href: (id: string) => `/institute/${id}/question-bank`,
+    exact: false,
+  },
+  {
+    label: "Chapter plans",
+    icon: ListChecks,
+    href: (id: string) => `/institute/${id}/syllabus`,
     exact: false,
   },
 ];
