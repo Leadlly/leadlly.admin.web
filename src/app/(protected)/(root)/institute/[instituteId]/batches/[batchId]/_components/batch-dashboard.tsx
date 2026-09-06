@@ -147,6 +147,7 @@ export default function BatchDashboard({
           batchName={batch.name}
           standard={batch.standard}
           subjects={batch.subjects}
+          classSubjects={(classes || []).map((cls: { subject?: string }) => cls.subject || "")}
         />
       )}
 
