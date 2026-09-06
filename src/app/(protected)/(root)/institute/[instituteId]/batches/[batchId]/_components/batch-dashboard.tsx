@@ -20,6 +20,8 @@ import {
 } from "@/helpers/constants/academic";
 import { Button } from "@/components/ui/button";
 
+import { BatchCoursePlanner } from "./batch-course-planner";
+
 function getTeacherName(teachers: any): string | null {
   const teacher = Array.isArray(teachers) ? teachers[0] : teachers;
   if (!teacher || typeof teacher !== "object") return null;
@@ -34,6 +36,7 @@ interface BatchDashboardProps {
 
 const TABS = [
   { id: "report", label: "Report" },
+  { id: "course_planner", label: "Course planner" },
   { id: "students", label: "Students" },
   { id: "classes", label: "Classes" },
 ];
@@ -137,6 +140,15 @@ export default function BatchDashboard({
           </button>
         ))}
       </div>
+
+      {activeTab === "course_planner" && (
+        <BatchCoursePlanner
+          batchId={batchId}
+          batchName={batch.name}
+          standard={batch.standard}
+          subjects={batch.subjects}
+        />
+      )}
 
       {/* Report Tab */}
       {activeTab === "report" && (

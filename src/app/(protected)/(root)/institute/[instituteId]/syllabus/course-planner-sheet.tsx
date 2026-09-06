@@ -48,11 +48,13 @@ export function CoursePlannerSheet({
   subject,
   batchName,
   standard,
+  readOnly = false,
 }: {
   batchId: string;
   subject: string;
   batchName?: string;
   standard?: string;
+  readOnly?: boolean;
 }) {
   const queryClient = useQueryClient();
   const [weeklyLoad, setWeeklyLoad] = useState("5");
@@ -155,11 +157,15 @@ export function CoursePlannerSheet({
         </p>
         <div className="mt-2 flex items-center justify-center gap-2 text-sm text-gray-600">
           <span>Academic session</span>
-          <Input
-            value={session}
-            onChange={(e) => setSession(e.target.value)}
-            className="h-8 w-[140px] text-center"
-          />
+          {readOnly ? (
+            <span className="font-semibold text-gray-800">{session || "—"}</span>
+          ) : (
+            <Input
+              value={session}
+              onChange={(e) => setSession(e.target.value)}
+              className="h-8 w-[140px] text-center"
+            />
+          )}
         </div>
         <h2 className="mt-3 text-lg md:text-xl font-bold text-gray-900">
           {subject.toUpperCase()}
@@ -172,24 +178,34 @@ export function CoursePlannerSheet({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 px-5 py-4 border-b">
         <div>
           <label className="text-xs font-medium text-gray-500">No. of lectures / week</label>
-          <Input
-            type="number"
-            min="0"
-            value={weeklyLoad}
-            onChange={(e) => setWeeklyLoad(e.target.value)}
-            className="mt-1"
-          />
+          {readOnly ? (
+            <p className="mt-1 text-sm font-semibold text-gray-900">{weeklyLoad || "—"} L/W</p>
+          ) : (
+            <Input
+              type="number"
+              min="0"
+              value={weeklyLoad}
+              onChange={(e) => setWeeklyLoad(e.target.value)}
+              className="mt-1"
+            />
+          )}
         </div>
         <div>
           <label className="text-xs font-medium text-gray-500">
             Syllabus end / course completion date
           </label>
-          <Input
-            type="date"
-            value={completionDate}
-            onChange={(e) => setCompletionDate(e.target.value)}
-            className="mt-1"
-          />
+          {readOnly ? (
+            <p className="mt-1 text-sm font-semibold text-gray-900">
+              {completionDate ? dayjs(completionDate).format("DD MMMM YYYY") : "—"}
+            </p>
+          ) : (
+            <Input
+              type="date"
+              value={completionDate}
+              onChange={(e) => setCompletionDate(e.target.value)}
+              className="mt-1"
+            />
+          )}
         </div>
       </div>
 
@@ -210,17 +226,23 @@ export function CoursePlannerSheet({
                 <td className="p-3 font-semibold text-[#A855F7]">{index + 1}</td>
                 <td className="p-3 font-medium text-gray-900">{row.topicName}</td>
                 <td className="p-3">
-                  <Input
-                    type="number"
-                    min="0"
-                    value={row.plannedLectureCount || ""}
-                    onChange={(e) =>
-                      updateRow(row.chapterId, {
-                        plannedLectureCount: Number(e.target.value) || 0,
-                      })
-                    }
-                    placeholder="—"
-                  />
+                  {readOnly ? (
+                    <p className="font-medium text-gray-900">
+                      {row.plannedLectureCount || "—"}
+                    </p>
+                  ) : (
+                    <Input
+                      type="number"
+                      min="0"
+                      value={row.plannedLectureCount || ""}
+                      onChange={(e) =>
+                        updateRow(row.chapterId, {
+                          plannedLectureCount: Number(e.target.value) || 0,
+                        })
+                      }
+                      placeholder="—"
+                    />
+                  )}
                   {row.actualLectureCount > 0 ? (
                     <p className="mt-1 text-[11px] text-gray-400">
                       {row.actualLectureCount} logged
@@ -228,40 +250,63 @@ export function CoursePlannerSheet({
                   ) : null}
                 </td>
                 <td className="p-3">
-                  <Input
-                    type="date"
-                    value={
-                      row.expectedStartDate
-                        ? String(row.expectedStartDate).slice(0, 10)
-                        : ""
-                    }
-                    onChange={(e) =>
-                      updateRow(row.chapterId, {
-                        expectedStartDate: e.target.value || null,
-                      })
-                    }
-                  />
+                  {readOnly ? (
+                    <p className="text-gray-800">
+                      {row.expectedStartDate
+                        ? dayjs(row.expectedStartDate).format("DD MMM YYYY")
+                        : "—"}
+                    </p>
+                  ) : (
+                    <Input
+                      type="date"
+                      value={
+                        row.expectedStartDate
+                          ? String(row.expectedStartDate).slice(0, 10)
+                          : ""
+                      }
+                      onChange={(e) =>
+                        updateRow(row.chapterId, {
+                          expectedStartDate: e.target.value || null,
+                        })
+                      }
+                    />
+                  )}
                 </td>
                 <td className="p-3">
-                  <Select
-                    value={row.chapterStatus || "not_started"}
-                    onValueChange={(value: ChapterSheetStatus) =>
-                      updateRow(row.chapterId, { chapterStatus: value, sheetStatus: value })
-                    }
-                  >
-                    <SelectTrigger
-                      className={`h-9 ${statusStyles[row.chapterStatus || "not_started"]}`}
+                  {readOnly ? (
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                        row.chapterStatus === "completed"
+                          ? "bg-emerald-50 text-emerald-700"
+                          : row.chapterStatus === "running"
+                            ? "bg-amber-50 text-amber-700"
+                            : "bg-gray-100 text-gray-500"
+                      }`}
                     >
-                      <SelectValue placeholder="Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {STATUS_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                      {STATUS_OPTIONS.find((option) => option.value === row.chapterStatus)?.label ||
+                        "Not started"}
+                    </span>
+                  ) : (
+                    <Select
+                      value={row.chapterStatus || "not_started"}
+                      onValueChange={(value: ChapterSheetStatus) =>
+                        updateRow(row.chapterId, { chapterStatus: value, sheetStatus: value })
+                      }
+                    >
+                      <SelectTrigger
+                        className={`h-9 ${statusStyles[row.chapterStatus || "not_started"]}`}
+                      >
+                        <SelectValue placeholder="Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {STATUS_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </td>
               </tr>
             ))}
@@ -280,13 +325,15 @@ export function CoursePlannerSheet({
             {completionDate ? dayjs(completionDate).format("DD MMMM YYYY") : "—"}
           </p>
         </div>
-        <Button
-          onClick={handleSave}
-          disabled={saving}
-          className="bg-[#A855F7] hover:bg-[#9333EA]"
-        >
-          {saving ? "Saving..." : "Save planner"}
-        </Button>
+        {readOnly ? null : (
+          <Button
+            onClick={handleSave}
+            disabled={saving}
+            className="bg-[#A855F7] hover:bg-[#9333EA]"
+          >
+            {saving ? "Saving..." : "Save planner"}
+          </Button>
+        )}
       </div>
     </div>
   );

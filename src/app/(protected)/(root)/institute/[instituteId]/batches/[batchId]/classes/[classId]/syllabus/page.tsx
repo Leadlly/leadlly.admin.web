@@ -56,6 +56,7 @@ export default function AdminClassChapterPlanPage({
         subject={subject}
         batchName={batchName}
         standard={standard}
+        readOnly
       />
     </div>
   );
