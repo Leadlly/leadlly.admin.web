@@ -4,6 +4,7 @@ import {
   ChapterPlanComparison,
   ChapterPlanListRow,
   ChapterPlanRecord,
+  ChapterPlanSheet,
   PlannedChapterInput,
 } from "@/helpers/types/chapter-plan";
 
@@ -87,6 +88,57 @@ export const getPlanChapters = async (batchId: string, subject: string) => {
     return await res.json();
   } catch {
     return { success: false, chapters: [] };
+  }
+};
+
+export const getChapterPlanSheet = async (
+  batchId: string,
+  subject: string
+): Promise<ChapterPlanSheet> => {
+  try {
+    const res = await fetch(
+      `${API}/api/chapter-plan/admin/sheet?batchId=${batchId}&subject=${encodeURIComponent(subject)}`,
+      {
+        headers: await headers(),
+        credentials: "include",
+        cache: "no-store",
+      }
+    );
+    return await res.json();
+  } catch {
+    return {
+      success: false,
+      batch: { _id: "", name: "", standard: "", subjects: [] },
+      subject,
+      plan: null,
+      rows: [],
+      weeklyLectureLoad: 5,
+      academicSession: "",
+      courseCompletionDate: null,
+      totalLecturesRequired: 0,
+      message: "Failed to load course planner",
+    };
+  }
+};
+
+export const saveChapterPlanSheet = async (payload: {
+  batchId: string;
+  subject: string;
+  weeklyLectureLoad: number;
+  academicSession?: string;
+  courseCompletionDate?: string | null;
+  chapters: PlannedChapterInput[];
+}) => {
+  try {
+    const res = await fetch(`${API}/api/chapter-plan/admin/sheet`, {
+      method: "POST",
+      headers: await headers(),
+      credentials: "include",
+      body: JSON.stringify(payload),
+    });
+    return await res.json();
+  } catch {
+    return { success: false, message: "Failed to save course planner" };
   }
 };
 

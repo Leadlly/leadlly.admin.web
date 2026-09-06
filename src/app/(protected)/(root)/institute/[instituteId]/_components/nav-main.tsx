@@ -66,7 +66,7 @@ const navItems = [
     exact: false,
   },
   {
-    label: "Chapter plans",
+    label: "Course planner",
     icon: ListChecks,
     href: (id: string) => `/institute/${id}/syllabus`,
     exact: false,
