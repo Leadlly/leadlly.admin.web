@@ -32,7 +32,7 @@ export interface QBQuestion {
   _id: string;
   question: string;
   options: QBOption[];
-  answer: string;
+  answer?: string | string[] | number;
   subject: string;
   chapter: string[];
   topics: string[];

@@ -374,33 +374,15 @@ export default function QuestionBankClient() {
     if (!allQs.length) return;
     setGeneratingPdf(true);
 
-    // Build finest-grained filter label: subtopic > topic > chapter > subject
-    let filterLabel: string | undefined;
-    if (selectedSubtopicIds.length > 0) {
-      const names = allSubtopics
-        .filter((s) => selectedSubtopicIds.includes(s._id))
-        .map((s) => s.name);
-      filterLabel = names.join(", ");
-    } else if (selectedTopicIds.length > 0) {
-      const allTopicsFlat = Object.values(topicsMap).flat();
-      const names = allTopicsFlat
-        .filter((t) => selectedTopicIds.includes(t._id))
-        .map((t) => t.name);
-      filterLabel = names.join(", ");
-    } else if (selectedChapterIds.length > 0) {
-      const names = chapters
-        .filter((c) => selectedChapterIds.includes(c._id))
-        .map((c) => c.name);
-      filterLabel = names.join(", ");
-    } else {
-      filterLabel = subject;
-    }
+    const chapterNames = chapters
+      .filter((c) => selectedChapterIds.includes(c._id))
+      .map((c) => c.name);
 
     await generateQuestionBankPdf(allQs, {
       subject,
       standard,
-      title: `${subject} — Question Bank`,
-      filterLabel,
+      title: `${subject} - Question Bank`,
+      chapterNames,
       logoUrl: instituteLogo,
       instituteName,
     });
