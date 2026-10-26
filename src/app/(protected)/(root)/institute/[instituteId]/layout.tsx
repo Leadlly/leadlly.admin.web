@@ -6,6 +6,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 
 import InstituteSidebar from "./_components/institute-sidebar";
 import MobileBottomNav from "./_components/mobile-bottom-nav";
+import SectionLockGate from "./_components/section-lock-gate";
 
 const InstituteLayout = async ({
   children,
@@ -36,7 +37,7 @@ const InstituteLayout = async ({
           data-institute-content
           className="custom__scrollbar w-full min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-3 pb-[calc(4.5rem+env(safe-area-inset-bottom))] pt-3 sm:px-4 md:pb-10 md:px-6 lg:px-8"
         >
-          {children}
+          <SectionLockGate instituteId={instituteId}>{children}</SectionLockGate>
         </main>
       </div>
       <MobileBottomNav instituteId={instituteId} />
